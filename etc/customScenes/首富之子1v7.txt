@@ -1,0 +1,9 @@
+
+general:entertainmentrichson role:lord starter:true 
+general:select role:rebel 
+general:select role:rebel 
+general:select role:rebel 
+general:select role:rebel 
+general:select role:rebel 
+general:select role:rebel 
+general:select role:rebel 

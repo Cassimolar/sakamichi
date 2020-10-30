@@ -11,6 +11,7 @@
 #include "wrapped-card.h"
 #include "room.h"
 #include "roomthread.h"
+#include "maneuvering.h"
 
 #include "json.h"
 
@@ -94,7 +95,7 @@ public:
                         room->damage(DamageStruct(objectName(), zhangjiao, target, 1, DamageStruct::Thunder));
                 }
             }
-        } else if (triggerEvent == DamageCaused && zhangjiao->isAlive() && zhangjiao->isWounded()) {
+        } else if (triggerEvent == DamageCaused && zhangjiao->isAlive()) {
             DamageStruct damage = data.value<DamageStruct>();
             if (damage.reason == objectName() && !damage.chain)
                 room->recover(zhangjiao, RecoverStruct(zhangjiao));
@@ -123,6 +124,8 @@ void HuangtianCard::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> 
             int index = qrand() % 2 + 1;
             if (Player::isNostalGeneral(zhangjiao, "zhangjiao"))
                 index += 2;
+            else if (zhangjiao->isJieGeneral())
+                index += 4;
             room->broadcastSkillInvoke("huangtian", index);
         }
 
@@ -193,7 +196,7 @@ public:
             || (triggerEvent == EventAcquireSkill && data.toString() == "huangtian")) {
             QList<ServerPlayer *> lords;
             foreach (ServerPlayer *p, room->getAlivePlayers()) {
-                if (p->hasLordSkill(this))
+                if (p->hasLordSkill(this, true))
                     lords << p;
             }
             if (lords.isEmpty()) return false;
@@ -204,13 +207,13 @@ public:
             else
                 players = room->getOtherPlayers(lords.first());
             foreach (ServerPlayer *p, players) {
-                if (!p->hasSkill("huangtian_attach"))
+                if (!p->hasSkill("huangtian_attach", true))
                     room->attachSkillToPlayer(p, "huangtian_attach");
             }
         } else if (triggerEvent == EventLoseSkill && data.toString() == "huangtian") {
             QList<ServerPlayer *> lords;
             foreach (ServerPlayer *p, room->getAlivePlayers()) {
-                if (p->hasLordSkill(this))
+                if (p->hasLordSkill(this, true))
                     lords << p;
             }
             if (lords.length() > 2) return false;
@@ -221,7 +224,7 @@ public:
             else
                 players << lords.first();
             foreach (ServerPlayer *p, players) {
-                if (p->hasSkill("huangtian_attach"))
+                if (p->hasSkill("huangtian_attach", true))
                     room->detachSkillFromPlayer(p, "huangtian_attach", true);
             }
         } else if (triggerEvent == EventPhaseChanging) {
@@ -379,7 +382,7 @@ public:
         room->broadcastSkillInvoke(objectName());
         player->drawCards(1, objectName());
 
-        const Card *card = room->askForUseCard(player, "TrickCard+^Nullification,EquipCard|.|.|hand", "@jiewei");
+        const Card *card = room->askForUseCard(player, "TrickCard+^Nullification+^Suijiyingbian,EquipCard|.|.|hand", "@jiewei");
         if (!card) return false;
 
         QList<ServerPlayer *> targets;
@@ -740,9 +743,35 @@ GuhuoDialog::GuhuoDialog(const QString &object, bool left, bool right, bool play
     connect(group, SIGNAL(buttonClicked(QAbstractButton *)), this, SLOT(selectCard(QAbstractButton *)));
 }
 
+bool GuhuoDialog::MarkJudge(const QString &button_name) const
+{
+    bool judge = true;
+    QString mark = objectName() + "_guhuo_remove_" + button_name;
+    foreach (QString m, Self->getMarkNames()) {
+        if (m.startsWith(mark) && Self->getMark(m) > 0) {
+            judge = false;
+            break;
+        }
+    }
+    return judge;
+}
+
 bool GuhuoDialog::isButtonEnabled(const QString &button_name) const
 {
+    if (!MarkJudge(button_name)) return false;
     const Card *card = map[button_name];
+
+    if (objectName() == "dunshi") {
+        if (card->isKindOf("Slash") && Self->getMark("dunshi_used_slash") > 0) return false;
+        if (Self->getMark("dunshi_used_" + card->objectName()) > 0) return false;
+    }
+
+    if (objectName().endsWith("jingong")) {
+        QString property_name = objectName() + "_tricks";
+        QStringList trick_names = Self->property(property_name.toStdString().c_str()).toString().split("+");
+        return trick_names.contains(card->objectName()) && !Self->isCardLimited(card, Card::MethodUse) && card->isAvailable(Self);
+    }
+
     QString allowings = Self->property("allowed_guhuo_dialog_buttons").toString();
     if (allowings.isEmpty())
         return !Self->isCardLimited(card, Card::MethodUse, true) && card->isAvailable(Self);
@@ -759,6 +788,11 @@ void GuhuoDialog::popup()
     // for zhanyi
 
     if (objectName() == "zhanyi" && Self->getMark("ViewAsSkill_zhanyiEffect") == 0) {
+        emit onButtonClick();
+        return;
+    }
+
+    if (objectName() == "secondzhanyi" && Self->getMark("ViewAsSkill_secondzhanyiEffect-PlayClear") == 0) {
         emit onButtonClick();
         return;
     }
@@ -813,20 +847,41 @@ QGroupBox *GuhuoDialog::createLeft()
 
     QVBoxLayout *layout = new QVBoxLayout;
 
-    QList<const Card *> cards = Sanguosha->findChildren<const Card *>();
-    foreach (const Card *card, cards) {
-        if (card->getTypeId() == Card::TypeBasic && !map.contains(card->objectName())
-            && !ServerInfo.Extensions.contains("!" + card->getPackage())
-            && !(slash_combined && map.contains("slash") && card->objectName().contains("slash"))) {
-            Card *c = Sanguosha->cloneCard(card->objectName());
+    if (objectName() == "wuxinghelingshan") {
+        QList<const NatureSlash *> cards = Sanguosha->findChildren<const NatureSlash *>();
+        foreach (const Card *card, cards) {
+            if (card->objectName().startsWith("_")) continue;
+            if (!map.contains(card->objectName()) && !ServerInfo.Extensions.contains("!" + card->getPackage())) {
+                Card *c = Sanguosha->cloneCard(card->objectName());
+                c->setParent(this);
+                layout->addWidget(createButton(c));
+            }
+        }
+    } else if (objectName() == "dunshi") {
+        QStringList cards;
+        cards << "slash" << "jink" << "peach" << "analeptic";
+        foreach (QString card, cards) {
+            Card *c = Sanguosha->cloneCard(card);
             c->setParent(this);
             layout->addWidget(createButton(c));
+        }
+    } else {
+        QList<const Card *> cards = Sanguosha->findChildren<const Card *>();
+        foreach (const Card *card, cards) {
+            if (card->objectName().startsWith("_")) continue;
+            if (card->getTypeId() == Card::TypeBasic && !map.contains(card->objectName())
+                && !ServerInfo.Extensions.contains("!" + card->getPackage())
+                && !(slash_combined && map.contains("slash") && card->objectName().contains("slash"))) {
+                Card *c = Sanguosha->cloneCard(card->objectName());
+                c->setParent(this);
+                layout->addWidget(createButton(c));
 
-            if (!slash_combined && card->objectName() == "slash"
-                && !ServerInfo.Extensions.contains("!maneuvering")) {
-                Card *c2 = Sanguosha->cloneCard(card->objectName());
-                c2->setParent(this);
-                layout->addWidget(createButton(c2));
+                if (!slash_combined && card->objectName() == "slash"
+                    && !ServerInfo.Extensions.contains("!maneuvering")) {
+                    Card *c2 = Sanguosha->cloneCard(card->objectName());
+                    c2->setParent(this);
+                    layout->addWidget(createButton(c2));
+                }
             }
         }
     }
@@ -851,7 +906,9 @@ QGroupBox *GuhuoDialog::createRight()
     QVBoxLayout *layout3 = new QVBoxLayout;
 
     QList<const Card *> cards = Sanguosha->findChildren<const Card *>();
+
     foreach (const Card *card, cards) {
+        if (card->objectName().startsWith("_")) continue;
         if (card->getTypeId() == Card::TypeTrick && (delayed_tricks || card->isNDTrick())
             && !map.contains(card->objectName())
             && !ServerInfo.Extensions.contains("!" + card->getPackage())) {
@@ -868,6 +925,20 @@ QGroupBox *GuhuoDialog::createRight()
                 layout = layout2;
             layout->addWidget(createButton(c));
         }
+    }
+
+    if (objectName().endsWith("jingong")) {
+        Card *c = Sanguosha->cloneCard("__meirenji");
+        if (c) {
+            c->setParent(this);
+            layout1->addWidget(createButton(c));
+        }
+        Card *c2 = Sanguosha->cloneCard("__xiaolicangdao");
+        if (c2) {
+            c2->setParent(this);
+            layout1->addWidget(createButton(c2));
+        }
+
     }
 
     box->setLayout(layout);
@@ -1076,12 +1147,18 @@ const Card *GuhuoCard::validate(CardUseStruct &card_use) const
     Room *room = yuji->getRoom();
 
     QString to_guhuo = user_string;
-    if (user_string == "slash"
+    if ((user_string.contains("slash") || (user_string.contains("Slash")))
         && Sanguosha->currentRoomState()->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_RESPONSE_USE) {
         QStringList guhuo_list;
-        guhuo_list << "slash";
-        if (!Config.BanPackages.contains("maneuvering"))
-            guhuo_list << "normal_slash" << "thunder_slash" << "fire_slash";
+        QList<const Slash *> slashs = Sanguosha->findChildren<const Slash *>();
+        foreach (const Slash *slash, slashs) {
+            QString name = slash->objectName();
+            if (guhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + slash->getPackage())) continue;
+            guhuo_list << name;
+        }
+
+        if (guhuo_list.isEmpty())
+            guhuo_list << "slash";
         to_guhuo = room->askForChoice(yuji, "guhuo_slash", guhuo_list.join("+"));
         yuji->tag["GuhuoSlash"] = QVariant(to_guhuo);
     }
@@ -1172,16 +1249,36 @@ const Card *GuhuoCard::validateInResponse(ServerPlayer *yuji) const
     QString to_guhuo;
     if (user_string == "peach+analeptic") {
         QStringList guhuo_list;
-        guhuo_list << "peach";
-        if (!Config.BanPackages.contains("maneuvering"))
-            guhuo_list << "analeptic";
+        QList<const Peach *> peachs = Sanguosha->findChildren<const Peach *>();
+        foreach (const Peach *peach, peachs) {
+            QString name = peach->objectName();
+            if (guhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + peach->getPackage())) continue;
+            guhuo_list << name;
+            break;
+        }
+        QList<const Analeptic *> anas = Sanguosha->findChildren<const Analeptic *>();
+        foreach (const Analeptic *ana, anas) {
+            QString name = ana->objectName();
+            if (guhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + ana->getPackage())) continue;
+            guhuo_list << name;
+            break;
+        }
+
+        if (guhuo_list.isEmpty())
+            guhuo_list << "peach";
         to_guhuo = room->askForChoice(yuji, "guhuo_saveself", guhuo_list.join("+"));
         yuji->tag["GuhuoSaveSelf"] = QVariant(to_guhuo);
-    } else if (user_string == "slash") {
+    } else if (user_string.contains("slash") || user_string.contains("Slash")) {
         QStringList guhuo_list;
-        guhuo_list << "slash";
-        if (!Config.BanPackages.contains("maneuvering"))
-            guhuo_list << "normal_slash" << "thunder_slash" << "fire_slash";
+        QList<const Slash *> slashs = Sanguosha->findChildren<const Slash *>();
+        foreach (const Slash *slash, slashs) {
+            QString name = slash->objectName();
+            if (guhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + slash->getPackage())) continue;
+            guhuo_list << name;
+        }
+
+        if (guhuo_list.isEmpty())
+            guhuo_list << "slash";
         to_guhuo = room->askForChoice(yuji, "guhuo_slash", guhuo_list.join("+"));
         yuji->tag["GuhuoSlash"] = QVariant(to_guhuo);
     } else
@@ -1382,7 +1479,87 @@ public:
     bool isSkillValid(const Player *player, const Skill *skill) const
     {
         return skill->objectName() == "chanyuan" || !player->hasSkill("chanyuan")
-            || player->getHp() != 1 || skill->isAttachedLordSkill();
+            || player->getHp() != 1 || skill->isAttachedLordSkill() || !skill->isVisible();
+    }
+};
+
+class TenyearLeiji : public TriggerSkill
+{
+public:
+    TenyearLeiji() : TriggerSkill("tenyearleiji")
+    {
+        events << CardUsed << CardResponded;
+    }
+
+    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    {
+        const Card *jink = NULL;
+        if (triggerEvent == CardUsed)
+            jink = data.value<CardUseStruct>().card;
+        else
+            jink = data.value<CardResponseStruct>().m_card;
+
+        if (jink && jink->isKindOf("Jink")) {
+            QList<ServerPlayer *> others = room->getOtherPlayers(player);
+            ServerPlayer *victim = room->askForPlayerChosen(player, others, "tenyearleiji", "@tenyearleiji", true, true);
+            if (!victim)
+                return false;
+
+            room->broadcastSkillInvoke("tenyearleiji");
+            JudgeStruct judge;
+            judge.who = victim;
+            judge.pattern = ".|black";
+            judge.good = false;
+            judge.reason = "tenyearleiji";
+            room->judge(judge);
+
+            Card::Suit suit = (Card::Suit)(judge.pattern.toInt());
+            if (suit == Card::Spade) {
+                DamageStruct damage;
+                damage.from = player;
+                damage.to = victim;
+                damage.reason = "tenyearleiji";
+                damage.damage = 2;
+                damage.nature = DamageStruct::Thunder;
+                room->damage(damage);
+            } else if (suit == Card::Club) {
+                RecoverStruct recover;
+                recover.who = player;
+                recover.recover = 1;
+                room->recover(player, recover);
+
+                DamageStruct damage;
+                damage.from = player;
+                damage.to = victim;
+                damage.reason = "tenyearleiji";
+                damage.damage = 1;
+                damage.nature = DamageStruct::Thunder;
+                room->damage(damage);
+            }
+        }
+        return false;
+    }
+};
+
+class TenyearLeijiJudge : public TriggerSkill
+{
+public:
+    TenyearLeijiJudge() : TriggerSkill("#tenyearleiji-judge")
+    {
+        events << FinishJudge;
+    }
+
+    bool triggerable(const ServerPlayer *target) const
+    {
+        return target != NULL;
+    }
+
+    bool trigger(TriggerEvent, Room *, ServerPlayer *, QVariant &data) const
+    {
+        JudgeStruct *judge = data.value<JudgeStruct *>();
+        if (judge->reason != "tenyearleiji") return false;
+        judge->pattern = QString::number(int(judge->card->getSuit()));
+        return false;
     }
 };
 
@@ -1422,6 +1599,13 @@ WindPackage::WindPackage()
     zhangjiao->addSkill(new Leiji);
     zhangjiao->addSkill(new Guidao);
     zhangjiao->addSkill(new Huangtian);
+
+    General *tenyear_zhangjiao = new General(this, "tenyear_zhangjiao$", "qun", 3);
+    tenyear_zhangjiao->addSkill(new TenyearLeiji);
+    tenyear_zhangjiao->addSkill(new TenyearLeijiJudge);
+    tenyear_zhangjiao->addSkill("guidao");
+    tenyear_zhangjiao->addSkill("huangtian");
+    related_skills.insertMulti("tenyearleiji", "#tenyearleiji-judge");
 
     General *yuji = new General(this, "yuji", "qun", 3); // QUN 011
     yuji->addSkill(new Guhuo);

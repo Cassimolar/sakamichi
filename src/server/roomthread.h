@@ -1,4 +1,4 @@
-﻿#ifndef _ROOM_THREAD_H
+#ifndef _ROOM_THREAD_H
 #define _ROOM_THREAD_H
 
 #include "structs.h"
@@ -16,6 +16,9 @@ struct LogMessage
     QString card_str;
     QString arg;
     QString arg2;
+    QString arg3;
+    QString arg4;
+    QString arg5;
 };
 
 class EventTriplet

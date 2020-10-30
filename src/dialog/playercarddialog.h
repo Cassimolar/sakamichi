@@ -22,7 +22,7 @@ class PlayerCardDialog : public QDialog
 public:
     explicit PlayerCardDialog(const ClientPlayer *player, const QString &flags = "hej",
         bool handcard_visible = false, Card::HandlingMethod method = Card::MethodNone,
-        QList<int> &disabled_ids = PlayerCardDialog::dummy_list);
+        QList<int> &disabled_ids = PlayerCardDialog::dummy_list, bool can_cancel = false);
     static QList<int> dummy_list;
 
 private:
@@ -36,6 +36,7 @@ private:
     bool handcard_visible;
     Card::HandlingMethod method;
     QList<int> disabled_ids;
+    bool can_cancel;
 
 private slots:
     void emitId();

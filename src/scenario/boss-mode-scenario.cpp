@@ -159,6 +159,7 @@ public:
         if (has_frantic) {
             if (TriggerSkill::triggerable(player) && player->isWounded() && triggerEvent == TargetConfirmed) {
                 CardUseStruct use = data.value<CardUseStruct>();
+                if (!use.card->isKindOf("TrickCard")) return false;
                 if (use.to.length() == 1 && player == use.to.first()) {
                     room->broadcastSkillInvoke(objectName());
                     use.nullified_list << player->objectName();

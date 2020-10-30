@@ -54,6 +54,7 @@ public:
     void requestCheatDamage(const QString &source, const QString &target, DamageStruct::Nature nature, int points);
     void requestCheatRevive(const QString &name);
     void requestCheatRunScript(const QString &script);
+    void requestCheatchangestate(const QString &target, int type, int points);
 
     // other client requests
     void requestSurrender();
@@ -150,7 +151,7 @@ public:
     void askForDiscard(const QVariant &);
     void askForExchange(const QVariant &);
     void askForSuit(const QVariant &);
-    void askForKingdom(const QVariant &);
+    void askForKingdom(const QVariant &arg);
     void askForNullification(const QVariant &);
     void askForPindian(const QVariant &);
     void askForCardChosen(const QVariant &);
@@ -179,7 +180,7 @@ public:
     void revealGeneral(const QVariant &);
 
     void attachSkill(const QVariant &skill);
-    void updateSkill(const QVariant &);
+    void updateSkill(const QVariant &args);
 
     inline RoomState *getRoomState()
     {
@@ -297,9 +298,9 @@ signals:
     void generals_got(const QStringList &generals);
     void kingdoms_got(const QStringList &kingdoms);
     void suits_got(const QStringList &suits);
-    void options_got(const QString &skillName, const QStringList &options);
+    void options_got(const QString &skillName, const QStringList &options, const QStringList &except_options);
     void cards_got(const ClientPlayer *player, const QString &flags, const QString &reason, bool handcard_visible,
-        Card::HandlingMethod method, QList<int> disabled_ids);
+        Card::HandlingMethod method, QList<int> disabled_ids, bool can_cancel);
     void roles_got(const QString &scheme, const QStringList &roles);
     void directions_got();
     void orders_got(QSanProtocol::Game3v3ChooseOrderCommand reason);
@@ -313,7 +314,7 @@ signals:
     //void round_add();
     void player_killed(const QString &who);
     void player_revived(const QString &who);
-    void card_shown(const QString &player_name, int card_id);
+    void card_shown(const QString &player_name, QList<int> card_ids);
     void log_received(const QStringList &log_str);
     void guanxing(const QList<int> &card_ids, bool single_side);
     void gongxin(const QList<int> &card_ids, bool enable_heart, QList<int> enabled_ids);

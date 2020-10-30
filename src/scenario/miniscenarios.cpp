@@ -168,7 +168,7 @@ bool MiniSceneRule::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer 
                 room->changeHero(sp, general, false, false, true, false);
             }
 
-            room->setPlayerProperty(sp, "kingdom", sp->getGeneral()->getKingdom());
+            //room->setPlayerProperty(sp, "kingdom", sp->getGeneral()->getKingdom());
 
             QString str = this->players.at(i)["maxhp"];
             if (str == QString()) str = QString::number(sp->getGeneralMaxHp());
@@ -193,6 +193,10 @@ bool MiniSceneRule::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer 
             }
             sp->setHp(str.toInt());
             room->broadcastProperty(sp, "hp");
+
+            int hujia = sp->getGeneralStartHujia();
+            if (hujia > 0)
+                room->addPlayerMark(sp, "@HuJia", hujia);
 
             room->setTag("FirstRound", true);
             str = this->players.at(i)["equip"];
@@ -269,6 +273,7 @@ bool MiniSceneRule::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer 
 
         room->setTag("WaitForPlayer", QVariant(true));
         room->updateStateItem();
+        room->setTag("FirstRound", true);
         return true;
     } else
         return false;

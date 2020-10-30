@@ -28,6 +28,7 @@ QList<int> VariantList2IntList(const QVariantList &variantlist);
 bool isNormalGameMode(const QString &mode);
 
 static const int S_EQUIP_AREA_LENGTH = 5;
+static const int S_CARD_TYPE_LENGTH = 4;
 
 #endif
 

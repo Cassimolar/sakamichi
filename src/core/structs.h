@@ -14,7 +14,9 @@ struct DamageStruct
     {
         Normal, // normal slash, duel and most damage caused by skill
         Fire,  // fire slash, fire attack and few damage skill (Yeyan, etc)
-        Thunder // lightning, thunder slash, and few damage skill (Leiji, etc)
+        Thunder, // lightning, thunder slash, and few damage skill (Leiji, etc)
+        Ice, //ice slash
+        Poison  //for diy
     };
 
     DamageStruct();
@@ -32,6 +34,8 @@ struct DamageStruct
     QString reason;
     QString transfer_reason;
     bool prevented;
+    QStringList tips;
+    bool ignore_hujia;
 
     QString getReason() const;
 };
@@ -68,6 +72,7 @@ struct SlashEffectStruct
 
     DamageStruct::Nature nature;
 
+    bool multiple;
     bool nullified;
     bool no_respond;
     bool no_offset;
@@ -116,6 +121,8 @@ public:
     QString m_skillName; // skill that triggers movement of the cards, such as "longdang", "dimeng"
     QString m_eventName; // additional arg such as "lebusishu" on top of "S_REASON_JUDGE"
     QVariant m_extraData; // additional data and will not be parsed to clients
+    CardUseStruct m_useStruct;
+
     inline CardMoveReason()
     {
         m_reason = S_REASON_UNKNOWN;
@@ -185,6 +192,7 @@ public:
     static const int S_REASON_RECYCLE = 0x47;           // from discardpile to hand
     static const int S_REASON_ROB = 0x57;               // got a definite card from other's hand
     static const int S_REASON_PREVIEWGIVE = 0x67;       // give cards after previewing, i.e. Yiji & Miji
+    static const int S_REASON_EXCLUSIVE = 0x68;         // get exclusive cards
 
     //subcategory of show
     static const int S_REASON_TURNOVER = 0x18;          // show n cards from drawpile
@@ -495,6 +503,7 @@ enum TriggerEvent
     DrawInitialCards,
     AfterDrawInitialCards,
 
+    StartHpRecover,
     PreHpRecover,
     HpRecover,
     PreHpLost,
@@ -508,6 +517,7 @@ enum TriggerEvent
 
     StartJudge,
     AskForRetrial,
+    AfterRetrial,
     FinishRetrial,
     FinishJudge,
 
@@ -540,11 +550,15 @@ enum TriggerEvent
     BuryVictim,
     BeforeGameOverJudge,
     GameOverJudge,
+    GameOver,
     GameFinished,
+    PreventPeach,
+    AfterPreventPeach,
 
     Revive,
     Revived,
 
+    PreChangeSlash,
     ChangeSlash,
     SlashEffected,
     SlashProceed,
@@ -557,6 +571,8 @@ enum TriggerEvent
     CardAsked,
     PreCardResponded,
     CardResponded,
+    PostCardResponded,
+
     BeforeCardsMove, // sometimes we need to record cards before the move
     CardsMoveOneTime,
 
@@ -578,12 +594,25 @@ enum TriggerEvent
     MarkChange,
     MarkChanged,
 
+    GainHujia,
+    GainedHujia,
+    LoseHujia,
+    LostHujia,
+
     RoundStart,
+    RoundEnd,
 
     ThrowEquipArea,
     ObtainEquipArea,
     ThrowJudgeArea,
     ObtainJudgeArea,
+
+    Appear, // For yinni only
+
+    SwapPile,
+    SwappedPile,
+
+    InvokeSkill,
 
     StageChange, // For hulao pass only
     FetchDrawPileCard, // For miniscenarios only
@@ -591,6 +620,8 @@ enum TriggerEvent
     Debut, // For 1v1 only
 
     TurnBroken, // For the skill 'DanShou'. Do not use it to trigger events
+
+    EventForDiy, // For lua or diy to trigger special event
 
     NumOfEvents
 };

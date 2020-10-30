@@ -210,75 +210,18 @@ public:
     }
 };
 
-class BossManjia : public TriggerSkill
+class BossManjia : public ViewAsEquipSkill
 {
 public:
-    BossManjia() : TriggerSkill("bossmanjia")
+    BossManjia() : ViewAsEquipSkill("bossmanjia")
     {
-        events << DamageInflicted << SlashEffected << CardEffected;
-        frequency = Compulsory;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    QString viewAsEquip(const Player *target) const
     {
-        return TriggerSkill::triggerable(target) && !target->getArmor() && target->hasArmorEffect("vine");
-    }
-
-    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
-    {
-        if (triggerEvent == SlashEffected) {
-            SlashEffectStruct effect = data.value<SlashEffectStruct>();
-            if (effect.nature == DamageStruct::Normal) {
-                room->broadcastSkillInvoke(objectName());
-                room->sendCompulsoryTriggerLog(player, objectName());
-
-                room->setEmotion(player, "armor/vine");
-                LogMessage log;
-                log.from = player;
-                log.type = "#ArmorNullify";
-                log.arg = objectName();
-                log.arg2 = effect.slash->objectName();
-                room->sendLog(log);
-
-                effect.to->setFlags("Global_NonSkillNullify");
-                return true;
-            }
-        } else if (triggerEvent == CardEffected) {
-            CardEffectStruct effect = data.value<CardEffectStruct>();
-            if (effect.card->isKindOf("AOE")) {
-                room->broadcastSkillInvoke(objectName());
-                room->sendCompulsoryTriggerLog(player, objectName());
-
-                room->setEmotion(player, "armor/vine");
-                LogMessage log;
-                log.from = player;
-                log.type = "#ArmorNullify";
-                log.arg = objectName();
-                log.arg2 = effect.card->objectName();
-                room->sendLog(log);
-
-                effect.to->setFlags("Global_NonSkillNullify");
-                return true;
-            }
-        } else if (triggerEvent == DamageInflicted) {
-            DamageStruct damage = data.value<DamageStruct>();
-            if (damage.nature == DamageStruct::Fire) {
-                room->broadcastSkillInvoke(objectName());
-                room->sendCompulsoryTriggerLog(player, objectName());
-
-                room->setEmotion(player, "armor/vineburn");
-                LogMessage log;
-                log.type = "#VineDamage";
-                log.from = player;
-                log.arg = QString::number(damage.damage);
-                log.arg2 = QString::number(++damage.damage);
-                room->sendLog(log);
-
-                data = QVariant::fromValue(damage);
-            }
-        }
-
-        return false;
+        if (target->hasEquipArea(1) && !target->getArmor())
+            return "vine";
+        return QString();
     }
 };
 

@@ -35,7 +35,8 @@ namespace QSanProtocol {
         S_CHEAT_KILL_PLAYER,
         S_CHEAT_REVIVE_PLAYER,
         S_CHEAT_MAKE_DAMAGE,
-        S_CHEAT_RUN_SCRIPT
+        S_CHEAT_RUN_SCRIPT,
+        S_CHEAT_STATE_EDITOR
     };
 
     enum CheatCategory
@@ -46,7 +47,21 @@ namespace QSanProtocol {
         S_CHEAT_HP_RECOVER,
         S_CHEAT_HP_LOSE,
         S_CHEAT_MAX_HP_LOSE,
-        S_CHEAT_MAX_HP_RESET
+        S_CHEAT_MAX_HP_RESET,
+        S_CHEAT_ICE_DAMAGE,
+        S_CHEAT_HUJIA_GET,
+        S_CHEAT_HUJIA_LOSE,
+    };
+
+    enum StateEditorCheat
+    {
+        S_CHEAT_CHANGE_MAXCARDS,
+        S_CHEAT_CHANGE_DISTANCE,
+        S_CHEAT_CHANGE_DISTANCE_TO_OTHERS,
+        S_CHEAT_CHANGE_ATTACKRANGE,
+        S_CHEAT_CHANGE_SLASHCISHU,
+        S_CHEAT_CHANGE_SLASHJULI,
+        S_CHEAT_CHANGE_SLASHMUBIAO
     };
 
     enum CommandType

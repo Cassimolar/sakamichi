@@ -10,7 +10,8 @@ class ClientLogBox : public QTextEdit
 public:
     explicit ClientLogBox(QWidget *parent = 0);
     void appendLog(const QString &type, const QString &from_general, const QStringList &to,
-        const QString card_str = QString(), const QString arg = QString(), const QString arg2 = QString());
+        const QString card_str = QString(), const QString arg = QString(), const QString arg2 = QString(),
+        const QString arg3 = QString(), const QString arg4 = QString(), const QString arg5 = QString());
 
 private:
     QString bold(const QString &str, QColor color) const;

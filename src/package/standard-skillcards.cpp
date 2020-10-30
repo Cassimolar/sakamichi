@@ -106,6 +106,7 @@ void YijueCard::use(Room *room, ServerPlayer *guanyu, QList<ServerPlayer *> &tar
 
 JieyinCard::JieyinCard()
 {
+    mute = true;
 }
 
 bool JieyinCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const
@@ -118,10 +119,22 @@ bool JieyinCard::targetFilter(const QList<const Player *> &targets, const Player
 
 void JieyinCard::onEffect(const CardEffectStruct &effect) const
 {
-    Room *room = effect.from->getRoom();
-    RecoverStruct recover(effect.from);
-    room->recover(effect.from, recover, true);
-    room->recover(effect.to, recover, true);
+    ServerPlayer *from = effect.from, *to = effect.to;
+
+    int index = qrand() % 2 + 1;
+    if (from->isMale()) {
+        index = 4;
+        if (from == to)
+            index = 5;
+        else if (from->getHp() >= to->getHp())
+            index = 3;
+    }
+    from->peiyin("jieyin", index);
+
+    Room *room = from->getRoom();
+    RecoverStruct recover(from);
+    room->recover(from, recover, true);
+    room->recover(to, recover, true);
 }
 
 TuxiCard::TuxiCard()
@@ -452,7 +465,7 @@ void GuoseCard::onEffect(const CardEffectStruct &effect) const
     }
 }
 
-JijiangCard::JijiangCard()
+JijiangCard::JijiangCard(const QString &jijiang) : jijiang(jijiang)
 {
     mute = true;
 }
@@ -477,13 +490,12 @@ const Card *JijiangCard::validate(CardUseStruct &cardUse) const
         int r = 1 + qrand() % 2;
         if (!liubei->hasInnateSkill("jijiang") && liubei->getMark("ruoyu") > 0)
             r += 2;
-        else if (liubei->getGeneralName().startsWith("tenyear_") || (!liubei->getGeneralName().startsWith("tenyear_") && liubei->getGeneral2() &&
-             liubei->getGeneral2Name().startsWith("tenyear_")))
+        else if (liubei->isJieGeneral())
             r = qrand() % 2 + 5;
         room->broadcastSkillInvoke("jijiang", r);
     }
 
-    room->notifySkillInvoked(liubei, "jijiang");
+    room->notifySkillInvoked(liubei, jijiang);
 
     LogMessage log;
     log.from = liubei;
@@ -496,23 +508,23 @@ const Card *JijiangCard::validate(CardUseStruct &cardUse) const
 
     QList<ServerPlayer *> lieges = room->getLieges("shu", liubei);
     foreach(ServerPlayer *target, targets)
-        target->setFlags("JijiangTarget");
+        target->setFlags(jijiang == "jijiang" ? "JijiangTarget" : "OLJijiangTarget");
     foreach (ServerPlayer *liege, lieges) {
         try {
-            slash = room->askForCard(liege, "slash", "@jijiang-slash:" + liubei->objectName(),
+            slash = room->askForCard(liege, "slash", "@" + jijiang + "-slash:" + liubei->objectName(),
                 QVariant(), Card::MethodResponse, liubei, false, QString(), true);
         }
         catch (TriggerEvent triggerEvent) {
             if (triggerEvent == TurnBroken || triggerEvent == StageChange) {
                 foreach(ServerPlayer *target, targets)
-                    target->setFlags("-JijiangTarget");
+                    target->setFlags(jijiang == "jijiang" ? "-JijiangTarget" : "-OLJijiangTarget");
             }
             throw triggerEvent;
         }
 
         if (slash) {
             foreach(ServerPlayer *target, targets)
-                target->setFlags("-JijiangTarget");
+                target->setFlags(jijiang == "jijiang" ? "-JijiangTarget" : "-OLJijiangTarget");
 
             foreach (ServerPlayer *target, targets) {
                 if (!liubei->canSlash(target, slash))
@@ -527,7 +539,7 @@ const Card *JijiangCard::validate(CardUseStruct &cardUse) const
         }
     }
     foreach(ServerPlayer *target, targets)
-        target->setFlags("-JijiangTarget");
+        target->setFlags(jijiang == "jijiang" ? "-JijiangTarget" : "-OLJijiangTarget");
     room->setPlayerFlag(liubei, "Global_JijiangFailed");
     return NULL;
 }

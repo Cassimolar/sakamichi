@@ -15,8 +15,8 @@ PlayerCardButton::PlayerCardButton(const QString &name)
 }
 
 PlayerCardDialog::PlayerCardDialog(const ClientPlayer *player, const QString &flags,
-    bool handcard_visible, Card::HandlingMethod method, QList<int> &disabled_ids)
-    : player(player), handcard_visible(handcard_visible), method(method), disabled_ids(disabled_ids)
+    bool handcard_visible, Card::HandlingMethod method, QList<int> &disabled_ids, bool can_cancel)
+    : player(player), handcard_visible(handcard_visible), method(method), disabled_ids(disabled_ids), can_cancel(can_cancel)
 {
     QVBoxLayout *vlayout1 = new QVBoxLayout, *vlayout2 = new QVBoxLayout;
     QHBoxLayout *layout = new QHBoxLayout;
@@ -39,6 +39,13 @@ PlayerCardDialog::PlayerCardDialog(const ClientPlayer *player, const QString &fl
 
     layout->addLayout(vlayout1);
     layout->addLayout(vlayout2);
+
+    if (can_cancel) {
+        QPushButton *cancel_button = new QPushButton(Sanguosha->translate("cancel"));
+        connect(cancel_button, SIGNAL(clicked()), this, SLOT(reject()));
+        layout->addWidget(cancel_button);
+    }
+
     setLayout(layout);
 }
 

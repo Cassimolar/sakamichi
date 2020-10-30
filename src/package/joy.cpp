@@ -1,6 +1,7 @@
 #include "joy.h"
 #include "engine.h"
 #include "standard-skillcards.h"
+#include "nostalgia.h"
 #include "clientplayer.h"
 #include "util.h"
 #include "wrapped-card.h"
@@ -14,6 +15,7 @@ Shit::Shit(Suit suit, int number)
 
     target_fixed = true;
     damage_card = true;
+    single_target = true;
 }
 
 QString Shit::getSubtype() const{
@@ -419,20 +421,24 @@ public:
             hp = 5;
 
         switch (hp) {
-        case 1:
-            return !to_select->isEquipped();
+        case 1: {
+            const ViewAsSkill *rende = Sanguosha->getViewAsSkill("nosrende");
+            return rende != NULL && rende->viewFilter(selected, to_select);
             break;
+        }
         case 2:
             return false; // Trigger Skill
             break;
-        case 3:
-            return selected.length() < 2 && !to_select->isEquipped() && !Self->isJilei(to_select);
+        case 3: {
+            const ViewAsSkill *jieyin = Sanguosha->getViewAsSkill("jieyin");
+            return jieyin != NULL && jieyin->viewFilter(selected, to_select);
             break;
+        }
         case 4:
             return selected.isEmpty() && to_select->getSuit() == Card::Diamond;
             break;
         case 5:
-            return selected.isEmpty() && !Self->isJilei(to_select);
+            return false;
             break;
         }
 
@@ -450,7 +456,7 @@ public:
         switch (hp) {
         case 1:
             if (cards.length() > 0) {
-                RendeCard *rd = new RendeCard;
+                NosRendeCard *rd = new NosRendeCard;
                 rd->addSubcards(cards);
                 return rd;
             }
@@ -469,16 +475,16 @@ public:
             break;
         case 4:
             if (cards.length() == 1) {
-                GuoseCard *gs = new GuoseCard;
-                gs->addSubcards(cards);
-                return gs;
+                Indulgence *indulgence = new Indulgence(cards.first()->getSuit(), cards.first()->getNumber());
+                indulgence->addSubcard(cards.first());
+                indulgence->setSkillName("nosguose");
+                return indulgence;
             }
             return NULL;
             break;
         case 5:
-            if (cards.length() == 1) {
-                KurouCard *kr = new KurouCard;
-                kr->addSubcards(cards);
+            if (cards.isEmpty()) {
+                NosKurouCard *kr = new NosKurouCard;
                 return kr;
             }
             return NULL;
@@ -497,21 +503,27 @@ public:
             hp = 5;
 
         switch (hp) {
-        case 1:
-            return !player->hasUsed("RendeCard");
+        case 1: {
+            const ViewAsSkill *rende = Sanguosha->getViewAsSkill("nosrende");
+            return rende != NULL && rende->isEnabledAtPlay(player);
             break;
+        }
         case 2:
             return false; // Trigger Skill
             break;
-        case 3:
-            return !player->hasUsed("JieyinCard");
+        case 3: {
+            const ViewAsSkill *jieyin = Sanguosha->getViewAsSkill("jieyin");
+            return jieyin != NULL && jieyin->isEnabledAtPlay(player);
             break;
+        }
         case 4:
-            return !player->hasUsed("GuoseCard");
+            return true;
             break;
-        case 5:
-            return !player->hasUsed("KurouCard");
+        case 5: {
+            const ViewAsSkill *kurou = Sanguosha->getViewAsSkill("noskurou");
+            return kurou != NULL && kurou->isEnabledAtPlay(player);
             break;
+        }
         }
 
         return false;
@@ -552,7 +564,7 @@ FiveLines::FiveLines(Card::Suit suit, int number)
 void FiveLines::onInstall(ServerPlayer *player) const
 {
     QList<const TriggerSkill *> skills;
-    skills << Sanguosha->getTriggerSkill("rende") << Sanguosha->getTriggerSkill("guose");
+    skills << Sanguosha->getTriggerSkill("nosrende");
 
     foreach (const TriggerSkill *s, skills) {
         if (s != NULL)

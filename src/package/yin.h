@@ -27,11 +27,22 @@ class KuizhuCard : public SkillCard
     Q_OBJECT
 
 public:
-    Q_INVOKABLE KuizhuCard();
+    Q_INVOKABLE KuizhuCard(QString kuizhu = "kuizhu");
     bool targetsFeasible(const QList<const Player *> &targets, const Player *Self) const;
     bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     void use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const;
     void onEffect(const CardEffectStruct &effect) const;
+
+private:
+    QString kuizhu;
+};
+
+class OLKuizhuCard : public KuizhuCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE OLKuizhuCard();
 };
 
 class ShenshiCard : public SkillCard
@@ -59,6 +70,16 @@ class ZhenliangCard : public SkillCard
 
 public:
     Q_INVOKABLE ZhenliangCard();
+    bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
+class OLZhenliangCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE OLZhenliangCard();
     bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     void onEffect(const CardEffectStruct &effect) const;
 };

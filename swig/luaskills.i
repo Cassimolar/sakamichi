@@ -1,20 +1,25 @@
 class LuaTriggerSkill: public TriggerSkill {
 public:
-    LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill);
+    LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill, bool limited_skill, bool hide_skill,
+                    bool shiming_skill, QString waked_skills);
     void addEvent(TriggerEvent event);
     void setViewAsSkill(ViewAsSkill *view_as_skill);
     void setGlobal(bool global);
     void insertPriorityTable(TriggerEvent triggerEvent, int priority);
     void setGuhuoDialog(const char *type);
+    void setJuguanDialog(const char *type);
+    void setTiansuanDialog(const char *type);
     
     virtual Frequency getFrequency(const Player *target) const;
 
     virtual bool triggerable(const ServerPlayer *target, Room *room) const;
     virtual bool trigger(TriggerEvent event, Room *room, ServerPlayer *player, QVariant &data) const;
+    virtual bool canWake(TriggerEvent event, ServerPlayer *player, QVariant &data, Room *room) const;
 
     LuaFunction on_trigger;
     LuaFunction can_trigger;
     LuaFunction dynamic_frequency;
+    LuaFunction can_wake;
     
     int priority;
 };
@@ -92,7 +97,7 @@ public:
 
 class LuaAttackRangeSkill: public AttackRangeSkill{
 public:
-    LuaAttackRangeSkill(const char *name);
+    LuaAttackRangeSkill(const char *name, Frequency frequency);
 
     virtual int getExtra(const Player *target, bool include_weapon) const;
     virtual int getFixed(const Player *target, bool include_weapon) const;
@@ -101,9 +106,49 @@ public:
     LuaFunction fixed_func;
 };
 
+class ViewAsEquipSkill : public Skill
+{
+public:
+    ViewAsEquipSkill(const QString &name);
+
+    virtual QString viewAsEquip(const Player *target) const;
+};
+
+class LuaViewAsEquipSkill : public ViewAsEquipSkill
+{
+public:
+    LuaViewAsEquipSkill(const char *name, Frequency frequency);
+
+    QString viewAsEquip(const Player *target) const;
+
+    LuaFunction view_as_equip;
+};
+
+class CardLimitSkill : public Skill
+{
+public:
+    CardLimitSkill(const QString &name);
+
+    virtual QString limitList(const Player *target) const;
+    virtual QString limitPattern(const Player *target) const;
+};
+
+class LuaCardLimitSkill : public CardLimitSkill
+{
+public:
+    LuaCardLimitSkill(const char *name, Frequency frequency);
+
+    QString limitList(const Player *target) const;
+    QString limitPattern(const Player *target) const;
+
+    LuaFunction limit_list;
+    LuaFunction limit_pattern;
+};
+
+
 class LuaProhibitSkill: public ProhibitSkill {
 public:
-    LuaProhibitSkill(const char *name);
+    LuaProhibitSkill(const char *name, Frequency frequency);
 
     virtual bool isProhibited(const Player *from, const Player *to, const Card *card, const QList<const Player *> &others = QList<const Player *>()) const;
 
@@ -112,7 +157,7 @@ public:
 
 class LuaProhibitPindianSkill: public ProhibitPindianSkill {
 public:
-    LuaProhibitPindianSkill(const char *name);
+    LuaProhibitPindianSkill(const char *name, Frequency frequency);
 
     virtual bool isPindianProhibited(const Player *from, const Player *to) const;
 
@@ -135,7 +180,8 @@ public:
 
 class LuaViewAsSkill: public ViewAsSkill {
 public:
-    LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile);
+    LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile,
+                    Frequency frequency, const char *limit_mark);
 
     virtual bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const;
     virtual const Card *viewAs(const QList<const Card *> &cards) const;
@@ -152,6 +198,8 @@ public:
     LuaFunction enabled_at_nullification;
 
     void setGuhuoDialog(const char *type);
+    void setJuguanDialog(const char *type);
+    void setTiansuanDialog(const char *type);
 };
 
 class OneCardViewAsSkill: public ViewAsSkill {
@@ -172,7 +220,7 @@ public:
 
 class LuaFilterSkill: public FilterSkill {
 public:
-    LuaFilterSkill(const char *name);
+    LuaFilterSkill(const char *name, Frequency frequency);
 
     virtual bool viewFilter(const Card *to_select) const;
     virtual const Card *viewAs(const Card *originalCard) const;
@@ -183,7 +231,7 @@ public:
 
 class LuaDistanceSkill: public DistanceSkill {
 public:
-    LuaDistanceSkill(const char *name);
+    LuaDistanceSkill(const char *name, Frequency frequency);
     virtual int getCorrect(const Player *from, const Player *to) const;
 
     LuaFunction correct_func;
@@ -191,7 +239,7 @@ public:
 
 class LuaMaxCardsSkill: public MaxCardsSkill {
 public:
-    LuaMaxCardsSkill(const char *name);
+    LuaMaxCardsSkill(const char *name, Frequency frequency);
     virtual int getExtra(const Player *target) const;
     virtual int getFixed(const Player *target) const;
 
@@ -201,7 +249,7 @@ public:
 
 class LuaTargetModSkill: public TargetModSkill {
 public:
-    LuaTargetModSkill(const char *name, const char *pattern);
+    LuaTargetModSkill(const char *name, const char *pattern, Frequency frequency);
 
     virtual int getResidueNum(const Player *from, const Card *card, const Player *to) const;
     virtual int getDistanceLimit(const Player *from, const Card *card, const Player *to) const;
@@ -214,7 +262,7 @@ public:
 
 class LuaInvaliditySkill: public InvaliditySkill {
 public:
-    LuaInvaliditySkill(const char *name);
+    LuaInvaliditySkill(const char *name, Frequency frequency);
     virtual bool isSkillValid(const Player *player, const Skill *skill) const;
 
     LuaFunction skill_valid;
@@ -245,6 +293,8 @@ public:
     LuaBasicCard *clone(Card::Suit suit = Card::SuitToBeDecided, int number = -1) const;
     void setTargetFixed(bool target_fixed);
     void setCanRecast(bool can_recast);
+    void setGift(bool flag);
+    void setDamageCard(bool flag);
 
     virtual void onUse(Room *room, const CardUseStruct &card_use) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
@@ -275,6 +325,8 @@ public:
     LuaTrickCard *clone(Card::Suit suit = Card::SuitToBeDecided, int number = -1) const;
     void setTargetFixed(bool target_fixed);
     void setCanRecast(bool can_recast);
+    void setGift(bool flag);
+    void setDamageCard(bool flag);
 
     virtual void onUse(Room *room, const CardUseStruct &card_use) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
@@ -308,6 +360,8 @@ public:
     LuaWeapon(Card::Suit suit, int number, int range, const char *obj_name, const char *class_name);
     LuaWeapon *clone(Card::Suit suit = Card::SuitToBeDecided, int number = -1) const;
 
+    void setGift(bool flag);
+
     virtual void onInstall(ServerPlayer *player) const;
     virtual void onUninstall(ServerPlayer *player) const;
 
@@ -324,6 +378,8 @@ public:
     LuaArmor(Card::Suit suit, int number, const char *obj_name, const char *class_name);
     LuaArmor *clone(Card::Suit suit = Card::SuitToBeDecided, int number = -1) const;
 
+    void setGift(bool flag);
+
     virtual void onInstall(ServerPlayer *player) const;
     virtual void onUninstall(ServerPlayer *player) const;
 
@@ -339,6 +395,8 @@ class LuaTreasure: public Treasure {
 public:
     LuaTreasure(Card::Suit suit, int number, const char *obj_name, const char *class_name);
     LuaTreasure *clone(Card::Suit suit = Card::SuitToBeDecided, int number = -1) const;
+
+    void setGift(bool flag);
 
     virtual void onInstall(ServerPlayer *player) const;
     virtual void onUninstall(ServerPlayer *player) const;
@@ -370,6 +428,37 @@ bool LuaTriggerSkill::triggerable(const ServerPlayer *target, Room *room) const
     SWIG_NewPointerObj(L, room, SWIGTYPE_p_Room, 0);
 
     int error = lua_pcall(L, 3, 1, 0);
+    if (error) {
+        const char *error_msg = lua_tostring(L, -1);
+        lua_pop(L, 1);
+        room->output(error_msg);
+        return false;
+    } else {
+        bool result = lua_toboolean(L, -1);
+        lua_pop(L, 1);
+        return result;
+    }
+}
+
+bool LuaTriggerSkill::canWake(TriggerEvent event, ServerPlayer *player, QVariant &data, Room *room) const
+{
+    if (can_wake == 0)
+        return TriggerSkill::canWake(event, player, data, room);
+
+    lua_State *L = Sanguosha->getLuaState();
+
+    int e = static_cast<int>(event);
+
+    // the callback function
+    lua_rawgeti(L, LUA_REGISTRYINDEX, can_wake);
+
+    SWIG_NewPointerObj(L, this, SWIGTYPE_p_LuaTriggerSkill, 0);
+    lua_pushinteger(L, e);
+    SWIG_NewPointerObj(L, player, SWIGTYPE_p_ServerPlayer, 0);
+    SWIG_NewPointerObj(L, &data, SWIGTYPE_p_QVariant, 0);
+    SWIG_NewPointerObj(L, room, SWIGTYPE_p_Room, 0);
+
+    int error = lua_pcall(L, 5, 1, 0);
     if (error) {
         const char *error_msg = lua_tostring(L, -1);
         lua_pop(L, 1);
@@ -711,7 +800,7 @@ int LuaAttackRangeSkill::getFixed(const Player *target, bool include_weapon) con
 bool LuaInvaliditySkill::isSkillValid(const Player *player, const Skill *skill) const
 {
     if (skill_valid == 0)
-        return 0;
+        return true;
 
     lua_State *L = Sanguosha->getLuaState();
 
@@ -782,6 +871,75 @@ const Card *LuaFilterSkill::viewAs(const Card *originalCard) const
         return card;
     } else
         return NULL;
+}
+
+QString LuaViewAsEquipSkill::viewAsEquip(const Player *target) const
+{
+    if (view_as_equip == 0)
+        return QString();
+
+    lua_State *L = Sanguosha->getLuaState();
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, view_as_equip);
+
+    SWIG_NewPointerObj(L, this, SWIGTYPE_p_LuaViewAsEquipSkill, 0);
+    SWIG_NewPointerObj(L, target, SWIGTYPE_p_Player, 0);
+
+    int error = lua_pcall(L, 2, 1, 0);
+    if (error) {
+        Error(L);
+        return QString();
+    }
+
+    const char *result = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    return QString(result);
+}
+
+QString LuaCardLimitSkill::limitList(const Player *target) const
+{
+    if (limit_list == 0)
+        return QString();
+
+    lua_State *L = Sanguosha->getLuaState();
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, limit_list);
+
+    SWIG_NewPointerObj(L, this, SWIGTYPE_p_LuaCardLimitSkill, 0);
+    SWIG_NewPointerObj(L, target, SWIGTYPE_p_Player, 0);
+
+    int error = lua_pcall(L, 2, 1, 0);
+    if (error) {
+        Error(L);
+        return QString();
+    }
+
+    const char *result = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    return QString(result);
+}
+
+QString LuaCardLimitSkill::limitPattern(const Player *target) const
+{
+    if (limit_pattern == 0)
+        return QString();
+
+    lua_State *L = Sanguosha->getLuaState();
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, limit_pattern);
+
+    SWIG_NewPointerObj(L, this, SWIGTYPE_p_LuaCardLimitSkill, 0);
+    SWIG_NewPointerObj(L, target, SWIGTYPE_p_Player, 0);
+
+    int error = lua_pcall(L, 2, 1, 0);
+    if (error) {
+        Error(L);
+        return QString();
+    }
+
+    const char *result = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    return QString(result);
 }
 
 // ----------------------

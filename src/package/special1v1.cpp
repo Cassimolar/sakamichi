@@ -455,6 +455,7 @@ public:
 
     bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
     {
+        if (!player->hasSkill("manyi")) return false;
         CardEffectStruct effect = data.value<CardEffectStruct>();
         if (effect.card->isKindOf("SavageAssault")) {
             room->broadcastSkillInvoke(player->isFemale() ? "juxiang" : "huoshou");
@@ -1110,6 +1111,7 @@ Drowning::Drowning(Suit suit, int number)
     : SingleTargetTrick(suit, number)
 {
     setObjectName("drowning");
+    damage_card = true;
 }
 
 bool Drowning::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const
@@ -1121,11 +1123,19 @@ bool Drowning::targetFilter(const QList<const Player *> &targets, const Player *
 void Drowning::onEffect(const CardEffectStruct &effect) const
 {
     Room *room = effect.to->getRoom();
-    if (!effect.to->getEquips().isEmpty()
-        && room->askForChoice(effect.to, objectName(), "throw+damage", QVariant::fromValue(effect)) == "throw")
-        effect.to->throwAllEquips();
-    else
-        room->damage(DamageStruct(this, effect.from->isAlive() ? effect.from : NULL, effect.to));
+
+    if (hasFlag("yb_zhuzhan1_buff")) {
+        if (!effect.to->getEquips().isEmpty())
+            effect.to->throwAllEquips();
+        if (effect.to->isAlive())
+            room->damage(DamageStruct(this, effect.from->isAlive() ? effect.from : NULL, effect.to, 1, DamageStruct::Thunder));
+    } else {
+        if (!effect.to->getEquips().isEmpty()
+            && room->askForChoice(effect.to, objectName(), "throw+damage", QVariant::fromValue(effect)) == "throw")
+            effect.to->throwAllEquips();
+        else
+            room->damage(DamageStruct(this, effect.from->isAlive() ? effect.from : NULL, effect.to, 1, DamageStruct::Thunder));
+    }
 }
 
 Special1v1Package::Special1v1Package()

@@ -259,16 +259,16 @@ public:
 
     bool triggerable(const ServerPlayer *target) const
     {
-        return target->getPhase() == Player::Play;
+        return target != NULL && target->getPhase() == Player::Play;
     }
 
     bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
     {
         CardUseStruct use = data.value<CardUseStruct>();
         if (use.card->isKindOf("Slash")) {
-            ServerPlayer *guanping = room->findPlayerBySkillName(objectName());
-            if (guanping && guanping->canDiscard(guanping, "he")
-                && room->askForCard(guanping, "..", "@longyin", data, objectName())) {
+            foreach (ServerPlayer *p, room->getAllPlayers()) {
+                if (p->isDead() || !p->hasSkill(this) || !p->canDiscard(p, "he")) continue;
+                if (!room->askForCard(p, "..", "@longyin", data, objectName())) continue;
                 room->broadcastSkillInvoke(objectName(), use.card->isRed() ? 2 : 1);
                 if (use.m_addHistory) {
                     room->addPlayerHistory(player, use.card->getClassName(), -1);
@@ -276,7 +276,7 @@ public:
                     data = QVariant::fromValue(use);
                 }
                 if (use.card->isRed())
-                    guanping->drawCards(1, objectName());
+                    p->drawCards(1, objectName());
             }
         }
         return false;
@@ -321,6 +321,7 @@ bool QiaoshuiCard::targetFilter(const QList<const Player *> &targets, const Play
 
 void QiaoshuiCard::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const
 {
+    if (!source->canPindian(targets.first(), false)) return;
     bool success = source->pindian(targets.first(), "qiaoshui", NULL);
     if (success)
         source->setFlags("QiaoshuiSuccess");
@@ -757,7 +758,7 @@ public:
 
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const
     {
-        return pattern == "slash"
+        return (pattern.contains("slash") || pattern.contains("Slash"))
             && Sanguosha->currentRoomState()->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_RESPONSE_USE
             && canSlashLiufeng(player);
     }
@@ -975,19 +976,20 @@ public:
             return false;
 
         Room *room = target->getRoom();
-        ServerPlayer *to = room->askForPlayerChosen(target, room->getAlivePlayers(), objectName(), "zhiyan-invoke", true, true);
+        ServerPlayer *to = room->askForPlayerChosen(target, room->getAlivePlayers(), objectName(), "@zhiyan-invoke", true, true);
         if (to) {
             room->broadcastSkillInvoke(objectName());
-            QList<int> ids = room->getNCards(1, false);
-            const Card *card = Sanguosha->getCard(ids.first());
+            QList<int> ids = room->drawCardsList(to, 1, objectName(), true, true);
+            int id = ids.first();
+            const Card *card = Sanguosha->getCard(id);
             room->obtainCard(to, card, false);
             if (!to->isAlive())
                 return false;
-            room->showCard(to, ids.first());
+            room->showCard(to, id);
 
             if (card->isKindOf("EquipCard")) {
                 room->recover(to, RecoverStruct(target));
-                if (to->isAlive() && !to->isCardLimited(card, Card::MethodUse))
+                if (to->isAlive() && to->canUse(card) && !to->getEquipsId().contains(id))
                     room->useCard(CardUseStruct(card, to, to));
             }
         }
@@ -1545,6 +1547,7 @@ public:
             if (n <= 0) return false;
             player->tag.remove("oljingce_type");
             if (!player->hasSkill(this) || !player->askForSkillInvoke(this)) return false;
+            room->broadcastSkillInvoke(objectName());
             player->drawCards(n, objectName());
         } else if (event == EventPhaseChanging) {
             PhaseChangeStruct change = data.value<PhaseChangeStruct>();
@@ -1608,7 +1611,6 @@ public:
     }
 };
 
-
 YJCM2013Package::YJCM2013Package()
     : Package("YJCM2013")
 {
@@ -1629,9 +1631,9 @@ YJCM2013Package::YJCM2013Package()
     guohuai->addSkill(new JingceRecord);
     related_skills.insertMulti("jingce", "#jingce-record");
 
-    General *ol_new_guohuai = new General(this, "ol_new_guohuai", "wei", 3);
-    ol_new_guohuai->addSkill(new OLJingce);
-    ol_new_guohuai->addSkill(new OLJingceKeep);
+    General *ol_guohuai = new General(this, "ol_guohuai", "wei", 3);
+    ol_guohuai->addSkill(new OLJingce);
+    ol_guohuai->addSkill(new OLJingceKeep);
     related_skills.insertMulti("oljingce", "#oljingce-keep");
 
     General *guanping = new General(this, "guanping", "shu", 4); // YJ 204

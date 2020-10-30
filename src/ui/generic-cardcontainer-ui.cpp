@@ -349,8 +349,10 @@ void PlayerCardContainer::updatePile(const QString &pile_name)
             button->setObjectName(pile_name);
             if (treasure_name == pile_name)
                 button->setProperty("treasure", "true");
-            else
+            else {
                 button->setProperty("private_pile", "true");
+                button->setStyleSheet("background-color:black");
+            }
             QGraphicsProxyWidget *button_widget = new QGraphicsProxyWidget(_getPileParent());
             button_widget->setObjectName(pile_name);
             button_widget->setWidget(button);
@@ -429,6 +431,7 @@ void PlayerCardContainer::updateMark(const QString &mark_name, bool get)
             button = new QPushButton;
             button->setObjectName(new_mark);
             button->setProperty("private_pile", "true");
+            //button->setStyleSheet("background-color:transparent");  把标记背景变透明
             QGraphicsProxyWidget *button_widget = new QGraphicsProxyWidget(_getPileParent());
             button_widget->setObjectName(new_mark);
             button_widget->setWidget(button);
@@ -437,20 +440,95 @@ void PlayerCardContainer::updateMark(const QString &mark_name, bool get)
             button = (QPushButton *)(_m_privatePiles[new_mark]->widget());
 
         QStringList mark_names = mark_name.split("+");
-        QString text;
+        QString text, dest, arg, arg2, arg3, _arg = "arg:", _arg2 = "arg2:", _arg3 = "arg3:", new_new_mark;
         foreach (QString name, mark_names) {
-            if (name.startsWith("#")) continue;
-            if (name.endsWith("-Clear") || name.endsWith("-PlayClear"))
-                text.append(Sanguosha->translate(name.split("-").first()));
-            else if (name.endsWith("_lun"))
-                text.append(Sanguosha->translate(name.split("_").first()));
-            else
+            if (name.startsWith("#")) {
+                if (dest.isEmpty()) {
+                    if ((name.endsWith("Clear") && name.contains("-")) || name.endsWith("-Keep"))
+                        dest = name.mid(1).split("-").first();
+                    else if (name.endsWith("_lun"))
+                        dest = name.mid(1).split("_").first();
+                    else
+                        dest = name.mid(1);
+                }
+                continue;
+            }
+            else if (name.startsWith(_arg)) {
+                if (arg.isEmpty()) {
+                    if ((name.endsWith("Clear") && name.contains("-")) || name.endsWith("-Keep"))
+                        arg = name.mid(1).split("-").first();
+                    else if (name.endsWith("_lun"))
+                        arg = name.mid(1).split("_").first();
+                    else
+                        arg =  name.mid(1);
+                }
+                continue;
+            }
+            else if (name.startsWith(_arg2)) {
+                if (arg2.isEmpty()) {
+                    if ((name.endsWith("Clear") && name.contains("-")) || name.endsWith("-Keep"))
+                        arg2 = name.mid(1).split("-").first();
+                    else if (name.endsWith("_lun"))
+                        arg2 = name.mid(1).split("_").first();
+                    else
+                        arg2 =  name.mid(1);
+                }
+                continue;
+            }
+            else if (name.startsWith(_arg3)) {
+                if (arg3.isEmpty()) {
+                    if ((name.endsWith("Clear") && name.contains("-")) || name.endsWith("-Keep"))
+                        arg3 = name.mid(1).split("-").first();
+                    else if (name.endsWith("_lun"))
+                        arg3 = name.mid(1).split("_").first();
+                    else
+                        arg3 =  name.mid(1);
+                }
+                continue;
+            }
+            if ((name.endsWith("Clear") && name.contains("-")) || name.endsWith("-Keep")) {
+                QString f_name = name.split("-").first();
+                text.append(Sanguosha->translate(f_name));
+                new_new_mark.append(f_name).append("+");
+            } else if (name.endsWith("_lun")) {
+                QString f_name = name.split("_").first();
+                text.append(Sanguosha->translate(f_name));
+                new_new_mark.append(f_name).append("+");
+            } else {
                 text.append(Sanguosha->translate(name));
+                new_new_mark.append(name).append("+");
+            }
         }
 
         if (player->getMark(new_mark) > 1)
             text.append(QString("[%1]").arg(player->getMark(new_mark)));
         button->setText(text);
+
+        if (new_new_mark.endsWith("+"))
+            new_new_mark.chop(1);
+
+        QString translate = Sanguosha->translate(":&" + new_new_mark);
+        if (translate != ":&" + new_new_mark) {
+            if (!dest.isEmpty() && ClientInstance->getPlayerName(dest) != dest)
+                translate.replace("%dest", ClientInstance->getPlayerName(dest));
+            if (!arg.isEmpty() && ClientInstance->getPlayerName(arg) != arg)
+                translate.replace("%arg", ClientInstance->getPlayerName(arg));
+            if (!arg2.isEmpty() && ClientInstance->getPlayerName(arg2) != arg2)
+                translate.replace("%arg2", ClientInstance->getPlayerName(arg2));
+            if (!arg3.isEmpty() && ClientInstance->getPlayerName(arg3) != arg3)
+                translate.replace("%arg3", ClientInstance->getPlayerName(arg3));
+            if (translate.contains("%src+1"))
+                translate.replace("%src+1", QString::number(player->getMark(new_mark) + 1));
+            else
+                translate.replace("%src", QString::number(player->getMark(new_mark)));
+            button->setToolTip(translate);
+        } else {
+            if (!dest.isEmpty() && ClientInstance->getPlayerName(dest) != dest) {
+                translate = Sanguosha->translate(":&commonmarktooltip");
+                translate.replace("%dest", ClientInstance->getPlayerName(dest));
+                button->setToolTip(translate);
+            }
+        }
     }
 
     QPoint start = _m_layout->m_privatePileStartPos;
@@ -522,7 +600,8 @@ void PlayerCardContainer::refresh(bool)
         if (_m_faceTurnedIcon) _m_faceTurnedIcon->setVisible(!m_player->faceUp());
         if (_m_chainIcon) _m_chainIcon->setVisible(m_player->isChained());
         if (_m_actionIcon) _m_actionIcon->setVisible(m_player->hasFlag("actioned"));
-        if (_m_deathIcon && !(ServerInfo.GameMode == "04_1v3" && m_player->getGeneralName() != "shenlvbu2"))
+        if (_m_deathIcon && !(ServerInfo.GameMode == "04_1v3" && m_player->getGeneralName() != "shenlvbu2" &&
+                              m_player->getGeneralName() != "shenlvbu3"))
             _m_deathIcon->setVisible(m_player->isDead());
     }
     updateHandcardNum();
@@ -590,7 +669,6 @@ void PlayerCardContainer::setPlayer(ClientPlayer *player)
         connect(player, SIGNAL(Mark_changed(QString, bool)), this, SLOT(updateMark(QString, bool)));
         connect(player, SIGNAL(role_changed(QString)), _m_roleComboBox, SLOT(fix(QString)));
         connect(player, SIGNAL(hp_changed()), this, SLOT(updateHp()));
-        connect(player, SIGNAL(equiparea_changed(int, bool)), this, SLOT(updateEquipArea(int, bool)));
 
         QTextDocument *textDoc = m_player->getMarkDoc();
         Q_ASSERT(_m_markItem);

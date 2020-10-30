@@ -741,7 +741,7 @@ local xianzhen_skill = {}
 xianzhen_skill.name = "xianzhen"
 table.insert(sgs.ai_skills, xianzhen_skill)
 xianzhen_skill.getTurnUseCard = function(self)
-	if self.player:hasUsed("XianzhenCard") or self.player:isKongcheng() then return end
+	if self.player:hasUsed("XianzhenCard") or not self.player:canPindian() then return end
 	return sgs.Card_Parse("@XianzhenCard=.")
 end
 
@@ -754,7 +754,7 @@ sgs.ai_skill_use_func.XianzhenCard = function(card, use, self)
 
 	if slashcount > 0  then
 		for _, enemy in ipairs(self.enemies) do
-			if enemy:hasFlag("AI_HuangtianPindian") and enemy:getHandcardNum() == 1 then
+			if enemy:hasFlag("AI_HuangtianPindian") and enemy:getHandcardNum() == 1 and self.player:canPindian(enemy) then
 				self.xianzhen_card = max_card:getId()
 				use.card = sgs.Card_Parse("@XianzhenCard=.")
 				if use.to then
@@ -771,7 +771,7 @@ sgs.ai_skill_use_func.XianzhenCard = function(card, use, self)
 		self:useBasicCard(slash, dummy_use)
 
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and self:canAttack(enemy, self.player)
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) and self:canAttack(enemy, self.player)
 				and not self:canLiuli(enemy, self.friends_noself) and not self:findLeijiTarget(enemy, 50, self.player) then
 				local enemy_max_card = self:getMaxCard(enemy)
 				local enemy_max_point =enemy_max_card and enemy_max_card:getNumber() or 100
@@ -784,7 +784,7 @@ sgs.ai_skill_use_func.XianzhenCard = function(card, use, self)
 			end
 		end
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and self:canAttack(enemy, self.player)
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) and self:canAttack(enemy, self.player)
 				and not self:canLiuli(enemy, self.friends_noself) and not self:findLeijiTarget(enemy, 50, self.player) then
 				if max_point >= 10 then
 					self.xianzhen_card = max_card:getId()
@@ -799,7 +799,7 @@ sgs.ai_skill_use_func.XianzhenCard = function(card, use, self)
 	self:sortByUseValue(cards, true)
 	if (self:getUseValue(cards[1]) < 6 and self:getKeepValue(cards[1]) < 6) or self:getOverflow() > 0 then
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and not enemy:hasSkills("tuntian+zaoxian") then
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) and not enemy:hasSkills("tuntian+zaoxian") then
 				self.xianzhen_card = cards[1]:getId()
 				use.card = sgs.Card_Parse("@XianzhenCard=.")
 				if use.to then use.to:append(enemy) end

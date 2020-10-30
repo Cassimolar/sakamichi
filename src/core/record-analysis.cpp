@@ -188,7 +188,7 @@ void RecAnalysis::initialize(QString dir)
 
         if (packet.getCommandType() == S_COMMAND_LOG_SKILL) {
             QStringList log;
-            if (!JsonUtils::tryParse(packet.getMessageBody(), log) || log.size() != 6)
+            if (!JsonUtils::tryParse(packet.getMessageBody(), log) || log.size() != 9)
                 continue;
 
             const QString &type = log.at(0);
@@ -393,8 +393,8 @@ unsigned int RecAnalysis::findPlayerOfKills(int upper, int lower) const
 
 void RecAnalysis::setDesignation()
 {
-    if (m_recordPlayers < 5)
-        return;
+    //if (m_recordPlayers < 5)
+        //return;
 
     initialDesignation();
 

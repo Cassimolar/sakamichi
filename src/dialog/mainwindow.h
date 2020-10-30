@@ -1,4 +1,4 @@
-﻿#ifndef _MAIN_WINDOW_H
+#ifndef _MAIN_WINDOW_H
 #define _MAIN_WINDOW_H
 
 #include "src/pch.h"
@@ -47,7 +47,7 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void setBackgroundBrush(bool center_as_origin);
-	QGraphicsScene* getScene();
+    QGraphicsScene* getScene();
 
 protected:
     virtual void closeEvent(QCloseEvent *);

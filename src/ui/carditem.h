@@ -51,6 +51,7 @@ public:
     void setAutoBack(bool auto_back);
     void changeGeneral(const QString &general_name);
     void setFootnote(const QString &desc);
+    void setYingbiannote(const QString &desc);
 
     inline bool isSelected() const
     {
@@ -92,6 +93,7 @@ protected:
     void _initialize();
     QAbstractAnimation *m_currentAnimation;
     QImage _m_footnoteImage;
+    QImage _m_yingbiannoteImage;
     bool _m_showFootnote;
     // QGraphicsPixmapItem *_m_footnoteItem;
     QMutex m_animationMutex;

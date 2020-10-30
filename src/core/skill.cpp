@@ -11,13 +11,15 @@
 #include "util.h"
 #include "exppattern.h"
 
-
 Skill::Skill(const QString &name, Frequency frequency)
-    : frequency(frequency), limit_mark(QString()), lord_skill(false), attached_lord_skill(false), change_skill(false)
+    : frequency(frequency), limit_mark(QString()), lord_skill(false), attached_lord_skill(false), change_skill(false), limited_skill(false),
+      hide_skill(false), shiming_skill(false), waked_skills(QString())
 {
     static QChar lord_symbol('$');
     static QChar attached_lord_symbol('&');
 
+    if (frequency == Limited)
+        limited_skill = true;
     if (name.endsWith(lord_symbol)) {
         QString copy = name;
         copy.remove(lord_symbol);
@@ -48,6 +50,21 @@ bool Skill::isChangeSkill() const
     return change_skill;
 }
 
+bool Skill::isLimitedSkill() const
+{
+    return getFrequency() == Limited || limited_skill;
+}
+
+bool Skill::isHideSkill() const
+{
+    return hide_skill;
+}
+
+bool Skill::isShiMingSkill() const
+{
+    return shiming_skill;
+}
+
 bool Skill::shouldBeVisible(const Player *Self) const
 {
     return Self != NULL;
@@ -64,6 +81,41 @@ QString Skill::getDescription() const
         return QString();
     if (des_src.startsWith("[NoAutoRep]"))
         return des_src.mid(11);
+
+    if (Self) {
+        QString name = objectName();
+
+        QString arg = "SkillDescriptionRecord_" + name;
+        QString record = Self->property(arg.toStdString().c_str()).toString();
+        if (!record.isEmpty()) {
+            QStringList records = record.split("+");
+            QString _record;
+            int length = records.length();
+            for (int i = 0; i < length; i++) {
+                _record.append(Sanguosha->translate(records.at(i)));
+                if (i == length - 1) break;
+                _record.append(",");
+            }
+            if (!_record.isEmpty())
+                des_src.replace("%arg11", _record);
+        }
+
+        int mark1 = Self->getMark("SkillDescriptionArg1_" + name), mark2 = Self->getMark("SkillDescriptionArg2_" + name),
+            mark3 = Self->getMark("SkillDescriptionArg3_" + name), mark4 = Self->getMark("SkillDescriptionArg4_" + name),
+            mark5 = Self->getMark("SkillDescriptionArg5_" + name), mark6 = Self->getMark("SkillDescriptionArg6_" + name);
+        des_src.replace("%arg1", QString::number(mark1));
+        des_src.replace("%arg2", QString::number(mark2));
+        des_src.replace("%arg3", QString::number(mark3));
+        des_src.replace("%arg4", QString::number(mark4));
+        des_src.replace("%arg5", QString::number(mark5));
+        des_src.replace("%arg6", QString::number(mark6));
+    }
+
+    if (isLimitedSkill() && getLimitMark() != QString()) {
+        QString limitmark = "<img src=\"image/mark/" + getLimitMark() + ".png\">";
+        if (!des_src.startsWith(limitmark))
+            des_src = limitmark + des_src;
+    }
 
     if (Config.value("AutoSkillTypeColorReplacement", true).toBool()) {
         QMap<QString, QColor> skilltype_color_map = Sanguosha->getSkillTypeColorMap();
@@ -111,6 +163,7 @@ int Skill::getEffectIndex(const ServerPlayer *, const Card *) const
 void Skill::initMediaSource()
 {
     sources.clear();
+
     for (int i = 1;; i++) {
         QString effect_file = QString("audio/skill/%1%2.ogg").arg(objectName()).arg(QString::number(i));
         if (QFile::exists(effect_file))
@@ -159,6 +212,11 @@ QString Skill::getLimitMark() const
     return limit_mark;
 }
 
+QString Skill::getWakedSkills() const
+{
+    return waked_skills;
+}
+
 QStringList Skill::getSources() const
 {
     return sources;
@@ -185,7 +243,8 @@ bool ViewAsSkill::isAvailable(const Player *invoker,
     switch (reason) {
     case CardUseStruct::CARD_USE_REASON_PLAY: return isEnabledAtPlay(invoker);
     case CardUseStruct::CARD_USE_REASON_RESPONSE:
-    case CardUseStruct::CARD_USE_REASON_RESPONSE_USE: return isEnabledAtResponse(invoker, pattern);
+    case CardUseStruct::CARD_USE_REASON_RESPONSE_USE: return isEnabledAtResponse(invoker, pattern) ||
+                invoker->property("PingjianNowUseSkill").toStringList().contains(pattern);
     default:
         return false;
     }
@@ -305,7 +364,8 @@ QList<TriggerEvent> TriggerSkill::getTriggerEvents() const
 
 int TriggerSkill::getPriority(TriggerEvent) const
 {
-    return (frequency == Wake) ? 3 : 2;
+    //return (frequency == Wake) ? 3 : 2;
+    return 2;
 }
 
 bool TriggerSkill::triggerable(const ServerPlayer *target, Room *) const
@@ -313,9 +373,21 @@ bool TriggerSkill::triggerable(const ServerPlayer *target, Room *) const
     return triggerable(target);
 }
 
+bool TriggerSkill::canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *) const
+{
+    return getFrequency(player) != Skill::Wake || player->getMark(objectName()) == 0;
+}
+
 bool TriggerSkill::triggerable(const ServerPlayer *target) const
 {
-    return target != NULL && (global || (target->isAlive() && target->hasSkill(this)));
+    return target != NULL && (global || (target->isAlive() && (target->hasSkill(this) ||
+                                            target->property("pingjian_triggerskill").toString() == objectName())));
+}
+
+bool TriggerSkill::hasEvent(TriggerEvent triggerEvent) const
+{
+    if (!triggerEvent) return false;
+    return events.contains(triggerEvent);
 }
 
 ScenarioRule::ScenarioRule(Scenario *scenario)
@@ -551,6 +623,31 @@ int AttackRangeSkill::getFixed(const Player *, bool) const
     return -1;
 }
 
+ViewAsEquipSkill::ViewAsEquipSkill(const QString &name) : Skill(name, Skill::Compulsory)
+{
+
+}
+
+QString ViewAsEquipSkill::viewAsEquip(const Player *) const
+{
+    return QString();
+}
+
+CardLimitSkill::CardLimitSkill(const QString &name) : Skill(name, Skill::Compulsory)
+{
+
+}
+
+QString CardLimitSkill::limitList(const Player *) const
+{
+    return QString();
+}
+
+QString CardLimitSkill::limitPattern(const Player *) const
+{
+    return QString();
+}
+
 FakeMoveSkill::FakeMoveSkill(const QString &name)
     : TriggerSkill(QString("#%1-fake-move").arg(name)), name(name)
 {
@@ -624,9 +721,10 @@ ArmorSkill::ArmorSkill(const QString &name)
 
 bool ArmorSkill::triggerable(const ServerPlayer *target) const
 {
-    if (target == NULL || target->getArmor() == NULL)
+    /*if (target == NULL || target->getArmor() == NULL)
         return false;
-    return target->hasArmorEffect(objectName());
+    return target->hasArmorEffect(objectName());*/
+    return target != NULL && target->hasArmorEffect(objectName());
 }
 
 TreasureSkill::TreasureSkill(const QString &name)
@@ -637,9 +735,10 @@ TreasureSkill::TreasureSkill(const QString &name)
 
 bool TreasureSkill::triggerable(const ServerPlayer *target) const
 {
-    if (target == NULL || target->getTreasure() == NULL)
+    /*if (target == NULL || target->getTreasure() == NULL)
         return false;
-    return target->hasTreasure(objectName());
+    return target->hasTreasure(objectName());*/
+    return target != NULL && target->hasTreasure(objectName());
 }
 
 MarkAssignSkill::MarkAssignSkill(const QString &mark, int n)

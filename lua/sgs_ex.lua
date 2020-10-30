@@ -7,14 +7,24 @@ function sgs.CreateTriggerSkill(spec)
 	if spec.frequency then assert(type(spec.frequency) == "number") end
 	if spec.limit_mark then assert(type(spec.limit_mark) == "string") end
     if spec.change_skill then assert(type(spec.change_skill) == "boolean") end
+	if spec.limited_skill then assert(type(spec.limited_skill) == "boolean") end
+	if spec.hide_skill then assert(type(spec.hide_skill) == "boolean") end
+	if spec.shiming_skill then assert(type(spec.shiming_skill) == "boolean") end
+	if spec.waked_skills then assert(type(spec.waked_skills) == "string") end
 
 	local frequency = spec.frequency or sgs.Skill_NotFrequent
 	local limit_mark = spec.limit_mark or ""
     local change_skill = spec.change_skill or false
+	local limited_skill = spec.limited_skill or false
+	local hide_skill = spec.hide_skill or false
+	local shiming_skill = spec.shiming_skill or false
+	local waked_skills = spec.waked_skills or ""
 
-    local skill = sgs.LuaTriggerSkill(spec.name, frequency, limit_mark, change_skill)
+    local skill = sgs.LuaTriggerSkill(spec.name, frequency, limit_mark, change_skill, limited_skill, hide_skill, shiming_skill, waked_skills)
 
-	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(guhuo_type) end
+	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(spec.guhuo_type) end
+	if type(spec.juguan_type) == "string" and spec.juguan_type ~= "" then skill:setJuguanDialog(spec.juguan_type) end
+	if type(spec.tiansuan_type) == "string" and spec.tiansuan_type ~= "" then skill:setTiansuanDialog(spec.tiansuan_type) end
 
 	if type(spec.events) == "number" then
 		skill:addEvent(spec.events)
@@ -31,14 +41,27 @@ function sgs.CreateTriggerSkill(spec)
 	if spec.can_trigger then
 		skill.can_trigger = spec.can_trigger
 	end
+	if spec.can_wake then
+		skill.can_wake = spec.can_wake
+	end
 	if spec.view_as_skill then
 		skill:setViewAsSkill(spec.view_as_skill)
 	end
 	if type(spec.priority) == "number" then
 		skill.priority = spec.priority
-	elseif type(spec.priority) == "table" then
+	--[[elseif type(spec.priority) == "table" then
 		for triggerEvent, priority in pairs(spec.priority) do
 			skill:insertPriorityTable(triggerEvent, priority)
+		end
+	end]]
+	elseif type(spec.priority) == "table" then
+		if type(spec.events) == "table" then
+			for i = 1, #spec.events, 1 do
+				if i > #spec.priority then break end
+				skill:insertPriorityTable(spec.events[i], spec.priority[i])
+			end
+		elseif type(spec.events) == "number" then
+			skill:insertPriorityTable(spec.events, spec.priority[1])
 		end
 	end
 	if type(dynamic_frequency) == "function" then
@@ -50,29 +73,38 @@ end
 function sgs.CreateProhibitSkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.is_prohibited) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaProhibitSkill(spec.name)
+	local skill = sgs.LuaProhibitSkill(spec.name, frequency)
 	skill.is_prohibited = spec.is_prohibited
 
 	return skill
 end
 
 function sgs.CreateProhibitPindianSkill(spec)
-        assert(type(spec.name) == "string")
-        assert(type(spec.is_pindianprohibited) == "function")
+	assert(type(spec.name) == "string")
+	assert(type(spec.is_pindianprohibited) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-        local skill = sgs.LuaProhibitPindianSkill(spec.name)
-        skill.is_pindianprohibited = spec.is_pindianprohibited
+	local skill = sgs.LuaProhibitPindianSkill(spec.name, frequency)
+	skill.is_pindianprohibited = spec.is_pindianprohibited
 
-        return skill
+	return skill
 end
 
 function sgs.CreateFilterSkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.view_filter) == "function")
 	assert(type(spec.view_as) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaFilterSkill(spec.name)
+	local skill = sgs.LuaFilterSkill(spec.name, frequency)
 	skill.view_filter = spec.view_filter
 	skill.view_as = spec.view_as
 
@@ -82,8 +114,11 @@ end
 function sgs.CreateDistanceSkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.correct_func) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaDistanceSkill(spec.name)
+	local skill = sgs.LuaDistanceSkill(spec.name, frequency)
 	skill.correct_func = spec.correct_func
 
 	return skill
@@ -92,8 +127,11 @@ end
 function sgs.CreateMaxCardsSkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.extra_func) == "function" or type(spec.fixed_func) == "function")
-
-	local skill = sgs.LuaMaxCardsSkill(spec.name)
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
+	
+	local skill = sgs.LuaMaxCardsSkill(spec.name, frequency)
 	if spec.extra_func then
 		skill.extra_func = spec.extra_func
 	else
@@ -107,8 +145,11 @@ function sgs.CreateTargetModSkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.residue_func) == "function" or type(spec.distance_limit_func) == "function" or type(spec.extra_target_func) == "function")
 	if spec.pattern then assert(type(spec.pattern) == "string") end
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaTargetModSkill(spec.name, spec.pattern or "Slash")
+	local skill = sgs.LuaTargetModSkill(spec.name, spec.pattern or "Slash", frequency)
 	if spec.residue_func then
 		skill.residue_func = spec.residue_func
 	end
@@ -125,8 +166,11 @@ end
 function sgs.CreateInvaliditySkill(spec)
 	assert(type(spec.name) == "string")
 	assert(type(spec.skill_valid) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaInvaliditySkill(spec.name)
+	local skill = sgs.LuaInvaliditySkill(spec.name, frequency)
 	skill.skill_valid = spec.skill_valid
 
 	return skill
@@ -134,15 +178,55 @@ end
 
 function sgs.CreateAttackRangeSkill(spec)
 	assert(type(spec.name) == "string")
-	assert(type(spec.extra_func) == "function" or type(spec.fixed.func) == "function")
+	assert(type(spec.extra_func) == "function" or type(spec.fixed_func) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
 
-	local skill = sgs.LuaAttackRangeSkill(spec.name)
+	local skill = sgs.LuaAttackRangeSkill(spec.name, frequency)
 
 	if spec.extra_func then
 		skill.extra_func = spec.extra_func or 0
 	end
 	if spec.fixed_func then
 		skill.fixed_func = spec.fixed_func or 0
+	end
+
+	return skill
+end
+
+function sgs.CreateViewAsEquipSkill(spec)
+	assert(type(spec.name) == "string")
+	assert(type(spec.view_as_equip) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
+
+	local skill = sgs.LuaViewAsEquipSkill(spec.name, frequency)
+
+	if spec.view_as_equip then
+		skill.view_as_equip = spec.view_as_equip or ""
+	end
+
+	return skill
+end
+
+function sgs.CreateCardLimitSkill(spec)
+	assert(type(spec.name) == "string")
+	assert(type(spec.limit_list) == "function")
+	assert(type(spec.limit_pattern) == "function")
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	
+	local frequency = spec.frequency or sgs.Skill_Compulsory
+
+	local skill = sgs.LuaCardLimitSkill(spec.name, frequency)
+
+	if spec.limit_list then
+		skill.limit_list = spec.limit_list or ""
+	end
+	
+	if spec.limit_pattern then
+		skill.limit_pattern = spec.limit_pattern or ""
 	end
 
 	return skill
@@ -290,6 +374,18 @@ function sgs.CreateBasicCard(spec)
 	if type(spec.can_recast) == "boolean" then
 		card:setCanRecast(spec.can_recast)
 	end
+	
+	if type(spec.damage_card) == "boolean" then
+		card:setDamageCard(spec.damage_card)
+	end
+	
+	if type(spec.is_gift) == "boolean" then
+		card:setGift(spec.is_gift)
+	end
+	
+	if type(spec.single_target) == "boolean" then
+		card:setSingleTargetCard(spec.single_target)
+	end
 
 	card.filter = spec.filter
 	card.feasible = spec.feasible
@@ -322,12 +418,41 @@ function onUse_AOE(self, room, card_use)
 	for _, player in sgs.qlist(other_players) do
 		local skill = room:isProhibited(source, player, self)
 		if skill ~= nil then
-			local log_message = sgs.LogMessage()
-			log_message.type = "#SkillAvoid"
-			log_message.from = player
-			log_message.arg = skill:objectName()
-			log_message.arg2 = self:objectName()
-			room:broadcastSkillInvoke(skill:objectName())
+			if skill:isVisible() then
+				local log_message = sgs.LogMessage()
+				log_message.type = "#SkillAvoid"
+				log_message.from = player
+				log_message.arg = skill:objectName()
+				log_message.arg2 = self:objectName()
+				room:notifySkillInvoked(player, skill:objectName())
+				room:broadcastSkillInvoke(skill:objectName())
+			else
+				local new_skill = sgs.Sanguosha:getMainSkill(skill:objectName())
+				if new_skill and new_skill:isVisible() then
+					if player:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoid"
+						logm.from = player
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(player, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					elseif source:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoidFrom"
+						logm.from = source
+						log.to:append(player)
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(source, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					end
+				end
+			end
 		else
 			targets:append(player)
 		end
@@ -357,12 +482,41 @@ function onUse_GlobalEffect(self, room, card_use)
 	for _, player in sgs.qlist(all_players) do
 		local skill = room:isProhibited(source, player, self)
 		if skill ~= nil then
-			local log_message = sgs.LogMessage()
-			log_message.type = "#SkillAvoid"
-			log_message.from = player
-			log_message.arg = skill:objectName()
-			log_message.arg2 = self:objectName()
-			room:broadcastSkillInvoke(skill:objectName())
+			if skill:isVisible() then
+				local log_message = sgs.LogMessage()
+				log_message.type = "#SkillAvoid"
+				log_message.from = player
+				log_message.arg = skill:objectName()
+				log_message.arg2 = self:objectName()
+				room:notifySkillInvoked(player, skill:objectName())
+				room:broadcastSkillInvoke(skill:objectName())
+			else
+				local new_skill = sgs.Sanguosha:getMainSkill(skill:objectName())
+				if new_skill and new_skill:isVisible() then
+					if player:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoid"
+						logm.from = player
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(player, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					elseif source:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoidFrom"
+						logm.from = source
+						log.to:append(player)
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(source, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					end
+				end
+			end
 		else
 			targets:append(player)
 		end
@@ -392,17 +546,85 @@ function onUse_DelayedTrick(self, room, card_use)
 	room:sendLog(logm)
 
 	local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_USE, use.from:objectName(), use.to:first():objectName(), self:getSkillName(), "")
-	room:moveCardTo(self, use.from, use.to:first(), sgs.Player_PlaceDelayedTrick, reason, true)
+	local use_data = sgs.QVariant()
+	use_data:setValue(use.card)
+	reason.m_extraData = use_data
+	reason.m_useStruct = use
+	
+	room:moveCardTo(self, use.from, nil, sgs.Player_PlaceTable, reason, true)
 
 	thread:trigger(sgs.CardUsed, room, use.from, data)
 	use = data:toCardUse()
 	thread:trigger(sgs.CardFinished, room, use.from, data)
 end
 
-function use_DelayedTrick(self, room, source, targets)
-	if #targets == 0 then
+function use_DelayedTrick(self, room, source, targets_table)
+	if not room:CardInTable(self) then return end
+	local nullified_list = room:getTag("CardUseNullifiedList"):toStringList()
+    local all_nullified = table.contains(nullified_list, "_ALL_TARGETS")
+	
+	local targets = sgs.SPlayerList()
+	for _,p in ipairs(targets_table) do
+		targets:append(p)
+	end
+	
+	if all_nullified or targets:isEmpty() or table.contains(nullified_list, targets:first():objectName()) or targets:first():isDead() or
+		not targets:first():hasJudgeArea() or targets:first():containsTrick(self:objectName()) then
+		
+		if not room:CardInTable(self) then return end
 		local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_USE, source:objectName(), "", self:getSkillName(), "")
-		room:moveCardTo(self, room:getCardOwner(self:getEffectiveId()), nil, sgs.Player_DiscardPile, reason, true)
+		local use_data = sgs.QVariant()
+		use_data:setValue(self:getRealCard())
+		reason.m_extraData = use_data
+		local use = sgs.CardUseStruct(self, source, targets)
+		reason.m_useStruct = use
+		room:moveCardTo(self, source, nil, sgs.Player_DiscardPile, reason, true)
+	else
+		if not room:CardInTable(self) then return end
+		local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_USE, source:objectName(), targets:first():objectName(), self:getSkillName(), "")
+		local use_data = sgs.QVariant()
+		use_data:setValue(self:getRealCard())
+		reason.m_extraData = use_data
+		local use = sgs.CardUseStruct(self, source, targets)
+		reason.m_useStruct = use
+		room:moveCardTo(self, targets:first(), sgs.Player_PlaceDelayedTrick, reason, true)
+	end
+end
+
+function use_DelayedTrick_Movable(self, room, source, targets_table)
+	if not room:CardInTable(self) then return end
+	local nullified_list = room:getTag("CardUseNullifiedList"):toStringList()
+    local all_nullified = table.contains(nullified_list, "_ALL_TARGETS")
+	
+	local targets = sgs.SPlayerList()
+	for _,p in ipairs(targets_table) do
+		targets:append(p)
+	end
+	
+	if all_nullified or targets:isEmpty() or table.contains(nullified_list, targets:first():objectName()) or targets:first():isDead() or
+		not targets:first():hasJudgeArea() or targets:first():containsTrick(self:objectName()) then
+		
+		self:on_nullified(source)
+		local owner = room:getCardOwner(self:getEffectiveId())
+		if not owner or owner:objectName() ~= source:objectName() then return end
+			
+		if not room:CardInTable(self) then return end
+		local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_USE, source:objectName(), "", self:getSkillName(), "")
+		local use_data = sgs.QVariant()
+		use_data:setValue(self:getRealCard())
+		reason.m_extraData = use_data
+		local use = sgs.CardUseStruct(self, source, targets)
+		reason.m_useStruct = use
+		room:moveCardTo(self, source, nil, sgs.Player_DiscardPile, reason, true)
+	else
+		if not room:CardInTable(self) then return end
+		local reason = sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_USE, source:objectName(), targets:first():objectName(), self:getSkillName(), "")
+		local use_data = sgs.QVariant()
+		use_data:setValue(self:getRealCard())
+		reason.m_extraData = use_data
+		local use = sgs.CardUseStruct(self, source, targets)
+		reason.m_useStruct = use
+		room:moveCardTo(self, targets:first(), sgs.Player_PlaceDelayedTrick, reason, true)
 	end
 end
 
@@ -415,17 +637,56 @@ function onNullified_DelayedTrick_movable(self, target)
 
 	for _, player in sgs.qlist(players) do
 		if player:containsTrick(self:objectName()) then continue end
+		
+		if not player:hasJudgeArea() then
+			local logm = sgs.LogMessage()
+			logm.type = "#NoJudgeAreaAvoid"
+			logm.from = player
+			logm.arg = self:objectName()
+			room:sendLog(logm)
+			continue
+		end
 
 		local skill = room:isProhibited(target, player, self)
 		if skill then
-			local logm = sgs.LogMessage()
-			logm.type = "#SkillAvoid"
-			logm.from = player
-			logm.arg = skill:objectName()
-			logm.arg2 = self:objectName()
-			room:sendLog(logm)
-
-			room:broadcastSkillInvoke(skill:objectName())
+			if skill:isVisible() then
+				local logm = sgs.LogMessage()
+				logm.type = "#SkillAvoid"
+				logm.from = player
+				logm.arg = skill:objectName()
+				logm.arg2 = self:objectName()
+				room:sendLog(logm)
+				
+				room:notifySkillInvoked(player, skill:objectName())
+				room:broadcastSkillInvoke(skill:objectName())
+				continue
+			else
+				local new_skill = sgs.Sanguosha:getMainSkill(skill:objectName())
+				if new_skill and new_skill:isVisible() then
+					if player:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoid"
+						logm.from = player
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(player, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					elseif target:hasSkill(new_skill) then
+						local skill_name = new_skill:objectName()
+                        local logm = sgs.LogMessage()
+						logm.type = "#SkillAvoidFrom"
+						logm.from = target
+						log.to:append(player)
+						logm.arg = skill_name
+						logm.arg2 = self:objectName()
+						room:sendLog(logm)
+						room:notifySkillInvoked(target, skill_name)
+						room:broadcastSkillInvoke(skill_name)
+					end
+				end
+			end
 			continue
 		end
 
@@ -483,6 +744,18 @@ function sgs.CreateTrickCard(spec)
 	if type(spec.can_recast) == "boolean" then
 		card:setCanRecast(spec.can_recast)
 	end
+	
+	if type(spec.damage_card) == "boolean" then
+		card:setDamageCard(spec.damage_card)
+	end
+	
+	if type(spec.is_gift) == "boolean" then
+		card:setGift(spec.is_gift)
+	end
+	
+	if type(spec.single_target) == "boolean" then
+		card:setSingleTargetCard(spec.single_target)
+	end
 
 	if type(spec.subclass) == "number" then
 		card:setSubClass(spec.subclass)
@@ -493,7 +766,13 @@ function sgs.CreateTrickCard(spec)
 	if spec.subclass then
 		if spec.subclass == sgs.LuaTrickCard_TypeDelayedTrick then
 			if not spec.about_to_use then spec.about_to_use = onUse_DelayedTrick end
-			if not spec.on_use then spec.on_use = use_DelayedTrick end
+			if not spec.on_use then 
+				if spec.movable then
+					spec.on_use = use_DelayedTrick_Movable
+				else
+					spec.on_use = use_DelayedTrick
+				end
+			end
 			if not spec.on_nullified then
 				if spec.movable then spec.on_nullified = onNullified_DelayedTrick_movable
 				else spec.on_nullified = onNullified_DelayedTrick_unmovable
@@ -525,12 +804,17 @@ end
 function sgs.CreateViewAsSkill(spec)
 	assert(type(spec.name) == "string")
 	if spec.response_pattern then assert(type(spec.response_pattern) == "string") end
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	if spec.limit_mark then assert(type(spec.limit_mark) == "string") end
+	
 	local response_pattern = spec.response_pattern or ""
 	local response_or_use = spec.response_or_use or false
 	if spec.expand_pile then assert(type(spec.expand_pile) == "string") end
 	local expand_pile = spec.expand_pile or ""
+	local frequency = spec.frequency or sgs.Skill_NotFrequent
+	local limit_mark = spec.limit_mark or ""
 
-	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, expand_pile)
+	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, expand_pile, frequency, limit_mark)
 	local n = spec.n or 0
 
 	function skill:view_as(cards)
@@ -541,8 +825,11 @@ function sgs.CreateViewAsSkill(spec)
 		if #selected >= n then return false end
 		return spec.view_filter(self, selected, to_select)
 	end
-	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(guhuo_type) end
-
+	
+	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(spec.guhuo_type) end
+	if type(spec.juguan_type) == "string" and spec.juguan_type ~= "" then skill:setJuguanDialog(spec.juguan_type) end
+	if type(spec.tiansuan_type) == "string" and spec.tiansuan_type ~= "" then skill:setTiansuanDialog(spec.tiansuan_type) end
+	
 	skill.should_be_visible = spec.should_be_visible
 	skill.enabled_at_play = spec.enabled_at_play
 	skill.enabled_at_response = spec.enabled_at_response
@@ -554,16 +841,23 @@ end
 function sgs.CreateOneCardViewAsSkill(spec)
 	assert(type(spec.name) == "string")
 	if spec.response_pattern then assert(type(spec.response_pattern) == "string") end
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	if spec.limit_mark then assert(type(spec.limit_mark) == "string") end
+	
 	local response_pattern = spec.response_pattern or ""
 	local response_or_use = spec.response_or_use or false
 	if spec.filter_pattern then assert(type(spec.filter_pattern) == "string") end
 	if spec.expand_pile then assert(type(spec.expand_pile) == "string") end
 	local expand_pile = spec.expand_pile or ""
+	local frequency = spec.frequency or sgs.Skill_NotFrequent
+	local limit_mark = spec.limit_mark or ""
 
-	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, expand_pile)
+	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, expand_pile, frequency, limit_mark)
 
-	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(guhuo_type) end
-
+	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(spec.guhuo_type) end
+	if type(spec.juguan_type) == "string" and spec.juguan_type ~= "" then skill:setJuguanDialog(spec.juguan_type) end
+	if type(spec.tiansuan_type) == "string" and spec.tiansuan_type ~= "" then skill:setTiansuanDialog(spec.tiansuan_type) end
+	
 	function skill:view_as(cards)
 		if #cards ~= 1 then return nil end
 		return spec.view_as(self, cards[1])
@@ -592,13 +886,20 @@ end
 function sgs.CreateZeroCardViewAsSkill(spec)
 	assert(type(spec.name) == "string")
 	if spec.response_pattern then assert(type(spec.response_pattern) == "string") end
+	if spec.frequency then assert(type(spec.frequency) == "number") end
+	if spec.limit_mark then assert(type(spec.limit_mark) == "string") end
+	
 	local response_pattern = spec.response_pattern or ""
 	local response_or_use = spec.response_or_use or false
+	local frequency = spec.frequency or sgs.Skill_NotFrequent
+	local limit_mark = spec.limit_mark or ""
 
-	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, "")
+	local skill = sgs.LuaViewAsSkill(spec.name, response_pattern, response_or_use, "", frequency, limit_mark)
 
-	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(guhuo_type) end
-
+	if type(spec.guhuo_type) == "string" and spec.guhuo_type ~= "" then skill:setGuhuoDialog(spec.guhuo_type) end
+	if type(spec.juguan_type) == "string" and spec.juguan_type ~= "" then skill:setJuguanDialog(spec.juguan_type) end
+	if type(spec.tiansuan_type) == "string" and spec.tiansuan_type ~= "" then skill:setTiansuanDialog(spec.tiansuan_type) end
+	
 	function skill:view_as(cards)
 		if #cards > 0 then return nil end
 		return spec.view_as(self)
@@ -642,16 +943,31 @@ end
 
 function sgs.CreateWeapon(spec)
 	spec.location = sgs.EquipCard_WeaponLocation
+	
+	if type(spec.is_gift) == "boolean" then
+		card:setGift(spec.is_gift)
+	end
+	
 	return sgs.CreateEquipCard(spec)
 end
 
 function sgs.CreateArmor(spec)
 	spec.location = sgs.EquipCard_ArmorLocation
+	
+	if type(spec.is_gift) == "boolean" then
+		card:setGift(spec.is_gift)
+	end
+	
 	return sgs.CreateEquipCard(spec)
 end
 
 function sgs.CreateTreasure(spec)
 	spec.location = sgs.EquipCard_TreasureLocation
+	
+	if type(spec.is_gift) == "boolean" then
+		card:setGift(spec.is_gift)
+	end
+	
 	return sgs.CreateEquipCard(spec)
 end
 

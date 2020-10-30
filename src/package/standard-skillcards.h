@@ -4,6 +4,17 @@
 #include "skill.h"
 #include "card.h"
 
+class Hujia : public TriggerSkill
+{
+public:
+    Hujia(const QString &hujia = "hujia");
+    bool triggerable(const ServerPlayer *target) const;
+    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const;
+
+protected:
+    QString hujia;
+};
+
 class ZhihengCard : public SkillCard
 {
     Q_OBJECT
@@ -170,10 +181,12 @@ class JijiangCard : public SkillCard
     Q_OBJECT
 
 public:
-    Q_INVOKABLE JijiangCard();
+    Q_INVOKABLE JijiangCard(const QString &jijiang = "jijiang");
 
     bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     const Card *validate(CardUseStruct &cardUse) const;
+private:
+    const QString jijiang;
 };
 
 class JijiangViewAsSkill : public ZeroCardViewAsSkill

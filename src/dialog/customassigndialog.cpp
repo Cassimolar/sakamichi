@@ -1568,8 +1568,11 @@ GeneralAssignDialog::GeneralAssignDialog(QWidget *parent, bool can_ban) : QDialo
 
     QList<const General *> all_generals = Sanguosha->findChildren<const General *>();
     QMap<QString, QList<const General *> > map;
-    foreach(const General *general, all_generals)
-        map[general->getKingdom()] << general;
+    foreach(const General *general, all_generals) {
+        QStringList kins = general->getKingdoms().split("+");
+        foreach (QString kingd, kins)
+            map[kingd] << general;
+    }
 
     QStringList kingdoms = Sanguosha->getKingdoms();
 
@@ -1578,9 +1581,17 @@ GeneralAssignDialog::GeneralAssignDialog(QWidget *parent, bool can_ban) : QDialo
 
         if (!generals.isEmpty()) {
             QWidget *tab = createTab(generals);
-            tab_widget->addTab(tab,
-                QIcon(QString("image/kingdom/icon/%1.png").arg(kingdom)),
-                Sanguosha->translate(kingdom));
+
+            QScrollArea *scrollArea = new QScrollArea(this);
+            scrollArea->setBackgroundRole(QPalette::Light);
+            scrollArea->setFrameShape(QFrame::NoFrame);
+            scrollArea->setWidget(tab);
+            scrollArea->setMinimumSize(1500, 564);
+            scrollArea->setWidgetResizable(true);
+            scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);//隐藏水平滚动条
+
+            tab_widget->addTab(scrollArea,QIcon(G_ROOM_SKIN.getPixmap(QSanRoomSkin::S_SKIN_KEY_KINGDOM_ICON, kingdom)),
+                               Sanguosha->translate(kingdom));
         }
     }
 
@@ -1735,7 +1746,7 @@ void CardAssignDialog::updateCardList()
                 continue;
 
             const Card *card = Sanguosha->getEngineCard(i);
-            if (Config.BanPackages.contains(card->getPackage()))
+            if (Config.BanPackages.contains(card->getPackage()) || card->objectName().startsWith("__"))
                 continue;
             if (card->getType() == card_type || card->isKindOf(class_name.toStdString().c_str()))
                 reasonable_cards << card;
@@ -1746,7 +1757,7 @@ void CardAssignDialog::updateCardList()
                 continue;
 
             const Card *card = Sanguosha->getEngineCard(i);
-            if (Config.BanPackages.contains(card->getPackage()))
+            if (Config.BanPackages.contains(card->getPackage()) || card->objectName().startsWith("__"))
                 continue;
             reasonable_cards << card;
         }

@@ -6,6 +6,7 @@
 #include "settings.h"
 #include "clientstruct.h"
 #include "settings.h"
+#include "general.h"
 
 using namespace JsonUtils;
 
@@ -44,6 +45,7 @@ const char *QSanRoomSkin::S_SKIN_KEY_SAVE_ME_ICON = "saveMe";
 const char *QSanRoomSkin::S_SKIN_KEY_ACTIONED_ICON = "playerActioned";
 const char *QSanRoomSkin::S_SKIN_KEY_HAND_CARD_BACK = "handCardBack";
 const char *QSanRoomSkin::S_SKIN_KEY_HAND_CARD_SUIT = "handCardSuit-%1";
+const char *QSanRoomSkin::S_SKIN_KEY_HAND_CARD_YINGBIAN = "handCardYingbian-%1";
 const char *QSanRoomSkin::S_SKIN_KEY_JUDGE_CARD_ICON = "judgeCardIcon-%1";
 const char *QSanRoomSkin::S_SKIN_KEY_HAND_CARD_FRAME = "handCardFrame-%1";
 const char *QSanRoomSkin::S_SKIN_KEY_HAND_CARD_MAIN_PHOTO = "handCardMainPhoto-%1";
@@ -602,6 +604,7 @@ QPixmap IQSanComponentSkin::getPixmap(const QString &key, const QString &arg, bo
     // 1. if no arg, then just use key to find fileName.
     // 2. try key.arg(arg), if exists, then return the pixmap
     // 3. try key.arg(default), get fileName, and try fileName.arg(arg)
+    // 4. use General::getImage()
     QString totalKey;
     QString groupKey;
     QString fileName;
@@ -620,9 +623,15 @@ QPixmap IQSanComponentSkin::getPixmap(const QString &key, const QString &arg, bo
         QString fileNameToResolve = _readImageConfig(groupKey, clipRegion, clipping, scaleRegion, scaled);
         fileName = fileNameToResolve.arg(arg);
         if (!QFile::exists(fileName)) {
-            groupKey = key.arg(S_SKIN_KEY_DEFAULT_SECOND);
-            QString fileNameToResolve = _readImageConfig(groupKey, clipRegion, clipping, scaleRegion, scaled);
-            fileName = fileNameToResolve.arg(arg);
+            QString general_name = fileName.split("/").last().split(".").first();
+            const General *general = Sanguosha->getGeneral(general_name); // case 4: use General::getImage()
+            if (general && !general->getImage().isEmpty())
+                fileName.replace(general_name, general->getImage());
+            else {
+                groupKey = key.arg(S_SKIN_KEY_DEFAULT_SECOND);
+                QString fileNameToResolve = _readImageConfig(groupKey, clipRegion, clipping, scaleRegion, scaled);
+                fileName = fileNameToResolve.arg(arg);
+            }
         }
     }
 
@@ -761,6 +770,7 @@ bool QSanRoomSkin::_loadLayoutConfig(const QVariant &layout)
     tryParse(config["cardMainArea"], _m_commonLayout.m_cardMainArea);
     tryParse(config["cardSuitArea"], _m_commonLayout.m_cardSuitArea);
     tryParse(config["cardNumberArea"], _m_commonLayout.m_cardNumberArea);
+    tryParse(config["cardYingbianArea"], _m_commonLayout.m_cardYingbianArea);
     tryParse(config["cardFrameArea"], _m_commonLayout.m_cardFrameArea);
     tryParse(config["cardFootnoteArea"], _m_commonLayout.m_cardFootnoteArea);
     tryParse(config["cardAvatarArea"], _m_commonLayout.m_cardAvatarArea);
@@ -780,6 +790,8 @@ bool QSanRoomSkin::_loadLayoutConfig(const QVariant &layout)
     tryParse(config["bubbleChatBoxShowAreaSize"],
         _m_commonLayout.m_bubbleChatBoxShowAreaSize);
     _m_commonLayout.m_cardFootnoteFont.tryParse(config["cardFootnoteFont"]);
+    tryParse(config["promptInfoSize"], _m_commonLayout.m_promptInfoSize);
+    _m_commonLayout.m_promptInfoFont.tryParse(config["promptInfoFont"]);
 
     JsonArray magatamaFont = config["magatamaFont"].value<JsonArray>();
     for (int i = 0; i < 6 && i < magatamaFont.size(); i++) {

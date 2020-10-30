@@ -167,6 +167,7 @@ public:
         : TriggerSkill("#sa_avoid_" + avoid_skill), avoid_skill(avoid_skill)
     {
         events << CardEffected;
+        frequency = Compulsory;
     }
 
     bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
@@ -174,6 +175,7 @@ public:
         CardEffectStruct effect = data.value<CardEffectStruct>();
         if (effect.card->isKindOf("SavageAssault")) {
             room->broadcastSkillInvoke(avoid_skill);
+            room->notifySkillInvoked(player, avoid_skill);
 
             LogMessage log;
             log.type = "#SkillNullify";
@@ -205,17 +207,22 @@ public:
         return target != NULL;
     }
 
-    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *, QVariant &data) const
     {
         if (triggerEvent == TargetSpecified) {
             CardUseStruct use = data.value<CardUseStruct>();
             if (use.card->isKindOf("SavageAssault")) {
-                ServerPlayer *menghuo = room->findPlayerBySkillName(objectName());
-                if (menghuo && menghuo != use.from) {
-                    room->broadcastSkillInvoke(objectName());
-                    room->sendCompulsoryTriggerLog(player, objectName());
-
-                    use.card->setFlags("HuoshouDamage_" + menghuo->objectName());
+                QList<ServerPlayer *> menghuos = room->findPlayersBySkillName(objectName());
+                if (!menghuos.isEmpty()) {
+                    foreach (ServerPlayer *menghuo, menghuos) {
+                        if (menghuo != use.from) {
+                            int index = 1;
+                            if (menghuo->isJieGeneral())
+                                index = qrand() % 2 + 2;
+                            room->sendCompulsoryTriggerLog(menghuo, this, index);
+                        }
+                    }
+                    use.card->setFlags("HuoshouDamage_" + menghuos.last()->objectName());
                 }
             }
         } else if (triggerEvent == ConfirmDamage) {
@@ -254,12 +261,22 @@ public:
         if (target->isDead()) return false;
         if (damage.card && damage.card->isKindOf("Slash") && zhurong->canPindian(target) && !target->hasFlag("Global_DebutFlag") && !damage.chain && !damage.transfer
             && room->askForSkillInvoke(zhurong, objectName(), data)) {
-            room->broadcastSkillInvoke(objectName(), 1);
+
+            int index = 1;
+            if (zhurong->isJieGeneral())
+                index = qrand() % 2 + 4;
+            room->broadcastSkillInvoke(objectName(), index);
 
             bool success = zhurong->pindian(target, "lieren", NULL);
-            if (!success) return false;
+            if (!success) {
+                if (!zhurong->isJieGeneral())
+                    room->broadcastSkillInvoke(objectName(), 3);
+                return false;
+            }
 
-            room->broadcastSkillInvoke(objectName(), 2);
+            if (!zhurong->isJieGeneral())
+                room->broadcastSkillInvoke(objectName(), 2);
+
             if (!target->isNude()) {
                 int card_id = room->askForCardChosen(zhurong, target, "he", objectName());
                 CardMoveReason reason(CardMoveReason::S_REASON_EXTRACTION, zhurong->objectName());
@@ -354,7 +371,10 @@ public:
             }*/
             if (!room->CardInTable(card)) return false;
             if (player != move.from) {
-                room->broadcastSkillInvoke(objectName());
+                int index = 1;
+                if (player->isJieGeneral())
+                    index += qrand() % 2 + 1;
+                room->broadcastSkillInvoke(objectName(), index);
                 room->sendCompulsoryTriggerLog(player, objectName());
 
                 player->obtainCard(card);
@@ -380,6 +400,19 @@ public:
             && target->isWounded();
     }
 
+    void broadcast(ServerPlayer *sunjian, int index) const
+    {
+        Room *room = sunjian->getRoom();
+        if (!sunjian->isJieGeneral())
+            room->broadcastSkillInvoke(objectName(), index);
+        else {
+            if (sunjian->isJieGeneral("sunce"))
+                room->broadcastSkillInvoke(objectName(), qrand() % 2 + 7);
+            else
+                room->broadcastSkillInvoke(objectName(), qrand() % 2 + 5);
+        }
+    }
+
     bool onPhaseChange(ServerPlayer *sunjian) const
     {
         Room *room = sunjian->getRoom();
@@ -388,11 +421,15 @@ public:
             int x = sunjian->getLostHp();
 
             int index = 1;
-            if (!sunjian->hasInnateSkill("yinghun") && sunjian->hasSkill("hunzi"))
-                index += 2;
+            if (!sunjian->hasInnateSkill("yinghun")) {
+                if (sunjian->hasSkill("xiongyisy"))
+                    index  = 9;
+                else if (sunjian->hasSkill("hunzi"))
+                    index += 2;
+            }
 
             if (x == 1) {
-                room->broadcastSkillInvoke(objectName(), index);
+                broadcast(sunjian, index);
 
                 to->drawCards(1, objectName());
                 room->askForDiscard(to, objectName(), 1, 1, false, true);
@@ -401,12 +438,12 @@ public:
                 QString choice = room->askForChoice(sunjian, objectName(), "d1tx+dxt1");
                 to->setFlags("-YinghunTarget");
                 if (choice == "d1tx") {
-                    room->broadcastSkillInvoke(objectName(), index + 1);
+                    broadcast(sunjian, index + 1);
 
                     to->drawCards(1, objectName());
                     room->askForDiscard(to, objectName(), x, x, false, true);
                 } else {
-                    room->broadcastSkillInvoke(objectName(), index);
+                    broadcast(sunjian, index);
 
                     to->drawCards(x, objectName());
                     room->askForDiscard(to, objectName(), 1, 1, false, true);
@@ -526,7 +563,7 @@ public:
     int getDrawNum(ServerPlayer *lusu, int n) const
     {
         Room *room = lusu->getRoom();
-        if (room->askForSkillInvoke(lusu, "haoshi")) {
+        if (lusu->hasSkill("haoshi") && room->askForSkillInvoke(lusu, "haoshi")) {
             room->broadcastSkillInvoke("haoshi");
             lusu->setFlags("haoshi");
             return n + 2;
@@ -638,9 +675,7 @@ class Wansha : public TriggerSkill
 public:
     Wansha() : TriggerSkill("wansha")
     {
-        // just to broadcast audio effects and to send log messages
-        // main part in the AskForPeaches trigger of Game Rule
-        events << AskForPeaches;
+        events << AskForPeaches << PreventPeach << AfterPreventPeach;
         frequency = Compulsory;
     }
 
@@ -649,35 +684,53 @@ public:
         return target != NULL;
     }
 
-    int getPriority(TriggerEvent) const
+    int getPriority(TriggerEvent event) const
     {
-        return 7;
+        if (event == AskForPeaches)
+            return 7;
+        return TriggerSkill::getPriority(event);
     }
 
-    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    bool trigger(TriggerEvent event , Room *room, ServerPlayer *player, QVariant &data) const
     {
-        if (player == room->getAllPlayers().first()) {
-            DyingStruct dying = data.value<DyingStruct>();
-            ServerPlayer *jiaxu = room->getCurrent();
-            if (!jiaxu || !TriggerSkill::triggerable(jiaxu) || jiaxu->getPhase() == Player::NotActive)
-                return false;
-            if (jiaxu->hasInnateSkill("wansha") || !jiaxu->hasSkill("jilve"))
-                room->broadcastSkillInvoke(objectName());
-            else
-                room->broadcastSkillInvoke("jilve", 3);
+        if (event == AskForPeaches) {
+            if (player == room->getAllPlayers().first()) {
+                DyingStruct dying = data.value<DyingStruct>();
+                ServerPlayer *jiaxu = room->getCurrent();
+                if (!jiaxu || !TriggerSkill::triggerable(jiaxu) || jiaxu->getPhase() == Player::NotActive)
+                    return false;
+                if (jiaxu->hasInnateSkill("wansha") || !jiaxu->hasSkill("jilve"))
+                    room->broadcastSkillInvoke(objectName());
+                else
+                    room->broadcastSkillInvoke("jilve", 3);
 
-            room->notifySkillInvoked(jiaxu, objectName());
+                room->notifySkillInvoked(jiaxu, objectName());
 
-            LogMessage log;
-            log.from = jiaxu;
-            log.arg = objectName();
-            if (jiaxu != dying.who) {
-                log.type = "#WanshaTwo";
-                log.to << dying.who;
-            } else {
-                log.type = "#WanshaOne";
+                LogMessage log;
+                log.from = jiaxu;
+                log.arg = objectName();
+                if (jiaxu != dying.who) {
+                    log.type = "#WanshaTwo";
+                    log.to << dying.who;
+                } else {
+                    log.type = "#WanshaOne";
+                }
+                room->sendLog(log);
             }
-            room->sendLog(log);
+        } else if (event == PreventPeach) {
+            ServerPlayer *current = room->getCurrent();
+            DyingStruct dying = data.value<DyingStruct>();
+            if (current && current->isAlive() && current->getPhase() != Player::NotActive && current->hasSkill("wansha")) {
+                if (player != current && player != dying.who) {
+                    player->setFlags("wansha");
+                    room->addPlayerMark(player, "Global_PreventPeach");
+                }
+            }
+        } else {
+            if (player->hasFlag("wansha") && player->getMark("Global_PreventPeach") > 0) {
+                player->setFlags("-wansha");
+                room->removePlayerMark(player, "Global_PreventPeach");
+            }
         }
         return false;
     }
@@ -758,7 +811,7 @@ public:
 
     bool isProhibited(const Player *, const Player *to, const Card *card, const QList<const Player *> &) const
     {
-        return to->hasSkill(this) && (card->isKindOf("TrickCard") || card->isKindOf("QiceCard"))
+        return to->hasSkill(this) && card->isKindOf("TrickCard")
             && card->isBlack() && !card->getSkillName().contains("guhuo"); // Be care!!!!!!
     }
 };
@@ -818,7 +871,10 @@ public:
                 }
                 use.from->tag["Jink_" + use.card->toString()] = QVariant::fromValue(jink_list);
                 if (play_effect) {
-                    room->broadcastSkillInvoke(objectName(), 1);
+                    int index = 1;
+                    if (use.from->isJieGeneral())
+                        index = qrand() % 2 + 4;
+                    room->broadcastSkillInvoke(objectName(), index);
                     room->sendCompulsoryTriggerLog(use.from, objectName());
                 }
             } else if (triggerEvent == TargetConfirmed && use.from->isFemale()) {
@@ -836,6 +892,8 @@ public:
                 if (play_effect) {
                     bool drunk = (use.card->tag.value("drunk", 0).toInt() > 0);
                     int index = drunk ? 3 : 2;
+                    if (player->isJieGeneral())
+                        index = qrand() % 2 + 4;
                     room->broadcastSkillInvoke(objectName(), index);
                     room->sendCompulsoryTriggerLog(player, objectName());
                 }
@@ -875,12 +933,16 @@ public:
 
             QString result = room->askForChoice(dongzhuo, "benghuai", "hp+maxhp");
             int index = (dongzhuo->isFemale()) ? 2 : 1;
+            if (dongzhuo->isJieGeneral("dongzhuo"))
+                index = qrand() % 2 + 6;
+            else {
+                if (!dongzhuo->hasInnateSkill(this) && (dongzhuo->getMark("juyi") > 0 || dongzhuo->getMark("oljuyi") > 0))
+                    index = 3;
 
-            if (!dongzhuo->hasInnateSkill(this) && dongzhuo->getMark("juyi") > 0)
-                index = 3;
+                if (!dongzhuo->hasInnateSkill(this) && dongzhuo->getMark("baoling") > 0)
+                    index = result == "hp" ? 4 : 5;
 
-            if (!dongzhuo->hasInnateSkill(this) && dongzhuo->getMark("baoling") > 0)
-                index = result == "hp" ? 4 : 5;
+            }
 
             room->broadcastSkillInvoke(objectName(), index);
             if (result == "hp")
@@ -1004,4 +1066,3 @@ ThicketPackage::ThicketPackage()
 }
 
 ADD_PACKAGE(Thicket)
-

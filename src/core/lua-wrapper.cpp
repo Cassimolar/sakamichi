@@ -1,15 +1,23 @@
 #include "lua-wrapper.h"
 #include "util.h"
 #include "wind.h"
+#include "sp4.h"
 
-LuaTriggerSkill::LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill)
-    : TriggerSkill(name), on_trigger(0), can_trigger(0), dynamic_frequency(0)
+LuaTriggerSkill::LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill, bool limited_skill,
+                                 bool hide_skill, bool shiming_skill, QString waked_skills)
+    : TriggerSkill(name), on_trigger(0), can_trigger(0), dynamic_frequency(0), can_wake(0)
 {
     this->frequency = frequency;
     this->limit_mark = QString(limit_mark);
     this->change_skill = change_skill;
-    this->priority = (frequency == Skill::Wake) ? 3 : 2;
+    this->limited_skill = limited_skill;
+    this->hide_skill = hide_skill;
+    this->shiming_skill = shiming_skill;
+    this->waked_skills = waked_skills;
+    this->priority = 2;//(frequency == Skill::Wake) ? 3 : 2;
     this->guhuo_type = "";
+    this->juguan_type = "";
+    this->tiansuan_type = "";
 }
 
 int LuaTriggerSkill::getPriority(TriggerEvent triggerEvent) const
@@ -22,23 +30,33 @@ int LuaTriggerSkill::getPriority(TriggerEvent triggerEvent) const
 
 QDialog *LuaTriggerSkill::getDialog() const
 {
-    if (guhuo_type == "")
-        return NULL;
-    GuhuoDialog *guhuo = GuhuoDialog::getInstance(this->objectName(), guhuo_type.contains("l"), guhuo_type.contains("r"), !guhuo_type.startsWith("!"), guhuo_type.contains("s"), guhuo_type.contains("d"));
-    return guhuo;
+    if (guhuo_type != "") {
+        GuhuoDialog *guhuo = GuhuoDialog::getInstance(this->objectName(), guhuo_type.contains("l"), guhuo_type.contains("r"), !guhuo_type.startsWith("!"), guhuo_type.contains("s"), guhuo_type.contains("d"));
+        return guhuo;
+    } else if (juguan_type != "") {
+        JuguanDialog *juguan = JuguanDialog::getInstance(this->objectName(), juguan_type);
+        return juguan;
+    } else if (tiansuan_type != "") {
+        TiansuanDialog *tiansuan = TiansuanDialog::getInstance(this->objectName(), tiansuan_type);
+        return tiansuan;
+    }
+    return NULL;
 }
 
-LuaProhibitSkill::LuaProhibitSkill(const char *name)
+LuaProhibitSkill::LuaProhibitSkill(const char *name, Frequency frequency)
     : ProhibitSkill(name), is_prohibited(0)
 {
+    this->frequency = frequency;
 }
 
-LuaProhibitPindianSkill::LuaProhibitPindianSkill(const char *name)
+LuaProhibitPindianSkill::LuaProhibitPindianSkill(const char *name, Frequency frequency)
     : ProhibitPindianSkill(name), is_pindianprohibited(0)
 {
+    this->frequency = frequency;
 }
 
-LuaViewAsSkill::LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile)
+LuaViewAsSkill::LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile,
+                Frequency frequency, const char *limit_mark)
     : ViewAsSkill(name), view_filter(0), view_as(0), should_be_visible(0),
     enabled_at_play(0), enabled_at_response(0), enabled_at_nullification(0)
 {
@@ -46,45 +64,74 @@ LuaViewAsSkill::LuaViewAsSkill(const char *name, const char *response_pattern, b
     this->response_or_use = response_or_use;
     this->expand_pile = expand_pile;
     this->guhuo_type = "";
+    this->juguan_type = "";
+    this->tiansuan_type = "";
+    this->frequency = frequency;
+    this->limit_mark = QString(limit_mark);
 }
 
 QDialog *LuaViewAsSkill::getDialog() const
 {
-    if (guhuo_type == "")
-        return NULL;
-    GuhuoDialog *guhuo = GuhuoDialog::getInstance(this->objectName(), guhuo_type.contains("l"), guhuo_type.contains("r"), !guhuo_type.startsWith("!"), guhuo_type.contains("s"), guhuo_type.contains("d"));
-    return guhuo;
+    if (guhuo_type != "") {
+        GuhuoDialog *guhuo = GuhuoDialog::getInstance(this->objectName(), guhuo_type.contains("l"), guhuo_type.contains("r"), !guhuo_type.startsWith("!"), guhuo_type.contains("s"), guhuo_type.contains("d"));
+        return guhuo;
+    } else if (juguan_type != "") {
+        JuguanDialog *juguan = JuguanDialog::getInstance(this->objectName(), juguan_type);
+        return juguan;
+    } else if (tiansuan_type != "") {
+        TiansuanDialog *tiansuan = TiansuanDialog::getInstance(this->objectName(), tiansuan_type);
+        return tiansuan;
+    }
+    return NULL;
 }
 
-LuaFilterSkill::LuaFilterSkill(const char *name)
+LuaFilterSkill::LuaFilterSkill(const char *name, Frequency frequency)
     : FilterSkill(name), view_filter(0), view_as(0)
 {
+    this->frequency = frequency;
 }
 
-LuaDistanceSkill::LuaDistanceSkill(const char *name)
+LuaDistanceSkill::LuaDistanceSkill(const char *name, Frequency frequency)
     : DistanceSkill(name), correct_func(0)
 {
+    this->frequency = frequency;
 }
 
-LuaMaxCardsSkill::LuaMaxCardsSkill(const char *name)
+LuaMaxCardsSkill::LuaMaxCardsSkill(const char *name, Frequency frequency)
     : MaxCardsSkill(name), extra_func(0), fixed_func(0)
 {
+    this->frequency = frequency;
 }
 
-LuaTargetModSkill::LuaTargetModSkill(const char *name, const char *pattern)
+LuaTargetModSkill::LuaTargetModSkill(const char *name, const char *pattern, Frequency frequency)
     : TargetModSkill(name), residue_func(0), distance_limit_func(0), extra_target_func(0)
 {
     this->pattern = pattern;
+    this->frequency = frequency;
 }
 
-LuaInvaliditySkill::LuaInvaliditySkill(const char *name)
+LuaInvaliditySkill::LuaInvaliditySkill(const char *name, Frequency frequency)
     : InvaliditySkill(name)
 {
+    this->frequency = frequency;
 }
 
-LuaAttackRangeSkill::LuaAttackRangeSkill(const char *name)
+LuaAttackRangeSkill::LuaAttackRangeSkill(const char *name, Frequency frequency)
     : AttackRangeSkill(name), extra_func(0), fixed_func(0)
 {
+    this->frequency = frequency;
+}
+
+LuaViewAsEquipSkill::LuaViewAsEquipSkill(const char *name, Frequency frequency)
+    : ViewAsEquipSkill(name), view_as_equip(0)
+{
+    this->frequency = frequency;
+}
+
+LuaCardLimitSkill::LuaCardLimitSkill(const char *name, Frequency frequency)
+    : CardLimitSkill(name), limit_list(0), limit_pattern(0)
+{
+    this->frequency = frequency;
 }
 
 static QHash<QString, const LuaSkillCard *> LuaSkillCards;
@@ -114,6 +161,7 @@ LuaSkillCard *LuaSkillCard::clone() const
     new_card->target_fixed = target_fixed;
     new_card->will_throw = will_throw;
     new_card->can_recast = can_recast;
+    new_card->mute = mute;
     new_card->handling_method = handling_method;
 
     new_card->filter = filter;
@@ -223,6 +271,9 @@ LuaBasicCard *LuaBasicCard::clone(Card::Suit suit, int number) const
 
     new_card->target_fixed = target_fixed;
     new_card->can_recast = can_recast;
+    new_card->damage_card = damage_card;
+    new_card->is_gift = is_gift;
+    new_card->single_target = single_target;
 
     new_card->filter = filter;
     new_card->feasible = feasible;
@@ -253,6 +304,9 @@ LuaTrickCard *LuaTrickCard::clone(Card::Suit suit, int number) const
 
     new_card->target_fixed = target_fixed;
     new_card->can_recast = can_recast;
+    new_card->damage_card = damage_card;
+    new_card->is_gift = is_gift;
+    new_card->single_target = single_target;
 
     new_card->filter = filter;
     new_card->feasible = feasible;
@@ -271,6 +325,7 @@ LuaWeapon::LuaWeapon(Card::Suit suit, int number, int range, const char *obj_nam
 {
     setObjectName(obj_name);
     this->class_name = class_name;
+    this->is_gift = is_gift;
 }
 
 LuaWeapon *LuaWeapon::clone(Card::Suit suit, int number) const
@@ -290,6 +345,7 @@ LuaArmor::LuaArmor(Card::Suit suit, int number, const char *obj_name, const char
 {
     setObjectName(obj_name);
     this->class_name = class_name;
+    this->is_gift = is_gift;
 }
 
 LuaArmor *LuaArmor::clone(Card::Suit suit, int number) const
@@ -309,6 +365,7 @@ LuaTreasure::LuaTreasure(Card::Suit suit, int number, const char *obj_name, cons
 {
     setObjectName(obj_name);
     this->class_name = class_name;
+    this->is_gift = is_gift;
 }
 
 LuaTreasure *LuaTreasure::clone(Card::Suit suit, int number) const

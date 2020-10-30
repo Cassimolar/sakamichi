@@ -1,9 +1,0 @@
-
-general:entertainmentshangdian role:lord starter:true draw:0 
-general:entertainmentfsu role:rebel draw:0 
-general:entertainmentjushen role:rebel draw:0 
-general:entertainmentsheshen role:rebel draw:0 
-general:entertainmentcheshen role:rebel draw:0 
-general:entertainmentchengshen role:rebel draw:0 
-general:entertainmentczbshen role:rebel draw:0 
-general:entertainmentlongwang role:rebel draw:0 

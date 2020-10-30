@@ -399,28 +399,27 @@ public:
         frequency = Wake;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return target != NULL && PhaseChangeSkill::triggerable(target)
-            && target->getPhase() == Player::Start
-            && target->getMark("kegou") == 0
-            && target->getKingdom() == "wu"
-            && !target->isLord();
+        if (player->getPhase() != Player::Start || player->getMark("kegou") > 0) return false;
+        if (player->canWake(objectName())) return true;
+        if (player->getKingdom() == "wu" && !player->isLord()) {
+            foreach (ServerPlayer *p, room->getAlivePlayers()) {
+                if (p->getKingdom() == "wu" && !p->isLord() && p != player)
+                    return false;
+            }
+            LogMessage log;
+            log.type = "#KegouWake";
+            log.from = player;
+            room->sendLog(log);
+            return true;
+        }
+        return false;
     }
 
     bool onPhaseChange(ServerPlayer *lukang) const
     {
-        foreach (const Player *player, lukang->getSiblings()) {
-            if (player->isAlive() && player->getKingdom() == "wu"  && !player->isLord() && player != lukang)
-                return false;
-        }
-
         Room *room = lukang->getRoom();
-
-        LogMessage log;
-        log.type = "#KegouWake";
-        log.from = lukang;
-        room->sendLog(log);
 
         room->broadcastSkillInvoke(objectName());
         room->notifySkillInvoked(lukang, objectName());
@@ -515,7 +514,7 @@ public:
 
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const
     {
-        return pattern == "slash"
+        return (pattern.contains("slash") || pattern.contains("Slash"))
             && Sanguosha->currentRoomState()->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_RESPONSE_USE
             && !player->hasFlag("Global_LianliFailed");
     }
@@ -1194,10 +1193,10 @@ public:
     Zonghuo() :TriggerSkill("zonghuo")
     {
         frequency = Compulsory;
-        events << CardUsed;
+        events << ChangeSlash;
     }
 
-    bool trigger(TriggerEvent, Room* room, ServerPlayer *player, QVariant &data) const
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
     {
         CardUseStruct use = data.value<CardUseStruct>();
         if (use.card->isKindOf("Slash") && !use.card->isKindOf("FireSlash")) {
@@ -1208,7 +1207,7 @@ public:
                 foreach(int id, use.card->getSubcards())
                     fire_slash->addSubcard(id);
             }
-            fire_slash->setSkillName(objectName());
+            fire_slash->setSkillName("_" + objectName());
 
             //room->broadcastSkillInvoke(objectName());
             LogMessage log;
@@ -1539,7 +1538,12 @@ public:
                 log.from = player;
                 log.to << dongchaee;
                 log.arg = objectName();
-                room->doNotify(player, QSanProtocol::S_COMMAND_LOG_SKILL, log.toVariant());
+                room->sendLog(log, player);
+
+                log.type = "#InvokeSkill";
+                room->sendLog(log, room->getOtherPlayers(player, true));
+
+                room->doAnimate(1, player->objectName(), dongchaee->objectName(), QList<ServerPlayer *>() << player);
 
                 room->setPlayerFlag(dongchaee, "dongchaee");
                 room->setTag("Dongchaee", dongchaee->objectName());
@@ -1609,6 +1613,7 @@ public:
     Sizhan() :TriggerSkill("sizhan")
     {
         events << DamageInflicted << EventPhaseStart;
+        frequency = Compulsory;
     }
 
     bool trigger(TriggerEvent triggerEvent, Room* room, ServerPlayer *elai, QVariant &data) const
@@ -1656,6 +1661,7 @@ public:
     Shenli() :TriggerSkill("shenli")
     {
         events << ConfirmDamage;
+        frequency = Compulsory;
     }
 
     bool trigger(TriggerEvent, Room* room, ServerPlayer *elai, QVariant &data) const
@@ -1977,9 +1983,9 @@ public:
 
     }
 
-    int getFixed(const Player *target, bool include_weapon) const
+    int getFixed(const Player *target, bool) const
     {
-        if (target->hasSkill(this) && !include_weapon && target->getHp() > 0)
+        if (target->hasSkill(this) && !target->getWeapon() && target->getHp() > 0)
             return target->getHp();
         return -1;
     }

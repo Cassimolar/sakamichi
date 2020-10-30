@@ -230,7 +230,9 @@ void QSanSkillButton::setSkill(const Skill *skill)
         if (skill->isChangeSkill()) {
             //setState(QSanButton::S_STATE_HOVER);
             _setSkillType(QSanInvokeSkillButton::S_SKILL_CHANGE);
-        }else {
+        } else if (skill->isLimitedSkill()) {
+            _setSkillType(QSanInvokeSkillButton::S_SKILL_ONEOFF_SPELL);
+        } else {
             _setSkillType(QSanInvokeSkillButton::S_SKILL_FREQUENT);
         }
         _m_emitActivateSignal = false;
@@ -245,7 +247,8 @@ void QSanSkillButton::setSkill(const Skill *skill)
             setState(QSanButton::S_STATE_DISABLED);
             if (skill->isAttachedLordSkill())
                 _setSkillType(QSanInvokeSkillButton::S_SKILL_ATTACHEDLORD);
-            else if (freq == Skill::Limited)
+            //else if (freq == Skill::Limited)
+            else if (skill->isLimitedSkill())
                 _setSkillType(QSanInvokeSkillButton::S_SKILL_ONEOFF_SPELL);
             else
                 _setSkillType(QSanInvokeSkillButton::S_SKILL_PROACTIVE);
@@ -280,6 +283,9 @@ void QSanSkillButton::setSkill(const Skill *skill)
         if (skill->isChangeSkill()) {
             //setState(QSanButton::S_STATE_HOVER);
             _setSkillType(QSanInvokeSkillButton::S_SKILL_CHANGE);
+        } else if (skill->isLimitedSkill()) {
+            _setSkillType(QSanInvokeSkillButton::S_SKILL_ONEOFF_SPELL);
+            setStyle(QSanButton::S_STYLE_TOGGLE);
         } else {
             setState(QSanButton::S_STATE_UP);
             _setSkillType(QSanInvokeSkillButton::S_SKILL_COMPULSORY);
@@ -304,7 +310,7 @@ void QSanInvokeSkillButton::_repaint()
         const IQSanComponentSkin::QSanShadowTextFont &font = G_DASHBOARD_LAYOUT.getSkillTextFont((ButtonState)i, _m_skillType, _m_enumWidth);
         QPainter painter(&_m_bgPixmap[i]);
         QString skillName = Sanguosha->translate(_m_skill->objectName());
-        if (_m_enumWidth != S_WIDTH_WIDE) skillName = skillName.left(2);
+        if (_m_enumWidth != S_WIDTH_WIDE) skillName = skillName.left(4);
         font.paintText(&painter,
             (ButtonState)i == S_STATE_DOWN ? G_DASHBOARD_LAYOUT.m_skillTextAreaDown[_m_enumWidth] :
             G_DASHBOARD_LAYOUT.m_skillTextArea[_m_enumWidth],

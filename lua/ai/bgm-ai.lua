@@ -298,7 +298,7 @@ dahe_skill.name = "dahe"
 table.insert(sgs.ai_skills,dahe_skill)
 dahe_skill.getTurnUseCard = function(self)
 	if self:needBear() then return end
-	if not self.player:hasUsed("DaheCard") and not self.player:isKongcheng() then return sgs.Card_Parse("@DaheCard=.") end
+	if not self.player:hasUsed("DaheCard") and self.player:canPindian() then return sgs.Card_Parse("@DaheCard=.") end
 end
 
 sgs.ai_skill_use_func.DaheCard=function(card,use,self)
@@ -309,7 +309,7 @@ sgs.ai_skill_use_func.DaheCard=function(card,use,self)
 	if max_card:isKindOf("Slash") then slashcount = slashcount - 1 end
 	if self.player:hasSkill("kongcheng") and self.player:getHandcardNum() == 1 then
 		for _, enemy in ipairs(self.enemies) do
-			if not enemy:isKongcheng() then
+			if self.player:canPindian(enemy) then
 				self.dahe_card = max_card:getId()
 				use.card = sgs.Card_Parse("@DaheCard=.")
 				if use.to then use.to:append(enemy) end
@@ -324,7 +324,7 @@ sgs.ai_skill_use_func.DaheCard=function(card,use,self)
 		self:useBasicCard(slash, dummy_use)
 		for _, enemy in ipairs(self.enemies) do
 			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1 and enemy:getHp() > self.player:getHp())
-				and not enemy:isKongcheng() and self.player:canSlash(enemy, nil, true) then
+				and self.player:canPindian(enemy) and self.player:canSlash(enemy, nil, true) then
 				local enemy_max_card = self:getMaxCard(enemy)
 				local allknown = 0
 				if self:getKnownNum(enemy) == enemy:getHandcardNum() then
@@ -374,7 +374,7 @@ local tanhu_skill = {}
 tanhu_skill.name = "tanhu"
 table.insert(sgs.ai_skills, tanhu_skill)
 tanhu_skill.getTurnUseCard = function(self)
-	if not self.player:hasUsed("TanhuCard") and not self.player:isKongcheng() then return sgs.Card_Parse("@TanhuCard=.") end
+	if not self.player:hasUsed("TanhuCard") and self.player:canPindian() then return sgs.Card_Parse("@TanhuCard=.") end
 end
 
 sgs.ai_skill_use_func.TanhuCard = function(card, use, self)
@@ -385,7 +385,7 @@ sgs.ai_skill_use_func.TanhuCard = function(card, use, self)
 	local slashcount = self:getCardsNum("Slash")
 	if max_card:isKindOf("Slash") then slashcount = slashcount - 1 end
 	if not ptarget:isKongcheng() and slashcount > 0 and self.player:canSlash(ptarget, nil, false)
-		and not (ptarget:hasSkill("kongcheng") and ptarget:getHandcardNum() == 1) then
+		and not (ptarget:hasSkill("kongcheng") and ptarget:getHandcardNum() == 1) and self.player:canPindian(ptarget) then
 		self.tanhu_card = max_card:getEffectiveId()
 		use.card = sgs.Card_Parse("@TanhuCard=.")
 		if use.to then use.to:append(ptarget) end
@@ -394,7 +394,7 @@ sgs.ai_skill_use_func.TanhuCard = function(card, use, self)
 	self:sort(self.enemies, "defense")
 
 	for _, enemy in ipairs(self.enemies) do
-		if self:getCardsNum("Snatch") > 0 and not enemy:isKongcheng() then
+		if self:getCardsNum("Snatch") > 0 and self.player:canPindian(enemy) then
 			local enemy_max_card = self:getMaxCard(enemy)
 			local allknown = 0
 			if self:getKnownNum(enemy) == enemy:getHandcardNum() then
@@ -415,14 +415,14 @@ sgs.ai_skill_use_func.TanhuCard = function(card, use, self)
 	self:sortByUseValue(cards, true)
 	if self:getUseValue(cards[1]) >= 6 or self:getKeepValue(cards[1]) >= 6 then return end
 	if self:getOverflow() > 0 then
-		if not ptarget:isKongcheng() then
+		if self.player:canPindian(ptarget) then
 			self.tanhu_card = max_card:getEffectiveId()
 			use.card = sgs.Card_Parse("@TanhuCard=.")
 			if use.to then use.to:append(ptarget) end
 			return
 		end
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and not enemy:hasSkills("tuntian+zaoxian") then
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) and not enemy:hasSkills("tuntian+zaoxian") then
 				self.tanhu_card = cards[1]:getId()
 				use.card = sgs.Card_Parse("@TanhuCard=.")
 				if use.to then use.to:append(enemy) end

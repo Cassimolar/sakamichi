@@ -78,9 +78,11 @@ public:
                         widows << player;
                 }
 
-                ServerPlayer *new_wife = room->askForPlayerChosen(room->getLord(), widows, "remarry");
-                if (new_wife) {
-                    scenario->remarry(room->getLord(), new_wife);
+                if (!widows.isEmpty()) {
+                    ServerPlayer *new_wife = room->askForPlayerChosen(room->getLord(), widows, "remarry");
+                    if (new_wife) {
+                        scenario->remarry(room->getLord(), new_wife);
+                    }
                 }
             }
 

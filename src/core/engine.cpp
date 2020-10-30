@@ -1,4 +1,4 @@
-﻿#include "engine.h"
+#include "engine.h"
 #include "card.h"
 #include "client.h"
 #include "ai.h"
@@ -23,6 +23,7 @@
 #include "boss-mode-scenario.h"
 #include "zombie-scenario.h"
 #include "fancheng-scenario.h"
+#include "challengedeveloper-scenario.h"
 
 Engine *Sanguosha = NULL;
 
@@ -54,6 +55,7 @@ void Engine::_loadModScenarios()
     addScenario(new FanchengScenario());
     addScenario(new ZombieScenario());
     addScenario(new ImpasseScenario());
+    addScenario(new ChallengeDeveloperScenario());
 }
 
 void Engine::addPackage(const QString &name)
@@ -415,11 +417,15 @@ void Engine::addSkills(const QList<const Skill *> &all_skills)
             invalidity_skills << qobject_cast<const InvaliditySkill *>(skill);
         else if (skill->inherits("AttackRangeSkill"))
             attack_range_skills << qobject_cast<const AttackRangeSkill *>(skill);
+        else if (skill->inherits("ViewAsEquipSkill"))
+            view_as_equip_skills << qobject_cast<const ViewAsEquipSkill *>(skill);
         else if (skill->inherits("TriggerSkill")) {
             const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
             if (trigger_skill && trigger_skill->isGlobal())
                 global_trigger_skills << trigger_skill;
         }
+        else if (skill->inherits("CardLimitSkill"))
+            card_limit_skills << qobject_cast<const CardLimitSkill *>(skill);
     }
 }
 
@@ -451,6 +457,16 @@ QList<const TriggerSkill *> Engine::getGlobalTriggerSkills() const
 QList<const AttackRangeSkill *> Engine::getAttackRangeSkills() const
 {
     return attack_range_skills;
+}
+
+QList<const ViewAsEquipSkill *> Engine::getViewAsEquipSkills() const
+{
+    return view_as_equip_skills;
+}
+
+QList<const CardLimitSkill *> Engine::getCardLimitSkills() const
+{
+    return card_limit_skills;
 }
 
 void Engine::addPackage(Package *package)
@@ -643,7 +659,11 @@ int Engine::getGeneralCount(bool include_banned, const QString &kingdom) const
 
         if (getBanPackages().contains(general->getPackage()))
             isBanned = true;
-        else if ((isNormalGameMode(ServerInfo.GameMode)
+        else if (ServerInfo.GameMode == "03_1v2" && Config.value("Banlist/Doudizhu").toStringList().contains(general->objectName()))
+            isBanned = true;
+        else if (ServerInfo.GameMode == "04_2v2" && Config.value("Banlist/Happy2v2").toStringList().contains(general->objectName()))
+            isBanned = true;
+        else if (((isNormalGameMode(ServerInfo.GameMode) && ServerInfo.GameMode != "03_1v2" && ServerInfo.GameMode != "04_2v2")
             || ServerInfo.GameMode.contains("_mini_")
             || ServerInfo.GameMode == "custom_scenario")
             && Config.value("Banlist/Roles").toStringList().contains(general->objectName()))
@@ -753,22 +773,25 @@ WrappedCard *Engine::getWrappedCard(int cardId)
     return wrappedCard;
 }
 
-Card *Engine::getCard(int cardId)
+Card *Engine::getCard(int cardId, bool need_Q_ASSERT)
 {
     Card *card = NULL;
     if (cardId < 0 || cardId >= cards.length())
         return NULL;
     QObject *room = currentRoomObject();
-    Q_ASSERT(room);
+    Q_ASSERT(room || !need_Q_ASSERT);
+    if (!room && !need_Q_ASSERT) return NULL;
     Room *serverRoom = qobject_cast<Room *>(room);
     if (serverRoom != NULL) {
         card = serverRoom->getCard(cardId);
     } else {
         Client *clientRoom = qobject_cast<Client *>(room);
-        Q_ASSERT(clientRoom != NULL);
+        Q_ASSERT(clientRoom != NULL || !need_Q_ASSERT);
+        if (!need_Q_ASSERT && clientRoom == NULL) return NULL;
         card = clientRoom->getCard(cardId);
     }
-    Q_ASSERT(card);
+    Q_ASSERT(card || !need_Q_ASSERT);
+    if (!need_Q_ASSERT && !card) return NULL;
     return card;
 }
 
@@ -878,7 +901,7 @@ SkillCard *Engine::cloneSkillCard(const QString &name) const
 #ifndef USE_BUILDBOT
 QString Engine::getVersionNumber() const
 {
-    return "20201024";
+    return "20220516";
 }
 #endif
 
@@ -1184,6 +1207,10 @@ QStringList Engine::getRandomLords() const
 
     if (Config.GameMode == "zombie_mode")
         banlist_ban.append(Config.value("Banlist/Zombie").toStringList());
+    else if (Config.GameMode == "03_1v2")
+        banlist_ban.append(Config.value("Banlist/Doudizhu").toStringList());
+    else if (Config.GameMode == "04_2v2")
+        banlist_ban.append(Config.value("Banlist/Happy2v2").toStringList());
     else if (isNormalGameMode(Config.GameMode))
         banlist_ban.append(Config.value("Banlist/Roles").toStringList());
 
@@ -1239,7 +1266,7 @@ QStringList Engine::getLimitedGeneralNames(const QString &kingdom) const
     while (itor.hasNext()) {
         itor.next();
         const General *gen = itor.value();
-        if ((kingdom.isEmpty() || gen->getKingdom() == kingdom)
+        if ((kingdom.isEmpty() || gen->getKingdoms().split("+").contains(kingdom))
             && !isGeneralHidden(gen->objectName()) && !getBanPackages().contains(gen->getPackage()))
             general_names << itor.key();
     }
@@ -1257,6 +1284,30 @@ QStringList Engine::getLimitedGeneralNames(const QString &kingdom) const
     return general_names;
 }
 
+QStringList Engine::getSlashNames() const
+{
+    QStringList slashs;
+    foreach (int id, getRandomCards()) {
+        const Card *card = getEngineCard(id);
+        if (!card->isKindOf("Slash")) continue;
+        QString name = card->objectName();
+        if (slashs.contains(name)) continue;
+        slashs << name;
+    }
+    return slashs;
+}
+
+bool Engine::hasCard(const QString &name) const
+{
+    if (name.isEmpty()) return false;
+    foreach (int id, getRandomCards()) {
+        QString card_name = getEngineCard(id)->objectName();
+        if (card_name == name)
+            return true;
+    }
+    return false;
+}
+
 QStringList Engine::getRandomGenerals(int count, const QSet<QString> &ban_set, const QString &kingdom) const
 {
     QStringList all_generals = getLimitedGeneralNames(kingdom);
@@ -1270,8 +1321,12 @@ QStringList Engine::getRandomGenerals(int count, const QSet<QString> &ban_set, c
         general_set = general_set.subtract(Config.value("Banlist/Hegemony", "").toStringList().toSet());
     if (ServerInfo.GameMode == "04_boss")
         general_set = general_set.subtract(Config.value("Banlist/BossMode", "").toStringList().toSet());
+    if (ServerInfo.GameMode == "03_1v2")
+        general_set = general_set.subtract(Config.value("Banlist/Doudizhu", "").toStringList().toSet());
+    if (ServerInfo.GameMode == "04_2v2")
+        general_set = general_set.subtract(Config.value("Banlist/Happy2v2", "").toStringList().toSet());
 
-    if (isNormalGameMode(ServerInfo.GameMode)
+    if ((isNormalGameMode(ServerInfo.GameMode) && ServerInfo.GameMode != "03_1v2" && ServerInfo.GameMode != "04_2v2")
         || ServerInfo.GameMode.contains("_mini_")
         || ServerInfo.GameMode == "custom_scenario")
         general_set.subtract(Config.value("Banlist/Roles", "").toStringList().toSet());
@@ -1289,9 +1344,9 @@ QStringList Engine::getRandomGenerals(int count, const QSet<QString> &ban_set, c
     return general_list;
 }
 
-QList<int> Engine::getRandomCards() const
+QList<int> Engine::getRandomCards(bool derivative) const
 {
-    bool exclude_disaters = false, using_2012_3v3 = false, using_2013_3v3 = false;
+    bool exclude_disaters = false, using_2012_3v3 = false, using_2013_3v3 = false, challengedeveloper = false;
 
     if (Config.GameMode == "06_3v3") {
         using_2012_3v3 = (Config.value("3v3/OfficialRule", "2013").toString() == "2012");
@@ -1302,8 +1357,15 @@ QList<int> Engine::getRandomCards() const
     if (Config.GameMode == "04_1v3")
         exclude_disaters = true;
 
+    if (Config.GameMode == "challengedeveloper")
+        challengedeveloper = true;
+
     QList<int> list;
     foreach (Card *card, cards) {
+        if (card->objectName().startsWith("__")) continue;
+        if (!derivative && card->objectName().startsWith("_")) continue;
+        if (challengedeveloper && card->objectName() == "god_salvation") continue;
+
         card->clearFlags();
 
         QStringList banned_patterns = Config.value("Banlist/Cards").toStringList();
@@ -1423,6 +1485,24 @@ const ViewAsSkill *Engine::getViewAsSkill(const QString &skill_name) const
         return NULL;
 }
 
+const ViewAsEquipSkill *Engine::getViewAsEquipSkill(const QString &skill_name) const
+{
+    const Skill *skill = getSkill(skill_name);
+    if (skill)
+        return qobject_cast<const ViewAsEquipSkill *>(skill);
+    else
+        return NULL;
+}
+
+const CardLimitSkill *Engine::getCardLimitSkill(const QString &skill_name) const
+{
+    const Skill *skill = getSkill(skill_name);
+    if (skill)
+        return qobject_cast<const CardLimitSkill *>(skill);
+    else
+        return NULL;
+}
+
 const ProhibitSkill *Engine::isProhibited(const Player *from, const Player *to, const Card *card, const QList<const Player *> &others) const
 {
     foreach (const ProhibitSkill *skill, prohibit_skills) {
@@ -1438,6 +1518,53 @@ const ProhibitPindianSkill *Engine::isPindianProhibited(const Player *from, cons
     foreach (const ProhibitPindianSkill *skill, prohibitpindian_skills) {
         if (skill->isPindianProhibited(from, to))
             return skill;
+    }
+
+    return NULL;
+}
+
+const CardLimitSkill *Engine::isCardLimited(const Player *player, const Card *card, Card::HandlingMethod method, bool isHandcard) const
+{
+
+    if (method == Card::MethodNone) return NULL;
+
+    QString method_name;
+    if (method == Card::MethodUse)
+        method_name = "use";
+    else if (method == Card::MethodResponse)
+        method_name = "response";
+    else if (method == Card::MethodDiscard)
+        method_name = "discard";
+    else if (method == Card::MethodRecast)
+        method_name = "recast";
+    else if (method == Card::MethodPindian)
+        method_name = "pindian";
+
+    if (method_name.isEmpty()) return NULL;
+
+    if (card->getTypeId() == Card::TypeSkill && method == card->getHandlingMethod()) {
+        foreach (int card_id, card->getSubcards()) {
+            const Card *c = Sanguosha->getCard(card_id);
+            foreach (const CardLimitSkill *skill, card_limit_skills) {
+                QStringList limit_lists = skill->limitList(player).split(",");
+                if (!limit_lists.contains(method_name)) continue;
+                QString pattern = skill->limitPattern(player);
+                if (isHandcard)
+                    pattern.replace("hand", ".");
+                ExpPattern p(pattern);
+                if (p.match(player, c)) return skill;
+            }
+        }
+    } else {
+        foreach (const CardLimitSkill *skill, card_limit_skills) {
+            QStringList limit_lists = skill->limitList(player).split(",");
+            if (!limit_lists.contains(method_name)) continue;
+            QString pattern = skill->limitPattern(player);
+            if (isHandcard)
+                pattern.replace("hand", ".");
+            ExpPattern p(pattern);
+            if (p.match(player, card)) return skill;
+        }
     }
 
     return NULL;
@@ -1530,6 +1657,18 @@ int Engine::correctAttackRange(const Player *target, bool include_weapon, bool f
     }
 
     return extra;
+}
+
+QString Engine::removeNumberInQString(const QString &str) const
+{
+    QString _str;
+    for (int i = 0; i < str.length(); i++) {
+        if (QString(str[i]).toInt() > 0)
+            break;
+        else
+            _str.append(str[i]);
+    }
+    return _str;
 }
 
 #ifdef LOGNETWORK

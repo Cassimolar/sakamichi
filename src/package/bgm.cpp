@@ -2087,7 +2087,7 @@ public:
         switch (triggerEvent) {
         case CardAsked: {
             QString pattern = data.toStringList().first();
-            if (pattern == "slash" && !liuxie->hasFlag("Global_JijiangFailed")) {
+            if ((pattern.contains("slash") || pattern.contains("Slash")) && !liuxie->hasFlag("Global_JijiangFailed")) {
                 QVariant data_for_ai = "jijiang";
                 liuxie->tag["HantongOriginData"] = data; // For AI
                 if (room->askForSkillInvoke(liuxie, "hantong_acquire", data_for_ai)) {

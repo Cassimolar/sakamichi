@@ -5,8 +5,9 @@ TARGET = QSanguosha
 QT += network widgets
 !winrt: QT += declarative
 TEMPLATE = app
-CONFIG += audio
-
+CONFIG(release,debug|release) {
+	CONFIG += audio
+}
 CONFIG += lua
 
 CONFIG -= flat
@@ -40,6 +41,7 @@ SOURCES += \
     src/dialog/connectiondialog.cpp \
     src/dialog/customassigndialog.cpp \
     src/dialog/distanceviewdialog.cpp \
+	src/dialog/maxcardsviewdialog.cpp \
     src/dialog/generaloverview.cpp \
     src/dialog/mainwindow.cpp \
     src/dialog/playercarddialog.cpp \
@@ -52,6 +54,8 @@ SOURCES += \
     src/package/package.cpp \
     src/package/standard.cpp \
     src/package/standard-cards.cpp \
+	src/package/exclusiveequips.cpp \
+	src/package/yingbian.cpp \
     src/package/standard-generals.cpp \
     src/package/standard-skillcards.cpp \
     src/package/thicket.cpp \
@@ -97,6 +101,7 @@ SOURCES += \
     src/core/record-analysis.cpp \
     src/package/hegemony.cpp \
     src/scenario/fancheng-scenario.cpp \
+	src/scenario/challengedeveloper-scenario.cpp \
     src/core/room-state.cpp \
     src/core/wrapped-card.cpp \
     src/ui/bubblechatbox.cpp \
@@ -116,7 +121,22 @@ SOURCES += \
     src/package/joy.cpp \
     src/package/ling.cpp \
     src/package/mountain.cpp \
+	src/package/mobilezhi.cpp \
+	src/package/mobilexin.cpp \
+	src/package/mobileren.cpp \
+	src/package/mobileyong.cpp \
+	src/package/mobileyan.cpp \
+	src/package/mobilemouzhi.cpp \
+	src/package/mobilemoushi.cpp \
+	src/package/mobilemouyu.cpp \
+	src/package/mobilemouneng.cpp \
     src/package/sp.cpp \
+	src/package/sp1.cpp \
+	src/package/sp2.cpp \
+	src/package/sp3.cpp \
+	src/package/sp4.cpp \
+	src/package/sp5.cpp \
+	src/package/sp6.cpp \
     src/package/special1v1.cpp \
     src/package/special3v3.cpp \
     src/package/wisdom.cpp \
@@ -130,6 +150,7 @@ SOURCES += \
 	src/package/yczh2017.cpp \
 	src/package/doudizhu.cpp \
 	src/package/jxtp.cpp \
+	src/package/jxtp2.cpp \
 	src/package/oljxtp.cpp \
 	src/package/mobilejxtp.cpp \
     swig/sanguosha_wrap.cxx \
@@ -141,6 +162,11 @@ SOURCES += \
     src/dialog/mainwindowserverlist.cpp \
     src/dialog/dialogslsettings.cpp \
     src/server/qtupnpportmapping.cpp \
+    src/package/li.cpp \
+    src/package/bei.cpp \
+    src/package/guo.cpp \
+	src/package/jie.cpp \
+	src/package/yinhu.cpp
 
 HEADERS += \
     src/client/aux-skills.h \
@@ -168,6 +194,7 @@ HEADERS += \
     src/dialog/connectiondialog.h \
     src/dialog/customassigndialog.h \
     src/dialog/distanceviewdialog.h \
+	src/dialog/maxcardsviewdialog.h \
     src/dialog/generaloverview.h \
     src/dialog/mainwindow.h \
     src/dialog/playercarddialog.h \
@@ -180,6 +207,8 @@ HEADERS += \
     src/package/package.h \
     src/package/standard.h \
     src/package/standard-equips.h \
+	src/package/exclusiveequips.h \
+	src/package/yingbian.h \
     src/package/standard-skillcards.h \
     src/scenario/boss-mode-scenario.h \
     src/scenario/couple-scenario.h \
@@ -221,6 +250,7 @@ HEADERS += \
     src/core/record-analysis.h \
     src/package/hegemony.h \
     src/scenario/fancheng-scenario.h \
+	src/scenario/challengedeveloper-scenario.h \
     src/package/assassins.h \
     src/package/bgm.h \
     src/package/boss.h \
@@ -234,6 +264,12 @@ HEADERS += \
     src/package/ling.h \
     src/package/mountain.h \
     src/package/sp.h \
+	src/package/sp1.h \
+	src/package/sp2.h \
+	src/package/sp3.h \
+	src/package/sp4.h \
+	src/package/sp5.h \
+	src/package/sp6.h \
     src/package/special1v1.h \
     src/package/special3v3.h \
     src/package/wisdom.h \
@@ -247,6 +283,7 @@ HEADERS += \
 	src/package/yczh2017.h \
 	src/package/doudizhu.h \
 	src/package/jxtp.h \
+	src/package/jxtp2.h \
 	src/package/oljxtp.h \
 	src/package/mobilejxtp.h \
     src/core/room-state.h \
@@ -270,6 +307,20 @@ HEADERS += \
     src/dialog/dialogslsettings.h \
     src/core/defines.h \
     src/server/qtupnpportmapping.h \
+    src/package/mobilezhi.h \
+	src/package/mobilexin.h \
+	src/package/mobileren.h \
+	src/package/mobileyong.h \
+	src/package/mobileyan.h \
+	src/package/mobilemouzhi.h \
+	src/package/mobilemoushi.h \
+	src/package/mobilemouyu.h \
+	src/package/mobilemouneng.h \
+    src/package/li.h \
+    src/package/bei.h \
+    src/package/guo.h \
+	src/package/jie.h \
+	src/package/yinhu.h
 
 FORMS += \
     src/dialog/cardoverview.ui \

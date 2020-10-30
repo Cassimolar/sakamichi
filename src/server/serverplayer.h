@@ -32,6 +32,8 @@ public:
     Room *getRoom() const;
     void broadcastSkillInvoke(const Card *card) const;
     void broadcastSkillInvoke(const QString &card_name) const;
+    void peiyin(const Skill *skill, int type = -1);
+    void peiyin(const QString &skillName, int type = -1);
     int getRandomHandCardId() const;
     const Card *getRandomHandCard() const;
     void obtainCard(const Card *card, bool unhide = true);
@@ -47,6 +49,8 @@ public:
     QList<int> drawCardsList(int n, const QString &reason = QString(), bool isTop = true, bool visible = false);
     bool askForSkillInvoke(const QString &skill_name, const QVariant &data = QVariant(), bool notify = true);
     bool askForSkillInvoke(const Skill *skill, const QVariant &data = QVariant(), bool notify = true);
+    bool askForSkillInvoke(const QString &skill_name, ServerPlayer *player, bool notify = true);
+    bool askForSkillInvoke(const Skill *skill, ServerPlayer *player, bool notify = true);
     QList<int> forceToDiscard(int discard_num, bool include_equip, bool is_discard = true, const QString &pattern = ".");
     QList<int> handCards() const;
     virtual QList<const Card *> getHandcards() const;
@@ -68,6 +72,10 @@ public:
     void gainMark(const QString &mark, int n = 1);
     void loseMark(const QString &mark, int n = 1);
     void loseAllMarks(const QString &mark_name);
+
+    void gainHujia(int n = 1, int max_num = 0);
+    void loseHujia(int n = 1);
+    void loseAllHujias();
 
     virtual void addSkill(const QString &skill_name);
     virtual void loseSkill(const QString &skill_name);
@@ -107,6 +115,7 @@ public:
 
     int getGeneralMaxHp() const;
     int getGeneralStartHp() const;
+    int getGeneralStartHujia() const;
     virtual QString getGameMode() const;
 
     QString getIp() const;
@@ -131,7 +140,14 @@ public:
     bool isLowestHpPlayer(bool only = false);
     void ViewAsEquip(const QString &equip_name, bool can_duplication = false);
     void removeViewAsEquip(const QString &equip_name, bool remove_all_duplication = true);
-    bool canUse(const Card *card);
+    bool canUse(const Card *card, QList<ServerPlayer *> players = QList<ServerPlayer *>(), bool player_must_be_target = false);
+    bool canUse(const Card *card, ServerPlayer *player, bool player_must_be_target = false);
+    void endPlayPhase(bool sendLog = true);
+    void breakYinniState();
+    void enterYinniState(int type = 0);
+    int getDerivativeCard(const QString &card_name, Player::Place place = Player::PlaceEquip, bool visible = true) const;
+    void setCanWake(const QString &skill_name, const QString &waked_skill_name);
+    bool canWake(const QString &waked_skill_name);
     QList<int> getHandPile() const;
 
     void copyFrom(ServerPlayer *sp);
@@ -231,4 +247,3 @@ signals:
 };
 
 #endif
-

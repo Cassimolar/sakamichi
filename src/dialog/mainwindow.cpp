@@ -1,4 +1,4 @@
-﻿#include "mainwindow.h"
+#include "mainwindow.h"
 #include "startscene.h"
 #include "roomscene.h"
 #include "server.h"
@@ -222,7 +222,7 @@ void MainWindow::checkVersion(const QString &server_version, const QString &serv
 
     client->disconnectFromHost();
 
-    static QString link = "http://github.com/Mogara/QSanguosha-v2";
+    static QString link = "https://gitee.com/L-T-Y/QSanguosha-v2";
     QString text = tr("Server version is %1, client version is %2 <br/>").arg(server_version).arg(client_version);
     if (server_version > client_version)
         text.append(tr("Your client version is older than the server's, please update it <br/>"));
@@ -302,6 +302,7 @@ void MainWindow::enterRoom()
     RoomScene *room_scene = new RoomScene(this);
     ui->actionView_Discarded->setEnabled(true);
     ui->actionView_distance->setEnabled(true);
+    ui->actionView_Maxcards->setEnabled(true);
     ui->actionServerInformation->setEnabled(true);
     ui->actionSurrender->setEnabled(true);
     ui->actionNever_nullify_my_trick->setEnabled(true);
@@ -313,6 +314,7 @@ void MainWindow::enterRoom()
 
     connect(ui->actionView_Discarded, SIGNAL(triggered()), room_scene, SLOT(toggleDiscards()));
     connect(ui->actionView_distance, SIGNAL(triggered()), room_scene, SLOT(viewDistance()));
+    connect(ui->actionView_Maxcards, SIGNAL(triggered()), room_scene, SLOT(viewMaxCards()));
     connect(ui->actionServerInformation, SIGNAL(triggered()), room_scene, SLOT(showServerInformation()));
     connect(ui->actionSurrender, SIGNAL(triggered()), room_scene, SLOT(surrender()));
     connect(ui->actionSaveRecord, SIGNAL(triggered()), room_scene, SLOT(saveReplayRecord()));
@@ -326,6 +328,7 @@ void MainWindow::enterRoom()
         connect(ui->actionDamage_maker, SIGNAL(triggered()), room_scene, SLOT(makeDamage()));
         connect(ui->actionRevive_wand, SIGNAL(triggered()), room_scene, SLOT(makeReviving()));
         connect(ui->actionExecute_script_at_server_side, SIGNAL(triggered()), room_scene, SLOT(doScript()));
+        connect(ui->actionState_editor, SIGNAL(triggered()), room_scene, SLOT(changeState()));
     } else {
         ui->menuCheat->setEnabled(false);
         ui->actionDeath_note->disconnect();
@@ -333,6 +336,7 @@ void MainWindow::enterRoom()
         ui->actionRevive_wand->disconnect();
         ui->actionSend_lowlevel_command->disconnect();
         ui->actionExecute_script_at_server_side->disconnect();
+        ui->actionState_editor->disconnect();
     }
 
     connect(room_scene, SIGNAL(restart()), this, SLOT(startConnection()));
@@ -353,7 +357,7 @@ void MainWindow::gotoStartScene()
         server = NULL;
     }
     if (Self) {
-        delete Self;
+        Self->deleteLater();
         Self = NULL;
     }
 
@@ -386,6 +390,7 @@ void MainWindow::gotoStartScene()
     ui->actionRevive_wand->disconnect();
     ui->actionSend_lowlevel_command->disconnect();
     ui->actionExecute_script_at_server_side->disconnect();
+    ui->actionState_editor->disconnect();
     gotoScene(start_scene);
 
     addAction(ui->actionShow_Hide_Menu);
@@ -477,11 +482,11 @@ void MainWindow::on_actionAbout_triggered()
     const char *time = __TIME__;
     content.append(tr("Compilation time: %1 %2 <br/>").arg(date).arg(time));
 
-    QString project_url = "http://github.com/Mogara/QSanguosha-v2";
-    content.append(tr("Source code: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(project_url));
-
     QString forum_url = "http://mogara.org";
     content.append(tr("Forum: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(forum_url));
+
+    QString project_url = "https://gitee.com/L-T-Y/QSanguosha-v2";
+    content.append(tr("Source code: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(project_url));
 
     Window *window = new Window(tr("About QSanguosha"), QSize(420, 470));
     scene->addItem(window);

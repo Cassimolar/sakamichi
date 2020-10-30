@@ -19,6 +19,7 @@ Slash::Slash(Suit suit, int number) : BasicCard(suit, number)
     nature = DamageStruct::Normal;
     specific_assignee = QStringList();
     damage_card = true;
+    single_target = true;
 }
 
 bool Slash::IsAvailable(const Player *player, const Card *slash, bool considerSpecificAssignee)
@@ -40,7 +41,12 @@ bool Slash::IsAvailable(const Player *player, const Card *slash, bool considerSp
                 ids << slash->getEffectiveId();
             }
         }
-        bool has_weapon = (player->hasWeapon("crossbow") || player->hasWeapon("vscrossbow")) && ids.contains(player->getWeapon()->getEffectiveId());
+        bool has_weapon = player->hasWeapon("crossbow") && player->getWeapon() && player->getWeapon()->objectName() == "crossbow" &&
+                ids.contains(player->getWeapon()->getEffectiveId());
+        if (!has_weapon)
+            has_weapon = player->hasWeapon("vscrossbow") && player->getWeapon() && player->getWeapon()->objectName() == "vscrossbow" &&
+                    ids.contains(player->getWeapon()->getEffectiveId());
+
         if ((!has_weapon && player->hasWeapon("crossbow")) || player->canSlashWithoutCrossbow(THIS_SLASH))
             return true;
 
@@ -48,7 +54,11 @@ bool Slash::IsAvailable(const Player *player, const Card *slash, bool considerSp
         QList<const Player *> all_players = player->getAliveSiblings();
         foreach (const Player *p, all_players) {
             int valid = 1 + Sanguosha->correctCardTarget(TargetModSkill::Residue, player, THIS_SLASH, p);
-            if ((!has_weapon && player->hasWeapon("vscrossbow")) && used < valid + 3)
+            if (!has_weapon && player->hasWeapon("vscrossbow"))
+                valid += 3;
+            if (!has_weapon && player->hasWeapon("crossbow"))
+                valid += 1000;
+            if (used < valid)
                 return true;
         }
 
@@ -57,19 +67,6 @@ bool Slash::IsAvailable(const Player *player, const Card *slash, bool considerSp
             if (!assignee_list.isEmpty()) {
                 foreach (const Player *p, player->getAliveSiblings()) {
                     if (assignee_list.contains(p->objectName()) && player->canSlash(p, THIS_SLASH))
-                        return true;
-                }
-            }
-            if (player->hasSkill("chixin")) {
-                QStringList chixin_list = player->property("chixin").toString().split("+");
-                foreach (const Player *p, player->getAliveSiblings()) {
-                    if (player->inMyAttackRange(p) && !chixin_list.contains(p->objectName()) && player->canSlash(p, THIS_SLASH))
-                        return true;
-                }
-            }
-            if (player->hasSkill("limu") && !player->getJudgingArea().isEmpty()) {
-                foreach (const Player *p, player->getAliveSiblings()) {
-                    if (player->inMyAttackRange(p) && player->canSlash(p, THIS_SLASH))
                         return true;
                 }
             }
@@ -107,72 +104,27 @@ void Slash::onUse(Room *room, const CardUseStruct &card_use) const
     /* actually it's not proper to put the codes here.
        considering the nasty design of the client and the convenience as well,
        I just move them here */
-    if (objectName() == "slash" && use.m_isOwnerUse) {
-        bool has_changed = false;
+    if (use.m_isOwnerUse) {
+        RoomThread *thread = room->getThread();
+        QVariant data = QVariant::fromValue(use);
+
         QString skill_name = getSkillName();
-        if (!skill_name.isEmpty()) {
-            const Skill *skill = Sanguosha->getSkill(skill_name);
-            if (skill && !skill->inherits("FilterSkill") && !skill->objectName().contains("guhuo"))
-                has_changed = true;
-        }
-        if (!has_changed || subcardsLength() == 0) {
-            QVariant data = QVariant::fromValue(use);
-            room->getThread()->trigger(ChangeSlash, room, player, data);
-            CardUseStruct new_use = data.value<CardUseStruct>();
-            if (new_use.card->isKindOf("Slash")) //请勿在此时机将【杀】变为其他牌
-                use.card = new_use.card;
-            /*if (player->hasSkill("lihuo")) {
-                FireSlash *fire_slash = new FireSlash(getSuit(), getNumber());
-                if (!isVirtualCard() || subcardsLength() > 0)
-                    fire_slash->addSubcard(this);
-                fire_slash->setSkillName("lihuo");
-                bool can_use = true;
-                foreach (ServerPlayer *p, use.to) {
-                    if (!player->canSlash(p, fire_slash, false)) {
-                        can_use = false;
-                        break;
-                    }
-                }
-                if (can_use && room->askForSkillInvoke(player, "lihuo", data))
-                    use.card = fire_slash;
-                else
-                    delete fire_slash;
-            }
-            if (player->hasSkill("fulu")) {
-                ThunderSlash *thunder_slash = new ThunderSlash(getSuit(), getNumber());
-                if (!isVirtualCard() || subcardsLength() > 0)
-                    thunder_slash->addSubcard(this);
-                thunder_slash->setSkillName("fulu");
-                bool can_use = true;
-                foreach (ServerPlayer *p, use.to) {
-                    if (!player->canSlash(p, thunder_slash, false)) {
-                        can_use = false;
-                        break;
-                    }
-                }
-                if (can_use && room->askForSkillInvoke(player, "fulu", data))
-                    use.card = thunder_slash;
-                else
-                    delete thunder_slash;
-            }
-            if (use.card->objectName() == "slash" && player->hasWeapon("fan")) {
-                FireSlash *fire_slash = new FireSlash(getSuit(), getNumber());
-                if (!isVirtualCard() || subcardsLength() > 0)
-                    fire_slash->addSubcard(this);
-                fire_slash->setSkillName("fan");
-                bool can_use = true;
-                foreach (ServerPlayer *p, use.to) {
-                    if (!player->canSlash(p, fire_slash, false)) {
-                        can_use = false;
-                        break;
-                    }
-                }
-                if (can_use && room->askForSkillInvoke(player, "fan", data))
-                    use.card = fire_slash;
-                else
-                    delete fire_slash;
-            }*/
-        }
+        if (!skill_name.isEmpty())
+            room->setCardFlag(this, skill_name + "_used_slash");
+
+        QStringList flags = getFlags();
+        thread->trigger(PreChangeSlash, room, player, data);  //用以在此时机给卡牌添加flag或其他记录，请勿在此时机将use.card进行更改
+        use = data.value<CardUseStruct>();
+        foreach (QString flag, flags)
+            room->setCardFlag(use.card, flag);
+
+        flags = use.card->getFlags();
+
+        thread->trigger(ChangeSlash, room, player, data);  //请勿在此时机将【杀】变为其他不属于【杀】的牌
+        use = data.value<CardUseStruct>();
+
+        foreach (QString flag, flags)
+            room->setCardFlag(use.card, flag);
     }
     if (((use.card->isVirtualCard() && use.card->subcardsLength() == 0) || (getSkillName().contains("guhuo") && use.card != this)) && !player->hasFlag("slashDisableExtraTarget")) {
         QList<ServerPlayer *> targets_ts;
@@ -229,7 +181,10 @@ void Slash::onUse(Room *room, const CardUseStruct &card_use) const
         room->broadcastSkillInvoke("shenji");
         room->notifySkillInvoked(player, "shenji");
     } else if (use.to.size() > 1 && player->hasSkill("lihuo") && use.card->isKindOf("FireSlash") && use.card->getSkillName() != "lihuo") {
-        room->broadcastSkillInvoke("lihuo", 1);
+        int n = 1;
+        if (player->isJieGeneral())
+            n = 3;
+        room->broadcastSkillInvoke("lihuo", n);
         room->notifySkillInvoked(player, "lihuo");
     } else if (use.to.size() > 1 && player->hasSkill("duanbing")) {
         int index = 1;
@@ -268,18 +223,21 @@ void Slash::onUse(Room *room, const CardUseStruct &card_use) const
         log.from = use.from;
         log.to << use.to;
         room->sendLog(log);
+        room->notifySkillInvoked(use.from, "blade");
     } else if (use.from->hasFlag("MoonspearUse")) {
         use.from->setFlags("-MoonspearUse");
-        room->setEmotion(player, "weapon/moonspear");
+        room->setEmotion(use.from, "weapon/moonspear");
 
         LogMessage log;
         log.type = "#InvokeSkill";
         log.from = use.from;
         log.arg = "moon_spear";
         room->sendLog(log);
-    } else if (use.to.size() > 1 && player->hasWeapon("halberd") && player->isLastHandCard(this))
+        room->notifySkillInvoked(use.from, "moon_spear");
+    } else if (use.to.size() > 1 && player->hasWeapon("halberd") && player->isLastHandCard(this)) {
         room->setEmotion(player, "weapon/halberd");
-    else if (use.card->isVirtualCard() && use.card->getSkillName() == "fan")
+        room->notifySkillInvoked(player, "halberd");
+    } else if (use.card->isVirtualCard() && use.card->getSkillName() == "fan")
         room->setEmotion(player, "weapon/fan");
     if (player->getPhase() == Player::Play
         && player->hasFlag("Global_MoreSlashInOneTurn")
@@ -288,11 +246,14 @@ void Slash::onUse(Room *room, const CardUseStruct &card_use) const
         && !(player->hasSkill("huxiao") && player->getMark("huxiao") > 0)) {
         player->setFlags("-Global_MoreSlashInOneTurn");
         room->setEmotion(player, "weapon/crossbow");
+        room->notifySkillInvoked(player, "crossbow");
     }
     if (use.card->isKindOf("ThunderSlash"))
         room->setEmotion(player, "thunder_slash");
     else if (use.card->isKindOf("FireSlash"))
         room->setEmotion(player, "fire_slash");
+    else if (use.card->isKindOf("IceSlash"))
+        room->setEmotion(player, "ice_slash");
     else if (use.card->isRed())
         room->setEmotion(player, "slash_red");
     else if (use.card->isBlack())
@@ -321,6 +282,7 @@ void Slash::onEffect(const CardEffectStruct &card_effect) const
     effect.nullified = card_effect.nullified;
     effect.no_offset = card_effect.no_offset;
     effect.no_respond = card_effect.no_respond;
+    effect.multiple = card_effect.multiple;
 
     if (!effect.no_offset && !effect.no_respond) {
         QVariantList jink_list = effect.from->tag["Jink_" + toString()].toList();
@@ -359,6 +321,35 @@ bool Slash::targetsFeasible(const QList<const Player *> &targets, const Player *
 
 bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const
 {
+    if (Self->getPhase() == Player::Play && Sanguosha->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_PLAY) {
+        if (Slash::IsAvailable(Self, this)) {
+            int slash_times = 1 + Sanguosha->correctCardTarget(TargetModSkill::Residue, Self, this, to_select);
+
+            QList<int> ids;
+            if (isVirtualCard())
+                ids = subcards;
+            else
+                ids << getEffectiveId();
+
+            bool has_weapon = Self->hasWeapon("crossbow") && Self->getWeapon() && Self->getWeapon()->objectName() == "crossbow" &&
+                    ids.contains(Self->getWeapon()->getEffectiveId());
+            if ((!has_weapon && Self->hasWeapon("crossbow")))
+                slash_times += 1000;
+
+            bool has_weapon2 = Self->hasWeapon("vscrossbow") && Self->getWeapon() && Self->getWeapon()->objectName() == "vscrossbow" &&
+                    ids.contains(Self->getWeapon()->getEffectiveId());
+            if (!has_weapon2 && Self->hasWeapon("vscrossbow"))
+                slash_times += 3;
+
+            QStringList assignee_list = Self->property("extra_slash_specific_assignee").toString().split("+");
+            if (assignee_list.contains(to_select->objectName()))
+                slash_times += 1000;
+
+            int used = Self->getSlashCount();
+            if (used >= slash_times) return false;
+        }
+    }
+
     int slash_targets = 1 + Sanguosha->correctCardTarget(TargetModSkill::ExtraTarget, Self, this);
     bool distance_limit = ((1 + Sanguosha->correctCardTarget(TargetModSkill::DistanceLimit, Self, this, to_select)) < 500);
     if (Self->hasFlag("slashNoDistanceLimit"))
@@ -446,6 +437,7 @@ Peach::Peach(Suit suit, int number) : BasicCard(suit, number)
 {
     setObjectName("peach");
     target_fixed = true;
+    single_target = true;
 }
 
 QString Peach::getSubtype() const
@@ -532,15 +524,12 @@ public:
     {
         CardUseStruct use = data.value<CardUseStruct>();
         if (use.card->isKindOf("Slash")) {
-            bool do_anim = false;
             foreach (ServerPlayer *p, use.to.toSet()) {
-                if (p->getMark("Equips_of_Others_Nullified_to_You") == 0) {
-                    do_anim = (p->getArmor() && p->hasArmorEffect(p->getArmor()->objectName())) || p->hasSkills("bazhen|linglong|bossmanjia");
+                if (p->getMark("Equips_of_Others_Nullified_to_You") == 0)
                     p->addQinggangTag(use.card);
-                }
             }
-            if (do_anim)
-                room->setEmotion(use.from, "weapon/qinggang_sword");
+            room->setEmotion(use.from, "weapon/qinggang_sword");
+            room->notifySkillInvoked(use.from, "qinggang_sword");
         }
         return false;
     }
@@ -568,12 +557,17 @@ public:
         if (!effect.from->canSlash(effect.to, NULL, false))
             return false;
 
-        int weapon_id = player->getWeapon()->getId();
-        room->setCardFlag(weapon_id, "using");
+        int weapon_id = -1;
+        if (player->getWeapon() && player->getWeapon()->objectName() == objectName()) {
+            weapon_id = player->getWeapon()->getId();
+            room->setCardFlag(weapon_id, "using");
+        }
         effect.from->setFlags("BladeUse");
         bool use = room->askForUseSlashTo(effect.from, effect.to, QString("blade-slash:%1").arg(effect.to->objectName()), false, true);
         if (!use) effect.from->setFlags("-BladeUse");
-        room->setCardFlag(weapon_id, "-using");
+
+        if (weapon_id > 0)
+            room->setCardFlag(weapon_id, "-using");
 
         return use;
     }
@@ -600,7 +594,7 @@ public:
 
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const
     {
-        return pattern == "slash" && player->getMark("Equips_Nullified_to_Yourself") == 0;
+        return (pattern.contains("slash") || pattern.contains("Slash")) && player->getMark("Equips_Nullified_to_Yourself") == 0;
     }
 
     bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const
@@ -659,7 +653,8 @@ public:
 
     bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const
     {
-        return selected.length() < 2 && to_select != Self->getWeapon() && !Self->isJilei(to_select);
+        if (to_select->isEquipped() && to_select->objectName() == objectName()) return false;
+        return selected.length() < 2 && !Self->isJilei(to_select);
     }
 
     const Card *viewAs(const QList<const Card *> &cards) const
@@ -691,10 +686,16 @@ public:
             return false;
 
         const Card *card = NULL;
-        if (player->getCardCount() >= 3) // Need 2 more cards except from the weapon itself
+
+        int n = 3;
+        if (!player->getWeapon() || player->getWeapon()->objectName() != objectName())
+            n = 2;
+
+        if (player->getCardCount() >= n) // Need 2 more cards except from the weapon itself
             card = room->askForCard(player, "@axe", "@axe:" + effect.to->objectName(), data, objectName());
         if (card) {
             room->setEmotion(player, "weapon/axe");
+            room->notifySkillInvoked(player, "axe");
             room->slashResult(effect, NULL);
         }
 
@@ -742,13 +743,13 @@ public:
     {
         DamageStruct damage = data.value<DamageStruct>();
 
-        QStringList horses;
+        QList<int> horses;
         if (damage.card && damage.card->isKindOf("Slash") && damage.by_user && !damage.chain && !damage.transfer
             && damage.to->getMark("Equips_of_Others_Nullified_to_You") == 0) {
             if (damage.to->getDefensiveHorse() && damage.from->canDiscard(damage.to, damage.to->getDefensiveHorse()->getEffectiveId()))
-                horses << "dhorse";
+                horses << damage.to->getDefensiveHorse()->getEffectiveId();
             if (damage.to->getOffensiveHorse() && damage.from->canDiscard(damage.to, damage.to->getOffensiveHorse()->getEffectiveId()))
-                horses << "ohorse";
+                horses << damage.to->getOffensiveHorse()->getEffectiveId();
 
             if (horses.isEmpty())
                 return false;
@@ -759,12 +760,11 @@ public:
 
             room->setEmotion(player, "weapon/kylin_bow");
 
-            QString horse_type = room->askForChoice(player, objectName(), horses.join("+"));
+            room->fillAG(horses, player);
+            int horse = room->askForAG(player, horses, false, objectName(), "@kylin_bow_horse");
+            room->clearAG(player);
 
-            if (horse_type == "dhorse")
-                room->throwCard(damage.to->getDefensiveHorse(), damage.to, damage.from);
-            else if (horse_type == "ohorse")
-                room->throwCard(damage.to->getOffensiveHorse(), damage.to, damage.from);
+            room->throwCard(Sanguosha->getCard(horse), damage.to, damage.from);
         }
 
         return false;
@@ -790,8 +790,11 @@ public:
         QString asked = data.toStringList().first();
         if (asked == "jink") {
             if (room->askForSkillInvoke(player, "eight_diagram")) {
-                int armor_id = player->getArmor()->getId();
-                room->setCardFlag(armor_id, "using");
+                int armor_id = -1;
+                if (player->getArmor() && player->getArmor()->objectName() == objectName()) {
+                    armor_id = player->getArmor()->getId();
+                    room->setCardFlag(armor_id, "using");
+                }
                 JudgeStruct judge;
                 judge.pattern = ".|red";
                 judge.good = true;
@@ -799,7 +802,8 @@ public:
                 judge.who = player;
 
                 room->judge(judge);
-                room->setCardFlag(armor_id, "-using");
+                if (armor_id > 0)
+                    room->setCardFlag(armor_id, "-using");
 
                 if (judge.isGood()) {
                     room->setEmotion(player, "armor/eight_diagram");
@@ -844,15 +848,21 @@ void AmazingGrace::clearRestCards(Room *room) const
     delete dummy;
 }
 
-void AmazingGrace::doPreAction(Room *room, const CardUseStruct &) const
+/*void AmazingGrace::doPreAction(Room *room, const CardUseStruct &) const
 {
-    QList<int> card_ids = room->getNCards(room->getAllPlayers().length());
+    //QList<int> card_ids = room->getNCards(room->getAllPlayers().length());
     room->fillAG(card_ids);
     room->setTag("AmazingGrace", IntList2VariantList(card_ids));
-}
+}*/
 
 void AmazingGrace::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const
 {
+    if (targets.isEmpty()) return;
+    int length = targets.length();
+    if (length <= 0) return;
+    QList<int> card_ids = room->getNCards(length);
+    room->fillAG(card_ids);
+    room->setTag("AmazingGrace", IntList2VariantList(card_ids));
     try {
         GlobalEffect::use(room, source, targets);
         clearRestCards(room);
@@ -872,7 +882,7 @@ void AmazingGrace::onEffect(const CardEffectStruct &effect) const
     foreach(QVariant card_id, ag_list)
         card_ids << card_id.toInt();
 
-    int card_id = room->askForAG(effect.to, card_ids, false, objectName());
+    int card_id = room->askForAG(effect.to, card_ids, false, objectName(), "amazing_grace_take_ag");
     card_ids.removeOne(card_id);
 
     room->takeAG(effect.to, card_id);
@@ -897,8 +907,7 @@ void GodSalvation::onEffect(const CardEffectStruct &effect) const
     Room *room = effect.to->getRoom();
     if (!effect.to->isWounded())
         room->setEmotion(effect.to, "skill_nullify");
-    else
-        room->recover(effect.to, RecoverStruct(effect.from, this));
+    room->recover(effect.to, RecoverStruct(effect.from, this));
 }
 
 SavageAssault::SavageAssault(Suit suit, int number)
@@ -911,7 +920,7 @@ SavageAssault::SavageAssault(Suit suit, int number)
 void SavageAssault::onEffect(const CardEffectStruct &effect) const
 {
     Room *room = effect.to->getRoom();
-    if (effect.no_respond || effect.no_offset) {
+    if (effect.no_respond) {  // || effect.no_offset) {
         room->damage(DamageStruct(this, effect.from->isAlive() ? effect.from : NULL, effect.to));
         room->getThread()->delay();
     } else {
@@ -940,7 +949,7 @@ ArcheryAttack::ArcheryAttack(Card::Suit suit, int number)
 void ArcheryAttack::onEffect(const CardEffectStruct &effect) const
 {
     Room *room = effect.to->getRoom();
-    if (effect.no_respond || effect.no_offset) {
+    if (effect.no_respond) {  // || effect.no_offset) {
         room->damage(DamageStruct(this, effect.from->isAlive() ? effect.from : NULL, effect.to));
         room->getThread()->delay();
     } else {
@@ -1075,12 +1084,38 @@ Nullification::Nullification(Suit suit, int number)
 
 void Nullification::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &) const
 {
+    QStringList no_respond_list = room->getTag("CardUseNoRespondList").toStringList();
+    bool all_no_respond = no_respond_list.contains("_ALL_TARGETS");
+
+    QStringList no_offset_list = room->getTag("CardUseNoOffsetList").toStringList();
+    bool all_no_offset = no_offset_list.contains("_ALL_TARGETS");
+
+    foreach (ServerPlayer *target, room->getAllPlayers(true)) {
+        if (all_no_respond || no_respond_list.contains(target->objectName()))
+            room->setPlayerMark(target, "no_respond_" + toString() + "-Clear", 1);
+        if (all_no_offset || no_offset_list.contains(target->objectName()))
+            room->setPlayerMark(target, "no_offset_" + toString() + "-Clear", 1);
+    }
+
+    if (source) {
+        QStringList users = room->getTag("CurrentCardUsers_" + toString()).toStringList();
+        users << source->objectName();
+        room->setTag("CurrentCardUsers_" + toString(), users);
+    }
+
     if (room->getCardPlace(getEffectiveId()) == Player::PlaceTable) {
         // does nothing, just throw it
         CardMoveReason reason(CardMoveReason::S_REASON_USE, source->objectName());
         const Card *card = getRealCard();
-        if (card)
+        if (card) {
             reason.m_extraData = QVariant::fromValue(card);
+            CardUseStruct card_use;
+            card_use.from = source;
+            card_use.card = card;
+            card_use.no_offset_list = no_offset_list;
+            card_use.no_respond_list = no_respond_list;
+            reason.m_useStruct = card_use;
+        }
         QList<int> ids;
         if (isVirtualCard())
             ids = subcards;
@@ -1159,7 +1194,7 @@ void Duel::onEffect(const CardEffectStruct &effect) const
     room->setEmotion(first, "duel");
     room->setEmotion(second, "duel");
 
-    if (!effect.no_respond && !effect.no_offset) {
+    if (!effect.no_respond) {  // && !effect.no_offset) {
         forever{
             if (!first->isAlive())
             break;
@@ -1230,7 +1265,16 @@ void Duel::onEffect(const CardEffectStruct &effect) const
     DamageStruct damage(this, second->isAlive() ? second : NULL, first);
     if (second != effect.from)
         damage.by_user = false;
-    room->damage(damage);
+    try {
+        room->damage(damage);
+    }
+    catch (TriggerEvent triggerEvent) {
+        if (triggerEvent == TurnBroken || triggerEvent == StageChange) {
+            effect.from->tag.remove("DuelSlash" + toString());
+            effect.to->tag.remove("DuelSlash" + toString());
+        }
+        throw triggerEvent;
+    }
     effect.from->tag.remove("DuelSlash" + toString());
     effect.to->tag.remove("DuelSlash" + toString());
 }
@@ -1439,6 +1483,8 @@ public:
             player->getRoom()->sendLog(log);
 
             room->setEmotion(player, "armor/renwang_shield");
+            room->notifySkillInvoked(player, "renwang_shield");
+
             effect.to->setFlags("Global_NonSkillNullify");
             return true;
         } else
@@ -1461,18 +1507,72 @@ public:
 
     int getCorrect(const Player *from, const Player *to) const
     {
-        int correct = 0;
+        int oh_correct = 0, dh_correct = 0;
         const Horse *horse = NULL;
-        if (from->getOffensiveHorse() && from->getMark("Equips_Nullified_to_Yourself") == 0) {
+        /*if (from->getOffensiveHorse() && from->getMark("Equips_Nullified_to_Yourself") == 0) {
             horse = qobject_cast<const Horse *>(from->getOffensiveHorse()->getRealCard());
             correct += horse->getCorrect();
         }
         if (to->getDefensiveHorse() && to->getMark("Equips_Nullified_to_Yourself") == 0) {
             horse = qobject_cast<const Horse *>(to->getDefensiveHorse()->getRealCard());
             correct += horse->getCorrect();
+        }*/
+
+        if (from->getMark("Equips_Nullified_to_Yourself") == 0) {
+            if (from->getOffensiveHorse()) {
+                horse = qobject_cast<const Horse *>(from->getOffensiveHorse()->getRealCard());
+                oh_correct = qMin(horse->getCorrect(), oh_correct);
+            }
+
+            QStringList from_view_as_equips = from->property("View_As_Equips_List").toString().split("+");
+            QList<const OffensiveHorse *> ohs = Sanguosha->findChildren<const OffensiveHorse *>();
+
+            foreach (const OffensiveHorse *card, ohs) {
+                if (from_view_as_equips.contains(card->objectName()) || from_view_as_equips.contains(card->getClassName()))
+                    oh_correct = qMin(card->getCorrect(), oh_correct);
+                else {
+                    foreach (const Skill *skill, from->getSkillList(false, false)) {
+                        if (!skill->inherits("ViewAsEquipSkill") || !from->hasSkill(skill)) continue;
+                        const ViewAsEquipSkill *vaes = Sanguosha->getViewAsEquipSkill(skill->objectName());
+                        if (!vaes) continue;
+                        if (vaes->viewAsEquip(from).split(",").contains(card->objectName()) ||
+                                vaes->viewAsEquip(from).split(",").contains(card->getClassName())) {
+                            oh_correct = qMin(card->getCorrect(), oh_correct);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
-        return correct;
+        if (to->getMark("Equips_Nullified_to_Yourself") == 0) {
+            if (to->getDefensiveHorse()) {
+                horse = qobject_cast<const Horse *>(to->getDefensiveHorse()->getRealCard());
+                dh_correct = qMax(dh_correct, horse->getCorrect());
+            }
+
+            QList<const DefensiveHorse *> dhs = Sanguosha->findChildren<const DefensiveHorse *>();
+            QStringList to_view_as_equips = to->property("View_As_Equips_List").toString().split("+");
+
+            foreach (const DefensiveHorse *card, dhs) {
+                if (to_view_as_equips.contains(card->objectName()) || to_view_as_equips.contains(card->getClassName()))
+                    dh_correct = qMax(dh_correct, card->getCorrect());
+                else {
+                    foreach (const Skill *skill, to->getSkillList(false, false)) {
+                        if (!skill->inherits("ViewAsEquipSkill") || !to->hasSkill(skill)) continue;
+                        const ViewAsEquipSkill *vaes = Sanguosha->getViewAsEquipSkill(skill->objectName());
+                        if (!vaes) continue;
+                        if (vaes->viewAsEquip(to).split(",").contains(card->objectName()) ||
+                                vaes->viewAsEquip(to).split(",").contains(card->getClassName())) {
+                            dh_correct = qMax(dh_correct, card->getCorrect());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return oh_correct + dh_correct;
     }
 };
 
@@ -1487,10 +1587,11 @@ WoodenOxCard::WoodenOxCard()
 void WoodenOxCard::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &) const
 {
     source->addToPile("wooden_ox", subcards, false);
+    if (source->getMark("Equips_Nullified_to_Yourself") > 0) return;
 
     QList<ServerPlayer *> targets;
     foreach (ServerPlayer *p, room->getOtherPlayers(source)) {
-        if (!p->getTreasure())
+        if (!p->getTreasure() && p->hasTreasureArea())
             targets << p;
     }
     if (targets.isEmpty())
@@ -1515,7 +1616,7 @@ public:
 
     bool isEnabledAtPlay(const Player *player) const
     {
-        return !player->hasUsed("WoodenOxCard");
+        return !player->hasUsed("WoodenOxCard") && player->getMark("Equips_Nullified_to_Yourself") <= 0;
     }
 
     const Card *viewAs(const Card *originalCard) const

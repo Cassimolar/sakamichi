@@ -144,6 +144,10 @@ public:
         return result;
     }
 
+    void setValue(MarkStruct *mark) {
+        $self->setValue(QVariant::fromValue(*mark));
+    }
+
     MarkStruct toMark() const{
         return $self->value<MarkStruct>();
     }

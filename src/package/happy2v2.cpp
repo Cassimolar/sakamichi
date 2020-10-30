@@ -30,7 +30,7 @@ public:
     {
         if (room->getMode() != "04_2v2") return false;
         if (event == DrawNCards) {
-            if (room->getTag("TurnLengthCount").toInt() != 1) return false;
+            if (player->getMark("Global_TurnCount") != 1) return false;
             if (player != room->getPlayers().first()) return false;
             data = data.toInt() - 1;
         } else if (event == DrawInitialCards) {
@@ -46,18 +46,38 @@ KuijiCard::KuijiCard()
     mute = true;
     will_throw = false;
     target_fixed = true;
-    handling_method = Card::MethodUse;
+    handling_method = Card::MethodNone;
 }
 
 void KuijiCard::onUse(Room *room, const CardUseStruct &card_use) const
 {
-    const Card *c = Sanguosha->getCard(getSubcards().first());
-    SupplyShortage *supply_shortage = new SupplyShortage(c->getSuit(), c->getNumber());
-    supply_shortage->addSubcard(c);
+    LogMessage log;
+    log.type = "#InvokeSkill";
+    log.from = card_use.from;
+    log.arg = "kuiji";
+    room->sendLog(log);
+    room->notifySkillInvoked(card_use.from, "kuiji");
+    room->broadcastSkillInvoke("kuiji");
+
+    int id = subcards.first();
+    const Card *card = Sanguosha->getCard(id);
+    log.type = "$ShanzhuanViewAsPut";
+    log.from = card_use.from;
+    log.to << card_use.from;
+    log.card_str = card->toString();
+
+    SupplyShortage *supply_shortage = new SupplyShortage(card->getSuit(), card->getNumber());
     supply_shortage->setSkillName("kuiji");
-    supply_shortage->deleteLater();
-    if (card_use.from->isProhibited(card_use.from, supply_shortage)) return;
-    room->useCard(CardUseStruct(supply_shortage, card_use.from, card_use.from), true);
+    WrappedCard *c = Sanguosha->getWrappedCard(card->getId());
+    c->takeOver(supply_shortage);
+    room->broadcastUpdateCard(room->getAllPlayers(true), id, supply_shortage);
+
+    log.arg = card->objectName();
+    room->sendLog(log);
+
+    CardMoveReason reason(CardMoveReason::S_REASON_PUT, card_use.from->objectName(), card_use.from->objectName(), "kuiji", QString());
+    room->moveCardTo(card, card_use.from, card_use.from, Player::PlaceDelayedTrick, reason, true);
+
     if (card_use.from->isDead()) return;
     card_use.from->drawCards(1, "kuiji");
     if (card_use.from->isDead()) return;
@@ -93,26 +113,16 @@ class KuijiVS : public OneCardViewAsSkill
 public:
     KuijiVS() : OneCardViewAsSkill("kuiji")
     {
-        response_or_use = true;
     }
 
     bool viewFilter(const Card *to_select) const
     {
-        if (!to_select->isKindOf("BasicCard") || !to_select->isBlack()) return false;
-        SupplyShortage *supply_shortage = new SupplyShortage(to_select->getSuit(), to_select->getNumber());
-        supply_shortage->addSubcard(to_select);
-        supply_shortage->setSkillName("kuiji");
-        supply_shortage->deleteLater();
-        return !Self->isJilei(supply_shortage) && !Self->isProhibited(Self, supply_shortage);
+        return to_select->isKindOf("BasicCard") && to_select->isBlack();
     }
 
     bool isEnabledAtPlay(const Player *player) const
     {
-        SupplyShortage *supply_shortage = new SupplyShortage(Card::NoSuit, 0);
-        supply_shortage->setSkillName("kuiji");
-        supply_shortage->deleteLater();
-        return player->hasJudgeArea() && !player->containsTrick("supply_shortage") && !Self->isProhibited(Self, supply_shortage) &&
-                !player->hasUsed("KuijiCard");
+        return player->hasJudgeArea() && !player->containsTrick("supply_shortage") && !player->hasUsed("KuijiCard");
     }
 
     const Card *viewAs(const Card *originalcard) const
@@ -161,8 +171,7 @@ public:
 
         ServerPlayer *fri = room->askForPlayerChosen(player, _friends, "kuiji", "@kuiji_recover");
         room->doAnimate(1, player->objectName(), fri->objectName());
-        if (fri->getLostHp() > 0)
-            room->recover(fri, RecoverStruct(player));
+        room->recover(fri, RecoverStruct(player));
         return false;
     }
 };
@@ -197,6 +206,14 @@ public:
         if (!player->isAlive()) return false;
 
         const Card *throw_card = Sanguosha->getCard(id);
+        QString color;
+        if (throw_card->isRed())
+            color = "red";
+        else if (throw_card->isBlack())
+            color = "black";
+        else
+            color = "no_suit";
+
         QList<ServerPlayer *> enemies;
         QStringList choices;
         int hand = 0;
@@ -214,21 +231,24 @@ public:
                 hand += p->getHandcardNum();
             }
         }
+
         if (!enemies.isEmpty())
             choices << "discard";
         if (hand > 0)
             choices << "show";
         if (choices.isEmpty()) return false;
-        QString choice = room->askForChoice(player, objectName(), choices.join("+"));
+        QString choice = room->askForChoice(player, objectName(), choices.join("+"), id);
 
         if (choice == "discard") {
             bool optional = false;
-            QString prompt = "@happycuorui_discard:" + throw_card->getColor();
+            QString prompt = "@happycuorui_discard:" + color;
+            QString reason = objectName();
             for (int i = 1; i < 3; i++) {
                 if (enemies.isEmpty() || player->isDead()) break;
                 if (i == 2) {
                     optional = true;
-                    prompt = "@happycuorui_discard2:" + throw_card->getColor();
+                    prompt = "@happycuorui_discard2:" + color;
+                    reason = "happycuorui2";
                 }
 
                 enemies.clear();
@@ -244,7 +264,7 @@ public:
                     }
                 }
                 if (enemies.isEmpty()) break;
-                ServerPlayer *enemy = room->askForPlayerChosen(player, enemies, objectName(), prompt, optional);
+                ServerPlayer *enemy = room->askForPlayerChosen(player, enemies, reason, prompt, optional);
                 if (!enemy) break;
                 room->doAnimate(1, player->objectName(), enemy->objectName());
                 if (!player->canDiscard(enemy, "e")) continue;
@@ -268,7 +288,7 @@ public:
                     }
                 }
                 if (enemies.isEmpty()) break;
-                ServerPlayer *enemy = room->askForPlayerChosen(player, enemies, objectName(), "@happycuorui_show");
+                ServerPlayer *enemy = room->askForPlayerChosen(player, enemies, "happycuorui3", "@happycuorui_show");
                 room->doAnimate(1, player->objectName(), enemy->objectName());
                 if (enemy->isKongcheng()) continue;
 

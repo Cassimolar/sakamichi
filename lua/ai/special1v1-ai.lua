@@ -132,7 +132,7 @@ sgs.ai_skill_use_func.XiechanCard = function(card, use, self)
 	self:useCardDuel(duel, dummy_use)
 	if not dummy_use.card or not dummy_use.card:isKindOf("Duel") then return end
 	for _, enemy in sgs.qlist(dummy_use.to) do
-		if not enemy:isKongcheng() and not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) then
+		if self.player:canPindian(enemy) and not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) then
 			local enemy_max_card = self:getMaxCard(enemy)
 			local enemy_max_point = enemy_max_card and enemy_max_card:getNumber() or 100
 			if max_point > enemy_max_point then

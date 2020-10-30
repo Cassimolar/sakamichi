@@ -89,5 +89,16 @@ public:
     void onEffect(const CardEffectStruct &effect) const;
 };
 
+class OLSanyaoCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE OLSanyaoCard();
+
+    bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
 #endif
 

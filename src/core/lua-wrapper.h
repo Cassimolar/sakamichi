@@ -12,7 +12,8 @@ class LuaTriggerSkill : public TriggerSkill
     Q_OBJECT
 
 public:
-    LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill);
+    LuaTriggerSkill(const char *name, Frequency frequency, const char *limit_mark, bool change_skill, bool limited_skill, bool hide_skill,
+                    bool shiming_skill, QString waked_skills);
     inline void addEvent(TriggerEvent triggerEvent)
     {
         events << triggerEvent;
@@ -33,22 +34,34 @@ public:
     {
         this->guhuo_type = type;
     }
+    inline void setJuguanDialog(const char *type)
+    {
+        this->juguan_type = type;
+    }
+    inline void setTiansuanDialog(const char *type)
+    {
+        this->tiansuan_type = type;
+    }
 
     int getPriority(TriggerEvent triggerEvent) const;
     bool triggerable(const ServerPlayer *target, Room *room) const;
     bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const;
     QDialog *getDialog() const;
     Frequency getFrequency(const Player *target) const;
+    bool canWake(TriggerEvent triggerEvent, ServerPlayer *player, QVariant &data, Room *room) const;
 
     LuaFunction on_trigger;
     LuaFunction can_trigger;
     LuaFunction dynamic_frequency;
+    LuaFunction can_wake;
 
     int priority;
 
 protected:
     QMap<TriggerEvent, int> priority_table;
     QString guhuo_type;
+    QString juguan_type;
+    QString tiansuan_type;
 };
 
 class LuaProhibitSkill : public ProhibitSkill
@@ -56,7 +69,7 @@ class LuaProhibitSkill : public ProhibitSkill
     Q_OBJECT
 
 public:
-    LuaProhibitSkill(const char *name);
+    LuaProhibitSkill(const char *name, Frequency frequency);
 
     bool isProhibited(const Player *from, const Player *to, const Card *card, const QList<const Player *> &others = QList<const Player *>()) const;
 
@@ -68,7 +81,7 @@ class LuaProhibitPindianSkill : public ProhibitPindianSkill
     Q_OBJECT
 
 public:
-    LuaProhibitPindianSkill(const char *name);
+    LuaProhibitPindianSkill(const char *name, Frequency frequency);
 
     bool isPindianProhibited(const Player *from, const Player *to) const;
 
@@ -80,7 +93,8 @@ class LuaViewAsSkill : public ViewAsSkill
     Q_OBJECT
 
 public:
-    LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile);
+    LuaViewAsSkill(const char *name, const char *response_pattern, bool response_or_use, const char *expand_pile,
+                   Frequency frequency, const char *limit_mark);
 
     bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const;
     const Card *viewAs(const QList<const Card *> &cards) const;
@@ -91,6 +105,14 @@ public:
     inline void setGuhuoDialog(const char *type)
     {
         this->guhuo_type = type;
+    }
+    inline void setJuguanDialog(const char *type)
+    {
+        this->juguan_type = type;
+    }
+    inline void setTiansuanDialog(const char *type)
+    {
+        this->tiansuan_type = type;
     }
 
     LuaFunction view_filter;
@@ -108,6 +130,8 @@ public:
     QDialog *getDialog() const;
 private:
     QString guhuo_type;
+    QString juguan_type;
+    QString tiansuan_type;
 };
 
 class LuaFilterSkill : public FilterSkill
@@ -115,7 +139,7 @@ class LuaFilterSkill : public FilterSkill
     Q_OBJECT
 
 public:
-    LuaFilterSkill(const char *name);
+    LuaFilterSkill(const char *name, Frequency frequency);
 
     bool viewFilter(const Card *to_select) const;
     const Card *viewAs(const Card *originalCard) const;
@@ -129,7 +153,7 @@ class LuaDistanceSkill : public DistanceSkill
     Q_OBJECT
 
 public:
-    LuaDistanceSkill(const char *name);
+    LuaDistanceSkill(const char *name, Frequency frequency);
 
     int getCorrect(const Player *from, const Player *to) const;
 
@@ -141,7 +165,7 @@ class LuaMaxCardsSkill : public MaxCardsSkill
     Q_OBJECT
 
 public:
-    LuaMaxCardsSkill(const char *name);
+    LuaMaxCardsSkill(const char *name, Frequency frequency);
 
     int getExtra(const Player *target) const;
     int getFixed(const Player *target) const;
@@ -155,7 +179,7 @@ class LuaTargetModSkill : public TargetModSkill
     Q_OBJECT
 
 public:
-    LuaTargetModSkill(const char *name, const char *pattern);
+    LuaTargetModSkill(const char *name, const char *pattern, Frequency frequency);
 
     int getResidueNum(const Player *from, const Card *card, const Player *to) const;
     int getDistanceLimit(const Player *from, const Card *card, const Player *to) const;
@@ -171,7 +195,7 @@ class LuaInvaliditySkill : public InvaliditySkill
     Q_OBJECT
 
 public:
-    LuaInvaliditySkill(const char *name);
+    LuaInvaliditySkill(const char *name, Frequency frequency);
 
     bool isSkillValid(const Player *player, const Skill *skill) const;
 
@@ -183,13 +207,39 @@ class LuaAttackRangeSkill : public AttackRangeSkill
     Q_OBJECT
 
 public:
-    LuaAttackRangeSkill(const char *name);
+    LuaAttackRangeSkill(const char *name, Frequency frequency);
 
     int getExtra(const Player *target, bool include_weapon) const;
     int getFixed(const Player *target, bool include_weapon) const;
 
     LuaFunction extra_func;
     LuaFunction fixed_func;
+};
+
+class LuaViewAsEquipSkill : public ViewAsEquipSkill
+{
+    Q_OBJECT
+
+public:
+    LuaViewAsEquipSkill(const char *name, Frequency frequency);
+
+    QString viewAsEquip(const Player *target) const;
+
+    LuaFunction view_as_equip;
+};
+
+class LuaCardLimitSkill : public CardLimitSkill
+{
+    Q_OBJECT
+
+public:
+    LuaCardLimitSkill(const char *name, Frequency frequency);
+
+    QString limitList(const Player *target) const;
+    QString limitPattern(const Player *target) const;
+
+    LuaFunction limit_list;
+    LuaFunction limit_pattern;
 };
 
 class LuaSkillCard : public SkillCard

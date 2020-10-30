@@ -479,7 +479,7 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 	local max_point = max_card:getNumber()
 
 	for _, enemy in ipairs(self.enemies) do
-		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() then
+		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) then
 			local enemy_max_card = self:getMaxCard(enemy)
 			local enemy_max_point = enemy_max_card and enemy_max_card:getNumber() or 100
 			if max_point > enemy_max_point then
@@ -489,7 +489,7 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 		end
 	end
 	for _, enemy in ipairs(self.enemies) do
-		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() then
+		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) then
 			if max_point >= 10 then
 				self.qiaoshui_card = max_card:getEffectiveId()
 				return "@QiaoshuiCard=.->" .. enemy:objectName()
@@ -500,7 +500,7 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 	self:sort(self.friends_noself, "handcard")
 	for index = #self.friends_noself, 1, -1 do
 		local friend = self.friends_noself[index]
-		if not friend:isKongcheng() then
+		if self.player:canPindian(friend) then
 			local friend_min_card = self:getMinCard(friend)
 			local friend_min_point = friend_min_card and friend_min_card:getNumber() or 100
 			if max_point > friend_min_point then
@@ -511,7 +511,8 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 	end
 
 	local zhugeliang = self.room:findPlayerBySkillName("kongcheng")
-	if zhugeliang and self:isFriend(zhugeliang) and zhugeliang:getHandcardNum() == 1 and zhugeliang:objectName() ~= self.player:objectName() then
+	if zhugeliang and self:isFriend(zhugeliang) and zhugeliang:getHandcardNum() == 1 and zhugeliang:objectName() ~= self.player:objectName()
+		and self.player:canPindian(zhugeliang) then
 		if max_point >= 7 then
 			self.qiaoshui_card = max_card:getEffectiveId()
 			return "@QiaoshuiCard=.->" .. zhugeliang:objectName()
@@ -520,7 +521,7 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 
 	for index = #self.friends_noself, 1, -1 do
 		local friend = self.friends_noself[index]
-		if not friend:isKongcheng() then
+		if self.player:canPindian(friend) then
 			if max_point >= 7 then
 				self.qiaoshui_card = max_card:getEffectiveId()
 				return "@QiaoshuiCard=.->" .. friend:objectName()
@@ -530,7 +531,7 @@ sgs.ai_skill_use["@@qiaoshui"] = function(self, prompt)
 
 	if trick_num == 0 or (trick_num <= 2 and self.player:hasSkill("zongshih")) and not self:isValuableCard(max_card) then
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() and self:hasLoseHandcardEffective(enemy) then
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) and self:hasLoseHandcardEffective(enemy) then
 				self.qiaoshui_card = max_card:getEffectiveId()
 				return "@QiaoshuiCard=.->" .. enemy:objectName()
 			end

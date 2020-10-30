@@ -53,6 +53,8 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         if (general_name.contains("(lord)")) {
             general_name.chop(6);
             lord_name = general_name;
+            if (Sanguosha->getGeneral(lord_name)->hasHideSkill())
+                lord_name = "yinni_hide";
             continue;
         }
         const General *general = Sanguosha->getGeneral(general_name);
@@ -158,12 +160,13 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     }
 
     QString default_name = generals.first()->objectName();
+    QStringList _generals;
     for (int i = 0; i < buttons.size(); i++) {
-        if (buttons.at(i)->isEnabled()) {
-            default_name = generals.at(i)->objectName();
-            break;
-        }
+        if (buttons.at(i)->isEnabled())
+            _generals << generals.at(i)->objectName();
     }
+    if (!_generals.isEmpty())
+        default_name = _generals.at(qrand() % _generals.length());
 
     if (!view_only) {
         mapper->setMapping(this, default_name);
@@ -184,6 +187,9 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
             + QString::number(Self->getSeat())
             + ")"))
             .arg(role_label->text()));
+        else
+            role_label->setText(tr("Your seat is %1. %2").arg(Sanguosha->translate("CAPITAL(" + QString::number(Self->getSeat()) + ")"))
+                                                            .arg(role_label->text()));
         dialog_layout->addWidget(role_label);
     }
 
@@ -204,8 +210,11 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         || ServerInfo.GameMode.startsWith("_mini_") || ServerInfo.GameMode == "custom_scenario";
 
     if (!view_only && free_choose) {
+        name_edit = new QLineEdit;
+        name_edit->clear();
         QPushButton *free_choose_button = new QPushButton(tr("Free choose ..."));
         connect(free_choose_button, SIGNAL(clicked()), this, SLOT(freeChoose()));
+        last_layout->addWidget(name_edit);
         last_layout->addWidget(free_choose_button);
     }
 
@@ -230,7 +239,24 @@ void ChooseGeneralDialog::done(int result)
 
 void ChooseGeneralDialog::freeChoose()
 {
-    QDialog *dialog = new FreeChooseDialog(this);
+    QString name = name_edit->text();
+    bool ok = false;
+    QList<const General *> all_generals = Sanguosha->findChildren<const General *>();
+    foreach (const General *general, all_generals) {
+        if (general->isTotallyHidden())
+            continue;
+        QString g_name = general->objectName();
+        if (name.isEmpty() || (g_name.contains(name) || Sanguosha->translate(g_name).contains(name))) {
+            ok = true;
+            break;
+        }
+    }
+    if (!ok) {
+        QMessageBox::warning(this, tr("Warning"), tr("No generals are found"));
+        return;
+    }
+
+    QDialog *dialog = new FreeChooseDialog(name, this);
 
     connect(dialog, SIGNAL(accepted()), this, SLOT(accept()));
     connect(dialog, SIGNAL(general_chosen(QString)), ClientInstance, SLOT(onPlayerChooseGeneral(QString)));
@@ -240,7 +266,7 @@ void ChooseGeneralDialog::freeChoose()
     dialog->exec();
 }
 
-FreeChooseDialog::FreeChooseDialog(QWidget *parent, ButtonGroupType type)
+FreeChooseDialog::FreeChooseDialog(const QString &name, QWidget *parent, ButtonGroupType type)
     : QDialog(parent), type(type)
 {
     setWindowTitle(tr("Free choose generals"));
@@ -256,7 +282,12 @@ FreeChooseDialog::FreeChooseDialog(QWidget *parent, ButtonGroupType type)
         if (general->isTotallyHidden())
             continue;
 
-        map[general->getKingdom()] << general;
+        QString g_name = general->objectName();
+        if (name.isEmpty() || (g_name.contains(name) || Sanguosha->translate(g_name).contains(name))) {
+            QStringList kins = general->getKingdoms().split("+");
+            foreach (QString kingd, kins)
+                map[kingd] << general;
+        }
     }
 
     QStringList kingdoms = Sanguosha->getKingdoms();

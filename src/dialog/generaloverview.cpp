@@ -320,7 +320,11 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals, bool 
         QString name, kingdom, gender, max_hp, package;
 
         name = Sanguosha->translate(general_name);
-        kingdom = Sanguosha->translate(general->getKingdom());
+        QStringList kins = general->getKingdoms().split("+");
+        foreach (QString kin, kins)
+            kingdom.append(Sanguosha->translate(kin)).append("/");
+        if (kingdom.endsWith("/"))
+            kingdom.chop(1);
         if (general->isMale())
             gender = tr("Male");
         else if (general->isFemale())
@@ -457,36 +461,107 @@ void GeneralOverview::addLines(const Skill *skill)
     QString skill_name = Sanguosha->translate(skill->objectName());
     QStringList sources = skill->getSources();
 
+    bool use_hero_skin = false;
+    int skin_index = 0;
+
+    int row = ui->tableWidget->currentRow();
+    QString general_name = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toString();
+    const General *general = Sanguosha->getGeneral(general_name);
+    if (general) {
+        skin_index = Config.value(QString("HeroSkin/%1").arg(general_name), 0).toInt();
+        if (skin_index > 0) {
+            QString heroskin = QString("image/heroskin/audio/%1/skill").arg(general_name + "_" + QString::number(skin_index));
+            if (QFile::exists(heroskin)) {
+                QDir dir(heroskin);
+                QStringList oggs;
+                oggs << "*.ogg";
+                QStringList files = dir.entryList(oggs, QDir::Files|QDir::Readable, QDir::Name);
+                QStringList broadcast_files;
+                QString ogg = ".ogg";
+                foreach (QString file, files) {
+                    QString _file = file;
+                    if (_file.endsWith(".ogg"))
+                        _file.chop(ogg.length());
+                    if (Sanguosha->removeNumberInQString(_file) == skill->objectName())
+                        broadcast_files << file;
+                }
+
+                if (!broadcast_files.isEmpty()) {
+                    use_hero_skin = true;
+                    sources.clear();
+                    sources = broadcast_files;
+                }
+            }
+        }
+    }
+
     if (sources.isEmpty()) {
         QCommandLinkButton *button = new QCommandLinkButton(skill_name);
 
         button->setEnabled(false);
         button_layout->addWidget(button);
     } else {
-        QRegExp rx(".+/(\\w+\\d?).ogg");
-        for (int i = 0; i < sources.length(); i++) {
-            QString source = sources[i];
-            if (!rx.exactMatch(source))
-                continue;
+        if (use_hero_skin) {
+            for (int i = 0; i < sources.length(); i++) {
+                QString source = sources[i];
+                QString ogg = ".ogg";
+                source.chop(ogg.length());
+                QString copy_source = source;
 
-            QString button_text = skill_name;
-            if (sources.length() != 1)
-                button_text.append(QString(" (%1)").arg(i + 1));
+                QString button_text = skill_name;
 
-            QCommandLinkButton *button = new QCommandLinkButton(button_text);
-            button->setObjectName(source);
-            button_layout->addWidget(button);
+                int num = 0;
+                QString _source = Sanguosha->removeNumberInQString(source);
+                copy_source.mid(_source.length());
+                if (!copy_source.isEmpty())
+                    num = copy_source.toInt();
+                if (num > 0)
+                   button_text.append(QString(" (%1)").arg(num));
 
-            QString filename = rx.capturedTexts().at(1);
-            QString skill_line = Sanguosha->translate("$" + filename);
-            if (skill_line == "$" + filename)
-                skill_line = tr("Translation missing.");
+                QCommandLinkButton *button = new QCommandLinkButton(button_text);
+                button->setObjectName(QString("image/heroskin/audio/%1/skill/%2.ogg").arg(general_name + "_" + QString::number(skin_index))
+                                      .arg(source));
+                button_layout->addWidget(button);
 
-            button->setDescription(skill_line);
+                QString filename = source + "-" + general_name + "_" + QString::number(skin_index);
+                QString skill_line = Sanguosha->translate("$" + filename);
 
-            connect(button, SIGNAL(clicked()), this, SLOT(playAudioEffect()));
+                if (skill_line == "$" + filename)
+                    skill_line = tr("Translation missing.");
 
-            addCopyAction(button);
+                button->setDescription(skill_line);
+
+                connect(button, SIGNAL(clicked()), this, SLOT(playAudioEffect()));
+
+                addCopyAction(button);
+            }
+        } else {
+            QRegExp rx(".+/(\\w+\\d?).ogg");
+            for (int i = 0; i < sources.length(); i++) {
+                QString source = sources[i];
+                if (!rx.exactMatch(source))
+                    continue;
+
+                QString button_text = skill_name;
+                if (sources.length() != 1)
+                    button_text.append(QString(" (%1)").arg(i + 1));
+
+                QCommandLinkButton *button = new QCommandLinkButton(button_text);
+                button->setObjectName(source);
+                button_layout->addWidget(button);
+
+                QString filename = rx.capturedTexts().at(1);
+                QString skill_line = Sanguosha->translate("$" + filename);
+
+                if (skill_line == "$" + filename)
+                    skill_line = tr("Translation missing.");
+
+                button->setDescription(skill_line);
+
+                connect(button, SIGNAL(clicked()), this, SLOT(playAudioEffect()));
+
+                addCopyAction(button);
+            }
         }
     }
 }
@@ -520,10 +595,22 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
     ui->changeHeroSkinButton->setVisible(hasSkin(general_name));
 
     QList<const Skill *> skills = general->getVisibleSkillList();
+
+    foreach (const Skill *skill, skills) {
+        QString waked_skill = skill->getWakedSkills();
+        if (waked_skill.isEmpty()) continue;
+        QStringList waked_skills = waked_skill.split(",");
+        foreach (QString sk, waked_skills) {
+            const Skill *ski = Sanguosha->getSkill(sk);
+            if (ski && ski->isVisible() && !skills.contains(ski)) skills << ski;
+        }
+    }
+
     foreach (QString skill_name, general->getRelatedSkillNames()) {
         const Skill *skill = Sanguosha->getSkill(skill_name);
-        if (skill && skill->isVisible()) skills << skill;
+        if (skill && skill->isVisible() && !skills.contains(skill)) skills << skill;
     }
+
 
     ui->skillTextEdit->clear();
 
@@ -532,9 +619,25 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
     foreach(const Skill *skill, skills)
         addLines(skill);
 
-    QString last_word = Sanguosha->translate("~" + general->objectName());
-    if (last_word.startsWith("~") && general->objectName().contains("_"))
-        last_word = Sanguosha->translate(("~") + general->objectName().split("_").last());
+    QString last_word = Sanguosha->translate("~" + general_name);
+    QString hero_skin;
+    int skin_index = Config.value(QString("HeroSkin/%1").arg(general_name), 0).toInt();
+    if (skin_index > 0) {
+        hero_skin = QString("~%1-%2_%3").arg(general_name).arg(general_name).arg(skin_index);
+        last_word = Sanguosha->translate(hero_skin);
+    }
+    if (last_word.startsWith("~"))
+        last_word = Sanguosha->translate("~" + general_name);
+    if (last_word.startsWith("~") && general_name.contains("_")) {
+        QString new_general_name = general_name.split("_").last();
+        skin_index = Config.value(QString("HeroSkin/%1").arg(new_general_name), 0).toInt();
+        if (skin_index > 0) {
+            hero_skin = QString("~%1-%2_%3").arg(new_general_name).arg(new_general_name).arg(skin_index);
+            last_word = Sanguosha->translate(hero_skin);
+        }
+        if (last_word.startsWith("~"))
+            last_word = Sanguosha->translate("~" + new_general_name);
+    }
 
     if (!last_word.startsWith("~")) {
         if (last_word == " ")
@@ -561,7 +664,7 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
         connect(win_button, SIGNAL(clicked()), this, SLOT(playAudioEffect()));
     }
 
-    if (general_name == "shenlvbu1" || general_name == "shenlvbu2") {
+    if (general_name == "shenlvbu1" || general_name == "shenlvbu2" || general_name == "shenlvbu3") {
         QCommandLinkButton *stage_change_button = new QCommandLinkButton(tr("Stage Change"),
             tr("Trashes, the real fun is just beginning!"));
 
@@ -648,6 +751,8 @@ void GeneralOverview::askChangeSkin()
     }
     ui->generalPhoto->setPixmap(pixmap);
     ui->illustratorLineEdit->setText(getIllustratorInfo(general_name));
+
+    on_tableWidget_itemSelectionChanged();
 }
 
 void GeneralOverview::startSearch(bool include_hidden, const QString &nickname, const QString &name, const QStringList &genders,
@@ -674,10 +779,12 @@ void GeneralOverview::startSearch(bool include_hidden, const QString &nickname, 
             QString v_name = name;
             v_name.replace("?", ".");
             v_name.replace("*", ".*");
-            QRegExp rx(v_name);
+            //QRegExp rx(v_name);
 
             QString g_name = Sanguosha->translate(general_name);
-            if (!rx.exactMatch(g_name))
+            //if (!rx.exactMatch(g_name))
+                //continue;
+            if (!g_name.contains(v_name) && !general_name.contains(v_name))
                 continue;
         }
         if (!genders.isEmpty()) {

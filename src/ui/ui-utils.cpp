@@ -44,8 +44,13 @@ QImage QSanUiUtils::produceShadow(const QImage &image, QColor shadowColor, int r
 #undef _NEW_PIXEL_CHANNEL
 #undef _NEW_PIXEL
 #undef _OLD_PIXEL
-    QImage result(newImage, cols, rows, QImage::Format_ARGB32);
+    QImage result(newImage, cols, rows, QImage::Format_ARGB32, QSanUiUtils::shadowCleanUp, newImage);
     return result;
+}
+
+void QSanUiUtils::shadowCleanUp(void *data)
+{
+    free(data);
 }
 
 void QSanUiUtils::makeGray(QPixmap &pixmap)

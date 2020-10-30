@@ -5,12 +5,13 @@ config = {
 	big_font = 56,
 	small_font = 27,
 	tiny_font = 18,
-	kingdoms = { "wei", "shu", "wu", "qun", "god" },
+	kingdoms = { "wei", "shu", "wu", "qun", "jin", "god" },
 	kingdom_colors = {
 		wei = "#547998",
 		shu = "#D0796C",
 		wu = "#4DB873",
 		qun = "#8A807A",
+		jin = "#CC33CC",
 		god = "#96943D",
 	},
 
@@ -21,6 +22,16 @@ config = {
 		lordskill = "#FFA500",
 		oppphskill = "#008000",
 		changeskill = "#FFC0CB",
+		hideskill = "#EE82EE",
+		turnskill = "#008000",
+		lunskill = "#008000",
+		shimingskill = "#C59616",
+		weiskill = "#547998",
+		shuskill = "#D0796C",
+		wuskill = "#4DB873",
+		qunskill = "#8A807A",
+		jinskill = "#CC33CC",
+		godskill = "#96943D",
 	},
 
 	package_names = {
@@ -28,6 +39,7 @@ config = {
 		"StandardExCard",
 		"Maneuvering",
 		"LimitationBroken",
+		"Yingbian",
 		"SPCard",
 		"Nostalgia",
 		"New3v3Card",
@@ -37,6 +49,7 @@ config = {
 	--	"Joy",
 		"Disaster",
 		"JoyEquip",
+		"ExclusiveEquip",
 
 		"Standard",
 		"Wind",
@@ -45,6 +58,19 @@ config = {
 		"Mountain",
 		"Yin",
 		"Lei",
+		"Li",
+		"Bei",
+		"Guo",
+		"Jie",
+		"MobileZhi",
+		"MobileXin",
+		"MobileRen",
+		"MobileYong",
+		"MobileYan",
+		"MobileMouZhi",
+		"MobileMouShi",
+		"MobileMouYu",
+		"MobileMouNeng",
 		"God",
 		"YJCM",
 		"YJCM2012",
@@ -54,9 +80,16 @@ config = {
 		"YCZH2016",
 		"YCZH2017",
 		"JXTP",
+		"JXTP2",
 		"OLJXTP",
 		"MobileJXTP",
 		"SP",
+		"SP1",
+		"SP2",
+		"SP3",
+		"SP4",
+		"SP5",
+	--  "SP6",
 		"OL",
 		"JSP",
 		"BGM",
@@ -71,7 +104,7 @@ config = {
 		"TaiwanYJCM" ,
 		"Miscellaneous",
 		"BGMDIY",
-		"Ling",
+		--"Ling",
 		"Hegemony",
 		"HFormation",
 		"HMomentum",
@@ -86,6 +119,7 @@ config = {
 		"BossMode",
 		"Yitian",
 		"Wisdom",
+		"Yinhu",
 		"Test"
 	},
 
@@ -119,7 +153,7 @@ config = {
 		"嘿，一般人，我不使这招。",
 		"呵，好牌就是这么打地！",
 		"杀！神挡杀神！佛挡杀佛！",
-		"你也忒坏了吧？！"
+		"你也忒坏了吧？！",
 	},
 
 	roles_ban = {
@@ -127,6 +161,12 @@ config = {
 
 	kof_ban = {
 		"sunquan",
+	},
+	
+	doudizhu_ban = {
+	},
+	
+	happy2v2_ban = {
 	},
 
 	bossmode_ban = {

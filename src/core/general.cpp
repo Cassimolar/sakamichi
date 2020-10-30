@@ -4,11 +4,12 @@
 #include "package.h"
 #include "client.h"
 #include "clientstruct.h"
+#include "settings.h"
 
 General::General(Package *package, const QString &name, const QString &kingdom,
-    int max_hp, bool male, bool hidden, bool never_shown, int start_hp)
+    int max_hp, bool male, bool hidden, bool never_shown, int start_hp, int start_hujia)
     : QObject(package), kingdom(kingdom), max_hp(max_hp), gender(male ? Male : Female),
-    hidden(hidden), never_shown(never_shown), start_hp(start_hp)
+    hidden(hidden), never_shown(never_shown), start_hp(start_hp), start_hujia(start_hujia)
 {
     static QChar lord_symbol('$');
     if (name.endsWith(lord_symbol)) {
@@ -28,6 +29,20 @@ int General::getMaxHp() const
 }
 
 QString General::getKingdom() const
+{
+    QStringList kins = kingdom.split("+");
+    QString kin = kins.first();
+    if (kin == "god" && kins.length() > 1) {
+        foreach (QString king, kins) {
+            if (king == "god") continue;
+            kin = king;
+            break;
+        }
+    }
+    return kin;
+}
+
+QString General::getKingdoms() const
 {
     return kingdom;
 }
@@ -77,9 +92,34 @@ bool General::isTotallyHidden() const
     return never_shown;
 }
 
+void General::setStartHp(int hp)
+{
+    this->start_hp = qMin(hp, max_hp);
+}
+
 int General::getStartHp() const
 {
     return qMin(start_hp, max_hp);
+}
+
+void General::setStartHujia(int hujia)
+{
+    this->start_hujia = hujia;
+}
+
+int General::getStartHujia() const
+{
+    return start_hujia;
+}
+
+void General::setImage(const QString &general_name)
+{
+    this->image = general_name;
+}
+
+QString General::getImage() const
+{
+    return image;
 }
 
 void General::addSkill(Skill *skill)
@@ -172,11 +212,27 @@ QString General::getSkillDescription(bool include_name) const
 
     QList<const Skill *> skills = getVisibleSkillList();
     QList<const Skill *> relatedskills;
+
+    foreach (const Skill *skill, skills) {
+        QString waked_skill = skill->getWakedSkills();
+        if (waked_skill.isEmpty()) continue;
+        QStringList waked_skills = waked_skill.split(",");
+        foreach (QString sk, waked_skills) {
+            const Skill *ski = Sanguosha->getSkill(sk);
+            if (ski && ski->isVisible() && !skills.contains(ski)) {
+                skills << ski;
+                if (!relatedskills.contains(ski))
+                    relatedskills << ski;
+            }
+        }
+    }
+
     foreach (const QString &skill_name, getRelatedSkillNames()) {
         const Skill *skill = Sanguosha->getSkill(skill_name);
-        if (skill && skill->isVisible()) {
+        if (skill && skill->isVisible() && !skills.contains(skill)) {
             skills << skill;
-            relatedskills << skill;
+            if (!relatedskills.contains(skill))
+                relatedskills << skill;
         }
     }
 
@@ -191,9 +247,16 @@ QString General::getSkillDescription(bool include_name) const
     }
 
     if (include_name) {
-        QString color_str = Sanguosha->getKingdomColor(kingdom).name();
-        QString name = QString("<font color=%1><b>%2</b></font>     ").arg(color_str).arg(Sanguosha->translate(objectName()));
-        name.prepend(QString("<img src='image/kingdom/icon/%1.png'/>    ").arg(kingdom));
+        QString name;
+        QStringList kins = kingdom.split("+");
+        QString color_str = Sanguosha->getKingdomColor(kins.first()).name();
+        foreach (QString kin, kins)
+            name.append(QString("<img src='image/kingdom/icon/%1.png'/>").arg(kin));
+        name.append("     ").append(QString("<font color=%1><b>%2</b></font>     ").arg(color_str).arg(Sanguosha->translate(objectName())));
+
+        int hujia = getStartHujia();
+        if (hujia > 0)
+            name.append("<img src='image/mark/@HuJia.png' height = 17/>").append("x").append(QString::number(hujia)).append("     ");
 
         int start_hp = getStartHp();
         start_hp = qMin(start_hp, max_hp);
@@ -235,13 +298,45 @@ QString General::getBriefName() const
 
 void General::lastWord() const
 {
-    QString filename = QString("audio/death/%1.ogg").arg(objectName());
-    bool fileExists = QFile::exists(filename);
-    if (!fileExists) {
-        QStringList origin_generals = objectName().split("_");
-        if (origin_generals.length() > 1)
-            filename = QString("audio/death/%1.ogg").arg(origin_generals.last());
+    QString filename;
+    int skin_index = Config.value(QString("HeroSkin/%1").arg(objectName()), 0).toInt();
+    if (skin_index > 0) {
+        filename = QString("image/heroskin/audio/%1/death/%2.ogg").arg(objectName() + "_" + QString::number(skin_index)).arg(objectName());
+        if (QFile::exists(filename)) {
+            Sanguosha->playAudioEffect(filename);
+            return;
+        }
     }
-    Sanguosha->playAudioEffect(filename);
+
+    filename = QString("audio/death/%1.ogg").arg(objectName());
+    if (QFile::exists(filename)) {
+        Sanguosha->playAudioEffect(filename);
+        return;
+    }
+
+    QStringList origin_generals = objectName().split("_");
+    if (origin_generals.length() > 1) {
+        QString origin_general = origin_generals.last();
+        if (Sanguosha->getGeneral(origin_general)) {
+            skin_index = Config.value(QString("HeroSkin/%1").arg(origin_general), 0).toInt();
+            if (skin_index > 0) {
+                filename = QString("image/heroskin/audio/%1/death/%2.ogg").arg(origin_general + "_" + QString::number(skin_index)).arg(origin_general);
+                if (QFile::exists(filename)) {
+                    Sanguosha->playAudioEffect(filename);
+                    return;
+                }
+            }
+            filename = QString("audio/death/%1.ogg").arg(origin_general);
+            Sanguosha->playAudioEffect(filename);
+        }
+    }
 }
 
+bool General::hasHideSkill() const
+{
+    foreach (const Skill *skill, getSkillList()) {
+        if (skill->isHideSkill())
+            return true;
+    }
+    return false;
+}

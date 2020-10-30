@@ -83,6 +83,10 @@ public:
     void updatePending();
     void clearPendings();
 
+    QRectF getProgressBarSceneBoundingRect() const {
+        return _m_progressBarItem->sceneBoundingRect();
+    }
+
     inline void addPending(CardItem *item)
     {
         pendings << item;
@@ -142,7 +146,6 @@ public slots:
     void beginSorting();
     void changeShefuState();
     void reverseSelection();
-    void viewMaxcards();
     void cancelNullification();
     void setShefuState();
     void skillButtonActivated();
@@ -157,6 +160,8 @@ protected:
     virtual QList<CardItem *> removeHandCards(const QList<int> &cardIds);
 
     // initialization of _m_layout is compulsory for children classes.
+
+
     inline virtual QGraphicsItem *_getEquipParent()
     {
         return _m_leftFrame;
@@ -216,7 +221,6 @@ protected:
 
     QSanButton *m_btnReverseSelection;
     QSanButton *m_btnSortHandcard;
-    QSanButton *m_btnViewMaxcards;
     QSanButton *m_btnNoNullification;
     QSanButton *m_btnShefu;
     QGraphicsPixmapItem *_m_leftFrame, *_m_middleFrame, *_m_rightFrame;

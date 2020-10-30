@@ -35,6 +35,7 @@ public slots:
 
 protected:
     QDialog *m_freeChooseDialog;
+    QLineEdit *name_edit;
 
 private:
     QSanCommandProgressBar *progress_bar;
@@ -54,7 +55,7 @@ public:
         Exclusive, Pair, Multi
     };
 
-    explicit FreeChooseDialog(QWidget *parent, ButtonGroupType type = Exclusive);
+    explicit FreeChooseDialog(const QString &name, QWidget *parent, ButtonGroupType type = Exclusive);
 
 private:
     QButtonGroup *group;

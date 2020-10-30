@@ -40,9 +40,11 @@ public:
                 room->notifySkillInvoked(sun, objectName());
                 if (choice == "draw") {
                     sun->drawCards(1);
+                    sun->tag["liangzhu_draw" + sun->objectName()] = true;
                     room->setPlayerMark(sun, "@liangzhu_draw", 1);
                 } else if (choice == "letdraw") {
                     player->drawCards(2);
+                    player->tag["liangzhu_draw" + sun->objectName()] = true;
                     room->setPlayerMark(player, "@liangzhu_draw", 1);
                 }
             }
@@ -58,40 +60,40 @@ public:
     {
         events << EventPhaseStart;
         frequency = Skill::Wake;
+        waked_skills = "xiaoji";
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return (target != NULL && target->hasSkill(this) && target->getPhase() == Player::Start && target->getMark("@fanxiang") == 0);
-    }
-
-    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &) const
-    {
+        if (player->getPhase() != Player::Start || player->getMark("fanxiang") > 0) return false;
+        if (player->canWake("fanxiang")) return true;
         bool flag = false;
         foreach (ServerPlayer *p, room->getAlivePlayers()) {
-            if (p->getMark("@liangzhu_draw") > 0 && p->isWounded()) {
+            if (p->tag["liangzhu_draw" + player->objectName()].toBool() && p->isWounded()) {
                 flag = true;
                 break;
             }
         }
-        if (flag) {
-            room->broadcastSkillInvoke(objectName());
+        return flag;
+    }
 
-            room->doSuperLightbox("jsp_sunshangxiang", "fanxiang");
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &) const
+    {
+        room->broadcastSkillInvoke(objectName());
 
-            //room->doLightbox("$fanxiangAnimate", 5000);
-            room->notifySkillInvoked(player, objectName());
-            room->setPlayerMark(player, "fanxiang", 1);
-            if (room->changeMaxHpForAwakenSkill(player, 1) && player->getMark("fanxiang") > 0) {
+        room->doSuperLightbox("jsp_sunshangxiang", "fanxiang");
 
-                foreach (ServerPlayer *p, room->getAllPlayers()) {
-                    if (p->getMark("@liangzhu_draw") > 0)
-                        room->setPlayerMark(p, "@liangzhu_draw", 0);
-                }
-
-                room->recover(player, RecoverStruct());
-                room->handleAcquireDetachSkills(player, "-liangzhu|xiaoji");
+        //room->doLightbox("$fanxiangAnimate", 5000);
+        room->notifySkillInvoked(player, objectName());
+        room->setPlayerMark(player, "fanxiang", 1);
+        if (room->changeMaxHpForAwakenSkill(player, 1) && player->getMark("fanxiang") > 0) {
+            foreach (ServerPlayer *p, room->getAllPlayers()) {
+                if (p->tag["liangzhu_draw" + player->objectName()].toBool() && p->getMark("@liangzhu_draw") > 0)
+                    room->setPlayerMark(p, "@liangzhu_draw", 0);
             }
+
+            room->recover(player, RecoverStruct(player));
+            room->handleAcquireDetachSkills(player, "-liangzhu|xiaoji");
         }
         return false;
     }
@@ -111,7 +113,7 @@ public:
 
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const
     {
-        return pattern == "slash" && player->getMark("@cihuai") > 0;
+        return (pattern.contains("slash") || pattern.contains("Slash")) && player->getMark("@cihuai") > 0;
     }
 
     const Card *viewAs() const
@@ -242,17 +244,22 @@ public:
     JspDanqi() : PhaseChangeSkill("jspdanqi")
     {
         frequency = Wake;
+        waked_skills = "mashu,nuzhan";
     }
 
-    bool triggerable(const ServerPlayer *guanyu, Room *room) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return PhaseChangeSkill::triggerable(guanyu) && guanyu->getMark(objectName()) == 0 && guanyu->getPhase() == Player::Start && guanyu->getHandcardNum() > guanyu->getHp() && !lordIsLiubei(room);
+        if (player->getPhase() != Player::Start || player->getMark("jspdanqi") > 0) return false;
+        if (player->canWake("jspdanqi")) return true;
+        if (player->getHandcardNum() > player->getHp() && !lordIsLiubei(room))
+            return true;
+        return false;
     }
 
     bool onPhaseChange(ServerPlayer *target) const
     {
         Room *room = target->getRoom();
-        room->broadcastSkillInvoke(objectName());
+        room->sendCompulsoryTriggerLog(target, this);
         //room->doLightbox("$JspdanqiAnimate");
         room->doSuperLightbox("jsp_guanyu", "jspdanqi");
         room->setPlayerMark(target, objectName(), 1);
@@ -319,7 +326,7 @@ private:
         Room *room = target->getRoom();
 
         if (getFrequency(target) == Compulsory)
-            room->broadcastSkillInvoke(objectName(), 1);
+            room->sendCompulsoryTriggerLog(target, objectName(), true, true, 1);
         else
             room->broadcastSkillInvoke(objectName(), 2);
 
@@ -338,18 +345,18 @@ public:
         events << Dying;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &data, Room *) const
     {
-        return TriggerSkill::triggerable(target) && target->getMark(objectName()) == 0;
+        if (player->getMark("fengliang") > 0) return false;
+        DyingStruct dying = data.value<DyingStruct>();
+        if (dying.who != player) return false;
+        player->canWake("fengliang");
+        return true;
     }
 
-    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &) const
     {
-        DyingStruct dying = data.value<DyingStruct>();
-        if (dying.who != player)
-            return false;
-
-        room->broadcastSkillInvoke(objectName());
+        room->sendCompulsoryTriggerLog(player, this);
         room->doSuperLightbox("jsp_jiangwei", objectName());
 
         room->addPlayerMark(player, objectName(), 1);
@@ -385,7 +392,7 @@ public:
 
     bool isEnabledAtResponse(const Player *, const QString &pattern) const
     {
-        return pattern == "jink" || pattern == "slash";
+        return pattern == "jink" || pattern.contains("slash") || pattern.contains("Slash");
     }
 
     const Card *viewAs(const Card *originalCard) const
@@ -446,6 +453,25 @@ public:
     }
 };
 
+class ChixinTargetMod : public TargetModSkill
+{
+public:
+    ChixinTargetMod() : TargetModSkill("#chixin-target")
+    {
+        frequency = NotFrequent;
+    }
+
+    int getResidueNum(const Player *from, const Card *, const Player *to) const
+    {
+        QStringList chixin_list = from->property("chixin").toString().split("+");
+        if (from->hasSkill("chixin") && from->getPhase() == Player::Play && to &&
+                from->inMyAttackRange(to) && !chixin_list.contains(to->objectName()))
+            return 1000;
+        else
+            return 0;
+    }
+};
+
 class Suiren : public PhaseChangeSkill
 {
 public:
@@ -463,7 +489,7 @@ public:
     bool onPhaseChange(ServerPlayer *target) const
     {
         Room *room = target->getRoom();
-        ServerPlayer *p = room->askForPlayerChosen(target, room->getAlivePlayers(), objectName(), "@suiren-draw", true);
+        ServerPlayer *p = room->askForPlayerChosen(target, room->getAlivePlayers(), objectName(), "@suiren-draw", true, true);
         if (p == NULL)
             return false;
 
@@ -568,46 +594,18 @@ public:
     }
 };
 
-class Linglong : public TriggerSkill
+class Linglong : public ViewAsEquipSkill
 {
 public:
-    Linglong() : TriggerSkill("linglong")
+    Linglong() : ViewAsEquipSkill("linglong")
     {
-        frequency = Compulsory;
-        events << CardAsked;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    QString viewAsEquip(const Player *target) const
     {
-        return TriggerSkill::triggerable(target) && target->getArmor() == NULL && target->hasArmorEffect("eight_diagram");
-    }
-
-    bool trigger(TriggerEvent, Room *room, ServerPlayer *wolong, QVariant &data) const
-    {
-        QString pattern = data.toStringList().first();
-
-        if (pattern != "jink")
-            return false;
-
-        if (wolong->askForSkillInvoke("eight_diagram")) {
-            JudgeStruct judge;
-            judge.pattern = ".|red";
-            judge.good = true;
-            judge.reason = "eight_diagram";
-            judge.who = wolong;
-
-            room->judge(judge);
-
-            if (judge.isGood()) {
-                room->setEmotion(wolong, "armor/eight_diagram");
-                Jink *jink = new Jink(Card::NoSuit, 0);
-                jink->setSkillName("eight_diagram");
-                room->provide(jink);
-                return true;
-            }
-        }
-
-        return false;
+        if (target->hasEquipArea(1) && !target->getArmor())
+            return "eight_diagram";
+        return QString();
     }
 };
 
@@ -672,7 +670,24 @@ public:
     }
 };
 
+class LinglongTrigger : public TriggerSkill
+{
+public:
+    LinglongTrigger() : TriggerSkill("#linglong")
+    {
+        events << InvokeSkill;
+        frequency = Compulsory;
+    }
 
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    {
+        if (!player->hasSkill("linglong")) return false;
+        QString skill = data.toString();
+        if (skill != "eight_diagram") return false;
+        room->sendCompulsoryTriggerLog(player, "linglong", true, true);
+        return false;
+    }
+};
 
 JSPPackage::JSPPackage()
     : Package("jiexian_sp")
@@ -696,16 +711,20 @@ JSPPackage::JSPPackage()
 
     General *jsp_zhaoyun = new General(this, "jsp_zhaoyun", "qun", 3);
     jsp_zhaoyun->addSkill(new ChixinTrigger);
+    jsp_zhaoyun->addSkill(new ChixinTargetMod);
     jsp_zhaoyun->addSkill(new Suiren);
     jsp_zhaoyun->addSkill("yicong");
+    related_skills.insertMulti("chixin", "#chixin-target");
 
     General *jsp_huangyy = new General(this, "jsp_huangyueying", "qun", 3, false);
     jsp_huangyy->addSkill(new Jiqiao);
     jsp_huangyy->addSkill(new Linglong);
     jsp_huangyy->addSkill(new LinglongTreasure);
     jsp_huangyy->addSkill(new LinglongMax);
+    jsp_huangyy->addSkill(new LinglongTrigger);
     related_skills.insertMulti("linglong", "#linglong-horse");
     related_skills.insertMulti("linglong", "#linglong-treasure");
+    related_skills.insertMulti("linglong", "#linglong");
 
     skills << new Nuzhan;
 

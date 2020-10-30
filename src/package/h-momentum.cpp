@@ -484,26 +484,28 @@ public:
     {
         events << EventPhaseEnd;
         frequency = Wake;
+        waked_skills = "benghuai";
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return TriggerSkill::triggerable(target)
-            && target->getPhase() == Player::Play
-            && target->getMark("baoling") == 0
-            && target->getMark("HengzhengUsed") >= 1;
+        if (player->getPhase() != Player::Play || player->getMark("baoling") > 0) return false;
+        if (player->canWake("baoling")) return true;
+        if (player->getMark("HengzhengUsed") >= 1) {
+            LogMessage log;
+            log.type = "#BaolingWake";
+            log.from = player;
+            log.arg = objectName();
+            log.arg2 = "hengzheng";
+            room->sendLog(log);
+            return true;
+        }
+        return false;
     }
 
     bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &) const
     {
         room->notifySkillInvoked(player, objectName());
-
-        LogMessage log;
-        log.type = "#BaolingWake";
-        log.from = player;
-        log.arg = objectName();
-        log.arg2 = "hengzheng";
-        room->sendLog(log);
 
         room->broadcastSkillInvoke(objectName());
         //room->doLightbox("$BaolingAnimate");

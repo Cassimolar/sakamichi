@@ -64,7 +64,6 @@ void Dashboard::hideControlButtons()
 {
     m_btnReverseSelection->hide();
     m_btnSortHandcard->hide();
-    m_btnViewMaxcards->hide();
     m_btnShefu->hide();
 }
 
@@ -72,7 +71,6 @@ void Dashboard::showControlButtons()
 {
     m_btnReverseSelection->show();
     m_btnSortHandcard->show();
-    m_btnViewMaxcards->show();
 }
 
 void Dashboard::showProgressBar(QSanProtocol::Countdown countdown)
@@ -341,8 +339,11 @@ void Dashboard::_addHandCard(CardItem *card_item, bool prepend, const QString &f
     if (Config.EnableSuperDrag)
         card_item->setFlag(ItemIsMovable);
     card_item->setZValue(0.1);
-    if (!footnote.isEmpty()) {
-        card_item->setFootnote(footnote);
+
+    QString _footnote = footnote;
+
+    if (!_footnote.isEmpty()) {
+        card_item->setFootnote(_footnote);
         card_item->showFootnote();
     }
     if (prepend)
@@ -574,7 +575,6 @@ void Dashboard::_createExtraButtons()
 {
     m_btnReverseSelection = new QSanButton("handcard", "reverse-selection", this);
     m_btnSortHandcard = new QSanButton("handcard", "sort", this);
-    m_btnViewMaxcards = new QSanButton("handcard", "view", this);
     m_btnNoNullification = new QSanButton("handcard", "nullification", this);
     m_btnNoNullification->setStyle(QSanButton::S_STYLE_TOGGLE);
     m_btnShefu = new QSanButton("handcard", "shefu", this);
@@ -584,8 +584,6 @@ void Dashboard::_createExtraButtons()
     pos += m_btnReverseSelection->boundingRect().right();
     m_btnSortHandcard->setPos(pos, height);
     pos += m_btnSortHandcard->boundingRect().right();
-    m_btnViewMaxcards->setPos(pos, height);
-    pos += m_btnViewMaxcards->boundingRect().right();
     m_btnNoNullification->setPos(pos, height);
     pos += m_btnNoNullification->boundingRect().right();
     m_btnShefu->setPos(pos, height);
@@ -594,7 +592,6 @@ void Dashboard::_createExtraButtons()
     m_btnShefu->hide();
     connect(m_btnReverseSelection, SIGNAL(clicked()), this, SLOT(reverseSelection()));
     connect(m_btnSortHandcard, SIGNAL(clicked()), this, SLOT(sortCards()));
-    connect(m_btnViewMaxcards, SIGNAL(clicked()), this, SLOT(viewMaxcards()));
     connect(m_btnNoNullification, SIGNAL(clicked()), this, SLOT(cancelNullification()));
     connect(m_btnShefu, SIGNAL(clicked()), this, SLOT(setShefuState()));
 }
@@ -997,11 +994,6 @@ void Dashboard::reverseSelection()
     adjustCards();
 }
 
-void Dashboard::viewMaxcards()
-{
-    QMessageBox::warning(NULL, "", tr("Your maxcards is %1").arg(QString::number(m_player->getMaxCards())));
-}
-
 void Dashboard::cancelNullification()
 {
     ClientInstance->m_noNullificationThisTime = !ClientInstance->m_noNullificationThisTime;
@@ -1389,4 +1381,3 @@ const Card *Dashboard::pendingCard() const
 {
     return pending_card;
 }
-

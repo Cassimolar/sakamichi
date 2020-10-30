@@ -166,7 +166,7 @@ Client::~Client()
 
 void Client::updateCard(const QVariant &val)
 {
-    if (JsonUtils::isNumber(val.type())) {
+    if (JsonUtils::isNumber(val)) {
         // reset card
         int cardId = val.toInt();
         Card *card = _m_roomState.getCard(cardId);
@@ -486,6 +486,18 @@ void Client::requestCheatDamage(const QString &source, const QString &target, Da
     cheatArg << points;
 
     cheatReq << (int)S_CHEAT_MAKE_DAMAGE;
+    cheatReq << QVariant(cheatArg);
+    requestServer(S_COMMAND_CHEAT, cheatReq);
+}
+
+void Client::requestCheatchangestate(const QString &target, int type, int points)
+{
+    JsonArray cheatReq, cheatArg;
+    cheatArg << target;
+    cheatArg << type;
+    cheatArg << points;
+
+    cheatReq << (int)S_CHEAT_STATE_EDITOR;
     cheatReq << QVariant(cheatArg);
     requestServer(S_COMMAND_CHEAT, cheatReq);
 }
@@ -859,7 +871,8 @@ void Client::askForCardOrUseCard(const QVariant &cardUsage)
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if (skill) {
             QString text = prompt_doc->toHtml();
-            text.append(tr("<br/> <b>Notice</b>: %1<br/>").arg(skill->getNotice(index)));
+            if (!skill->getNotice(index).startsWith("~"))
+                text.append(tr("<br/> <b>Notice</b>: %1<br/>").arg(skill->getNotice(index)));
             prompt_doc->setHtml(text);
         }
     }
@@ -1352,9 +1365,12 @@ void Client::askForSuit(const QVariant &)
     setStatus(ExecDialog);
 }
 
-void Client::askForKingdom(const QVariant &)
+void Client::askForKingdom(const QVariant &arg)
 {
-    QStringList kingdoms = Sanguosha->getKingdoms();
+    JsonArray ask = arg.value<JsonArray>();
+    if (ask.length() != 1 || !JsonUtils::isString(ask[0])) return;
+    QString kin = ask[0].toString();
+    QStringList kingdoms = kin.isEmpty() ? Sanguosha->getKingdoms() : kin.split("+");
     kingdoms.removeOne("god"); // god kingdom does not really exist
     emit kingdoms_got(kingdoms);
     setStatus(ExecDialog);
@@ -1363,29 +1379,31 @@ void Client::askForKingdom(const QVariant &)
 void Client::askForChoice(const QVariant &ask_str)
 {
     JsonArray ask = ask_str.value<JsonArray>();
-    if (!JsonUtils::isStringArray(ask, 0, 1)) return;
+    if (!JsonUtils::isStringArray(ask, 0, 1) || !JsonUtils::isString(ask[2])) return;
     QString skill_name = ask[0].toString();
     QStringList options = ask[1].toString().split("+");
-    emit options_got(skill_name, options);
+    QStringList except_options = ask[2].toString().split("+");
+    emit options_got(skill_name, options, except_options);
     setStatus(ExecDialog);
 }
 
 void Client::askForCardChosen(const QVariant &ask_str)
 {
     JsonArray ask = ask_str.value<JsonArray>();
-    if (ask.size() != 6 || !JsonUtils::isStringArray(ask, 0, 2)
-        || !JsonUtils::isBool(ask[3]) || !JsonUtils::isNumber(ask[4]))
+    if (ask.size() != 7 || !JsonUtils::isStringArray(ask, 0, 2)
+        || !JsonUtils::isBool(ask[3]) || !JsonUtils::isNumber(ask[4]) || !JsonUtils::isBool(ask[6]))
         return;
     QString player_name = ask[0].toString();
     QString flags = ask[1].toString();
     QString reason = ask[2].toString();
     bool handcard_visible = ask[3].toBool();
     Card::HandlingMethod method = (Card::HandlingMethod)ask[4].toInt();
+    bool can_cancel = ask[6].toBool();
     ClientPlayer *player = getPlayer(player_name);
     if (player == NULL) return;
     QList<int> disabled_ids;
     JsonUtils::tryParse(ask[5], disabled_ids);
-    emit cards_got(player, flags, reason, handcard_visible, method, disabled_ids);
+    emit cards_got(player, flags, reason, handcard_visible, method, disabled_ids, can_cancel);
     setStatus(ExecDialog);
 }
 
@@ -1569,8 +1587,44 @@ void Client::askForCardShow(const QVariant &requestor)
 
 void Client::askForAG(const QVariant &arg)
 {
-    if (!JsonUtils::isBool(arg)) return;
-    m_isDiscardActionRefusable = arg.toBool();
+    JsonArray args = arg.value<JsonArray>();
+    if (args.size() != 3 || !JsonUtils::isBool(args[0]) || !JsonUtils::isString(args[1]) || !JsonUtils::isString(args[2])) return;
+    bool refusable = args[0].toBool();
+    m_isDiscardActionRefusable = refusable;
+
+    QString reason = args[1].toString(), prompt = args[2].toString();
+    QString source;
+
+    if (!reason.isEmpty() && prompt.startsWith("@")) {
+        const Skill * sk = Sanguosha->getSkill(reason);
+        if (sk) {
+            if (sk->isVisible())
+                source = reason;
+            else {
+                sk = Sanguosha->getMainSkill(reason);
+                if (sk)
+                    source = sk->objectName();
+            }
+        } else
+            source = reason;
+    }
+
+    QString translate = source.isEmpty() ? QString(): Sanguosha->translate(source);
+    if (source.isEmpty() || translate == source)
+        translate = QString();
+
+    if (prompt.isEmpty()) {
+        prompt = refusable ? tr("you can choose a card") : tr("please choose a card");
+        if (!translate.isEmpty())
+            prompt.append(tr("<br/> <b>Source</b>: %1<br/>").arg(translate));
+        prompt_doc->setHtml(prompt);
+    } else {
+        QStringList texts = prompt.split(":");
+        QString text = setPromptList(texts);
+        if (!translate.isEmpty())
+            text.append(tr("<br/> <b>Source</b>: %1<br/>").arg(translate));
+        prompt_doc->setHtml(text);
+    }
     setStatus(AskForAG);
 }
 
@@ -1594,17 +1648,19 @@ void Client::alertFocus()
 void Client::showCard(const QVariant &show_str)
 {
     JsonArray show = show_str.value<JsonArray>();
-    if (show.size() != 2 || !JsonUtils::isString(show[0]) || !JsonUtils::isNumber(show[1]))
+    if (show.size() != 2 || !JsonUtils::isString(show[0]) || !JsonUtils::isString(show[1]))
         return;
 
     QString player_name = show[0].toString();
-    int card_id = show[1].toInt();
+    QList<int> card_ids = StringList2IntList(show[1].toString().split("+"));
 
     ClientPlayer *player = getPlayer(player_name);
-    if (player != Self)
-        player->addKnownHandCard(Sanguosha->getCard(card_id));
+    if (player != Self) {
+        foreach (int card_id, card_ids)
+            player->addKnownHandCard(Sanguosha->getCard(card_id));
+    }
 
-    emit card_shown(player_name, card_id);
+    emit card_shown(player_name, card_ids);
 }
 
 void Client::attachSkill(const QVariant &skill)
@@ -1744,8 +1800,8 @@ void Client::askForYiji(const QVariant &ask_str)
 void Client::askForPlayerChosen(const QVariant &players)
 {
     JsonArray args = players.value<JsonArray>();
-    if (args.size() != 5) return;
-    if (!JsonUtils::isString(args[1]) || !args[0].canConvert<JsonArray>() || !JsonUtils::isNumber(args[3]) || !JsonUtils::isNumber(args[4])) return;
+    if (args.size() != 4) return;
+    if (!JsonUtils::isString(args[1]) || !args[0].canConvert<JsonArray>() || !JsonUtils::isBool(args[3])) return;
 
     JsonArray choices = args[0].value<JsonArray>();
     if (choices.size() == 0) return;
@@ -1753,9 +1809,7 @@ void Client::askForPlayerChosen(const QVariant &players)
     players_to_choose.clear();
     for (int i = 0; i < choices.size(); i++)
         players_to_choose.push_back(choices[i].toString());
-    m_isDiscardActionRefusable = (args[4].toInt() == 0);
-    choose_max_num = args[3].toInt();
-    choose_min_num = args[4].toInt();
+    m_isDiscardActionRefusable = args[3].toBool();
 
     QString text;
     QString description = Sanguosha->translate(ClientInstance->skill_name);
@@ -1766,12 +1820,7 @@ void Client::askForPlayerChosen(const QVariant &players)
         if (prompt.startsWith("@") && !description.isEmpty() && description != skill_name)
             text.append(tr("<br/> <b>Source</b>: %1<br/>").arg(description));
     } else {
-        if (choose_max_num > 1 && choose_min_num > 0)
-            text = tr("Please choose  %1  to  %2  players").arg(choose_min_num).arg(choose_max_num);
-        else if (choose_max_num > 1 && choose_min_num == 0)
-            text = tr("Plsase choose  %1  players at most").arg(choose_max_num);
-        else
-            text = tr("Please choose a player");
+        text = tr("Please choose a player");
         if (!description.isEmpty() && description != skill_name)
             text.append(tr("<br/> <b>Source</b>: %1<br/>").arg(description));
     }
@@ -1809,7 +1858,7 @@ void Client::log(const QVariant &log_str)
 {
     QStringList log;
 
-    if (!JsonUtils::tryParse(log_str, log) || log.size() != 6)
+    if (!JsonUtils::tryParse(log_str, log) || log.size() != 9)
         emit log_received(QStringList() << QString());
     else {
         if (log.first().contains("#BasaraReveal"))

@@ -29,7 +29,7 @@ public:
         foreach (const DistanceSkill *skill, skills) {
             bool show_skill = false;
             foreach (const ClientPlayer *p, ClientInstance->getPlayers()) {
-                if (p->hasSkill(skill)) {
+                if (p->hasSkill(skill, true)) {
                     show_skill = true;
                     break;
                 }
@@ -83,9 +83,17 @@ DistanceViewDialog::DistanceViewDialog(QWidget *parent)
     layout->addRow(tr("Distance correct"), box);
 
     QFormLayout *box_layout = new QFormLayout;
-    foreach(QLineEdit *edit, ui->distance_edits)
-        box_layout->addRow(Sanguosha->translate(edit->objectName()), edit);
+    foreach(QLineEdit *edit, ui->distance_edits) {
+        QString skill_name = edit->objectName();
 
+        const Skill *skill = Sanguosha->getSkill(edit->objectName());
+        if (Sanguosha->translate(skill->objectName()).startsWith("#")) {
+            const Skill *main_skill = Sanguosha->getMainSkill(skill->objectName());
+            if (main_skill)
+                skill_name = main_skill->objectName();
+        }
+        box_layout->addRow(Sanguosha->translate(skill_name), edit);
+    }
     box->setLayout(box_layout);
 
     layout->addRow(tr("In attack range"), ui->in_attack);

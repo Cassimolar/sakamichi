@@ -109,7 +109,7 @@ bool QiangxiCard::targetFilter(const QList<const Player *> &targets, const Playe
     int rangefix = 0;
     if (!subcards.isEmpty() && Self->getWeapon() && Self->getWeapon()->getId() == subcards.first()) {
         const Weapon *card = qobject_cast<const Weapon *>(Self->getWeapon()->getRealCard());
-        rangefix += card->getRange() - Self->getAttackRange(false);;
+        rangefix += card->getRange() - Self->getAttackRange(false);
     }
 
     return Self->inMyAttackRange(to_select, rangefix);
@@ -376,10 +376,10 @@ public:
                 room->throwCard(trick, reason, NULL);
             }
 
-            if (pangtong->getLostHp() > 0) {
-                int n = qMin(3 - pangtong->getHp(), pangtong->getMaxHp() - pangtong->getHp());
+            int n = qMin(3 - pangtong->getHp(), pangtong->getMaxHp() - pangtong->getHp());
+            if (n > 0)
                 room->recover(pangtong, RecoverStruct(pangtong, NULL, n));
-            }
+
             pangtong->drawCards(3, objectName());
 
             if (pangtong->isChained())
@@ -411,45 +411,41 @@ public:
     }
 };
 
-class Bazhen : public TriggerSkill
+class Bazhen : public ViewAsEquipSkill
 {
 public:
-    Bazhen() : TriggerSkill("bazhen")
+    Bazhen() : ViewAsEquipSkill("bazhen")
     {
+    }
+
+    QString viewAsEquip(const Player *target) const
+    {
+        if (target->hasEquipArea(1) && !target->getArmor())
+            return "eight_diagram";
+        return QString();
+    }
+};
+
+class BazhenTrigger : public TriggerSkill
+{
+public:
+    BazhenTrigger() : TriggerSkill("#bazhen")
+    {
+        events << InvokeSkill;
         frequency = Compulsory;
-        events << CardAsked;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
     {
-        return TriggerSkill::triggerable(target) && !target->getArmor() && target->hasArmorEffect("eight_diagram");
-    }
-
-    bool trigger(TriggerEvent, Room *room, ServerPlayer *wolong, QVariant &data) const
-    {
-        QString pattern = data.toStringList().first();
-
-        if (pattern != "jink")
-            return false;
-
-        if (wolong->askForSkillInvoke("eight_diagram")) {
-            JudgeStruct judge;
-            judge.pattern = ".|red";
-            judge.good = true;
-            judge.reason = "eight_diagram";
-            judge.who = wolong;
-
-            room->judge(judge);
-
-            if (judge.isGood()) {
-                room->setEmotion(wolong, "armor/eight_diagram");
-                Jink *jink = new Jink(Card::NoSuit, 0);
-                jink->setSkillName("eight_diagram");
-                room->provide(jink);
-                return true;
-            }
-        }
-
+        if (!player->hasSkill("bazhen")) return false;
+        QString skill = data.toString();
+        if (skill != "eight_diagram") return false;
+        int index = 1;
+        if (player->isJieGeneral("wolong") || player->isJieGeneral("zhugeliang"))
+            index = qrand() % 2 + 2;
+        else if (player->isJieGeneral("pangtong"))
+            index = qrand() % 2 + 4;
+        room->sendCompulsoryTriggerLog(player, "bazhen", true, true, index);
         return false;
     }
 };
@@ -512,6 +508,14 @@ public:
     {
         return new TianyiCard;
     }
+
+    int getEffectIndex(const ServerPlayer *player, const Card *) const
+    {
+        int index = 1;
+        if (player->isJieGeneral())
+            index += qrand() % 2 + 1;
+        return index;
+    }
 };
 
 class TianyiTargetMod : public TargetModSkill
@@ -565,6 +569,8 @@ FirePackage::FirePackage()
     wolong->addSkill(new Huoji);
     wolong->addSkill(new Kanpo);
     wolong->addSkill(new Bazhen);
+    wolong->addSkill(new BazhenTrigger);
+    related_skills.insertMulti("bazhen", "#bazhen");
 
     General *taishici = new General(this, "taishici", "wu"); // WU 012
     taishici->addSkill(new Tianyi);

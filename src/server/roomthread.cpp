@@ -1,4 +1,4 @@
-﻿#include "roomthread.h"
+#include "roomthread.h"
 #include "room.h"
 #include "engine.h"
 #include "gamerule.h"
@@ -26,19 +26,20 @@ QVariant LogMessage::toVariant() const
         if (player != NULL) tos << player->objectName();
 
     QStringList log;
-    log << type << (from ? from->objectName() : "") << tos.join("+") << card_str << arg << arg2;
+    log << type << (from ? from->objectName() : "") << tos.join("+") << card_str << arg << arg2 << arg3 << arg4 << arg5;
     QVariant json_log = JsonUtils::toJsonArray(log);
     return json_log;
 }
 
 DamageStruct::DamageStruct()
     : from(NULL), to(NULL), card(NULL), damage(1), nature(Normal), chain(false),
-    transfer(false), by_user(true), reason(QString()), transfer_reason(QString())
+    transfer(false), by_user(true), reason(QString()), transfer_reason(QString()), prevented(false), tips(QStringList()), ignore_hujia(false)
 {
 }
 
 DamageStruct::DamageStruct(const Card *card, ServerPlayer *from, ServerPlayer *to, int damage, DamageStruct::Nature nature)
-    : chain(false), transfer(false), by_user(true), reason(QString()), transfer_reason(QString()), prevented(false)
+    : chain(false), transfer(false), by_user(true), reason(QString()), transfer_reason(QString()), prevented(false), tips(QStringList()),
+      ignore_hujia(false)
 {
     this->card = card;
     this->from = from;
@@ -48,7 +49,8 @@ DamageStruct::DamageStruct(const Card *card, ServerPlayer *from, ServerPlayer *t
 }
 
 DamageStruct::DamageStruct(const QString &reason, ServerPlayer *from, ServerPlayer *to, int damage, DamageStruct::Nature nature)
-    : card(NULL), chain(false), transfer(false), by_user(true), transfer_reason(QString()), prevented(false)
+    : card(NULL), chain(false), transfer(false), by_user(true), transfer_reason(QString()), prevented(false), tips(QStringList()),
+      ignore_hujia(false)
 {
     this->from = from;
     this->to = to;
@@ -72,7 +74,7 @@ CardEffectStruct::CardEffectStruct()
 }
 
 SlashEffectStruct::SlashEffectStruct()
-    : jink_num(1), slash(NULL), jink(NULL), from(NULL), to(NULL), drank(0), nature(DamageStruct::Normal), nullified(false),
+    : jink_num(1), slash(NULL), jink(NULL), from(NULL), to(NULL), drank(0), nature(DamageStruct::Normal), multiple(false), nullified(false),
       no_respond(false), no_offset(false)
 {
 }
@@ -181,7 +183,7 @@ CardUseStruct::CardUseStruct(const Card *card, ServerPlayer *from, ServerPlayer 
 
 bool CardUseStruct::isValid(const QString &pattern) const
 {
-    Q_UNUSED(pattern);
+    Q_UNUSED(pattern)
         return card != NULL;
     /*if (card == NULL) return false;
     if (!card->getSkillName().isEmpty()) {
@@ -290,8 +292,10 @@ void RoomThread::addPlayerSkills(ServerPlayer *player, bool invoke_game_start)
     }
 
     //We should make someone trigger a whole GameReady event instead of trigger a skill only.
-    if (invoke_verify)
+    if (invoke_verify) {
+        room->removeDerivativeCards();
         trigger(GameReady, room, player, void_data);
+    }
 }
 
 void RoomThread::constructTriggerTable()
@@ -604,6 +608,7 @@ void RoomThread::run()
             }
         }
         constructTriggerTable();
+        room->removeDerivativeCards();
         trigger(GameReady, (Room *)room, NULL);
         if (room->getMode() == "06_3v3") {
             run3v3(first, second, game_rule, first.first());
@@ -684,6 +689,10 @@ bool RoomThread::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *ta
                 triggered.append(skill);
                 current_priority = skill->getPriority(triggerEvent);
                 if (skill->triggerable(target, room)) {
+                    bool ok = true;
+                    if (skill->getFrequency(target) == Skill::Wake)
+                        ok = skill->canWake(triggerEvent, target, data, room);
+                    if (!ok) continue;
                     room->tryPause();
                     broken = skill->trigger(triggerEvent, room, target, data);
                     if (broken) break;

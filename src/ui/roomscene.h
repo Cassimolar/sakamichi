@@ -1,4 +1,4 @@
-﻿#ifndef _ROOM_SCENE_H
+#ifndef _ROOM_SCENE_H
 #define _ROOM_SCENE_H
 
 //#include "photo.h"
@@ -89,6 +89,24 @@ private slots:
     void disableSource();
 };
 
+class StateEditorDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    StateEditorDialog(QWidget *parent);
+
+protected:
+    virtual void accept();
+
+private:
+    QComboBox *target;
+    QComboBox *type;
+    QSpinBox *point;
+
+    void fillComboBox(QComboBox *ComboBox);
+};
+
 class KOFOrderBox : public QGraphicsPixmapItem
 {
 public:
@@ -174,9 +192,9 @@ public slots:
     void chooseGeneral(const QStringList &generals);
     void chooseSuit(const QStringList &suits);
     void chooseCard(const ClientPlayer *playerName, const QString &flags, const QString &reason,
-        bool handcard_visible, Card::HandlingMethod method, QList<int> disabled_ids);
+        bool handcard_visible, Card::HandlingMethod method, QList<int> disabled_ids, bool can_cancel);
     void chooseKingdom(const QStringList &kingdoms);
-    void chooseOption(const QString &skillName, const QStringList &options);
+    void chooseOption(const QString &skillName, const QStringList &options, const QStringList &except_options);
     void chooseOrder(QSanProtocol::Game3v3ChooseOrderCommand reason);
     void chooseRole(const QString &scheme, const QStringList &roles);
     void chooseDirection();
@@ -193,6 +211,7 @@ public slots:
     void surrender();
     void saveReplayRecord();
     void makeDamage();
+    void changeState();
     void makeKilling();
     void makeReviving();
     void doScript();
@@ -413,8 +432,9 @@ private slots:
     void resetPiles();
     void removeLightBox();
 
-    void showCard(const QString &player_name, int card_id);
+    void showCard(const QString &player_name, QList<int> card_ids);
     void viewDistance();
+    void viewMaxCards();
 
     void speak();
 
@@ -458,6 +478,16 @@ signals:
     void return_to_start();
     void game_over_dialog_rejected();
 };
+
+/*class PromptInfoItem : public QGraphicsTextItem
+{
+public:
+    explicit PromptInfoItem(QGraphicsItem *parent = 0);
+
+    virtual QRectF boundingRect() const;
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *);
+
+};*/
 
 extern RoomScene *RoomSceneInstance;
 

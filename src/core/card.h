@@ -59,7 +59,7 @@ public:
     };
 
     // constructor
-    Card(Suit suit, int number, bool target_fixed = false);
+    Card(Suit suit, int number, bool target_fixed = false, bool damage_card = false, bool is_gift = false, bool single_target = false);
 
     // property getters/setters
     QString getSuitString() const;
@@ -80,17 +80,19 @@ public:
     bool sameNameWith(const Card *card, bool different_slash = false) const;
     bool sameNameWith(const QString &card_name, bool different_slash = false) const;
     Color getColor() const;
+    QString getColorString() const;
+    bool hasSuit() const;
     QString getFullName(bool include_suit = false) const;
     QString getLogName() const;
     QString getName() const;
     QString getSkillName(bool removePrefix = true) const;
     virtual void setSkillName(const QString &skill_name);
     QString getDescription() const;
-    bool isGift() const;
-    void setGift(bool flag);
+    virtual bool isGift() const;
+    virtual void setGift(bool flag);
 
     virtual bool isMute() const;
-    void setMute(bool flag);
+    virtual void setMute(bool flag);
     virtual bool willThrow() const;
     virtual bool canRecast() const;
     virtual bool hasPreAction() const;
@@ -131,8 +133,10 @@ public:
     virtual QString getSubtype() const = 0;
     virtual CardType getTypeId() const = 0;
     virtual bool isNDTrick() const;
-    bool isDamageCard() const;
-    void setDamageCard(bool flag);
+    virtual bool isDamageCard() const;
+    virtual void setDamageCard(bool flag);
+    virtual bool isSingleTargetCard() const;
+    virtual void setSingleTargetCard(bool flag);
 
     // card target selection
     virtual bool targetFixed() const;
@@ -199,6 +203,7 @@ protected:
     QString m_skillName;
     bool is_gift;
     bool damage_card;
+    bool single_target;
     Card::HandlingMethod handling_method;
 
     mutable QStringList flags;

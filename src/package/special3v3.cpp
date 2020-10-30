@@ -80,6 +80,11 @@ public:
         events << AfterDrawNCards;
     }
 
+    bool triggerable(const ServerPlayer *target) const
+    {
+        return target != NULL;
+    }
+
     bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &) const
     {
         if (!player->hasFlag("hongyuan"))
@@ -88,7 +93,7 @@ public:
 
         QList<ServerPlayer *> targets;
         foreach (ServerPlayer *p, room->getOtherPlayers(player)) {
-            if (room->getMode().startsWith("06_") || room->getMode().startsWith("04_")) {
+            if (room->getMode().startsWith("06_")) {
                 if (AI::GetRelation3v3(player, p) == AI::Friend)
                     targets << p;
             } else if (p->hasFlag("HongyuanTarget")) {
@@ -408,13 +413,61 @@ public:
     }
 };
 
-class Zhanshen : public TriggerSkill
+class Zhanshen : public PhaseChangeSkill
 {
 public:
-    Zhanshen() : TriggerSkill("zhanshen")
+    Zhanshen() : PhaseChangeSkill("zhanshen")
     {
-        events << Death << EventPhaseStart;
         frequency = Wake;
+    }
+
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
+    {
+        if (player->getPhase() != Player::Start || player->getMark(objectName()) > 0) return false;
+        if (player->canWake(objectName())) return true;
+        if (player->getMark("zhanshen_fight") > 0 || player->getMark("@fight") > 0) {
+            if (player->isWounded()) {
+                LogMessage log;
+                log.type = "#ZhanshenWake";
+                log.from = player;
+                log.arg = objectName();
+                room->sendLog(log);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool onPhaseChange(ServerPlayer *player) const
+    {
+        Room *room = player->getRoom();
+        room->notifySkillInvoked(player, objectName());
+        room->broadcastSkillInvoke(objectName());
+        //room->doLightbox("$ZhanshenAnimate");
+        room->doSuperLightbox("vs_nos_lvbu", "zhanshen");
+
+        if (player->getMark("@fight") > 0)
+            room->setPlayerMark(player, "@fight", 0);
+        player->setMark("zhanshen_fight", 0);
+
+        room->setPlayerMark(player, "zhanshen", 1);
+        if (room->changeMaxHpForAwakenSkill(player)) {
+            if (player->getWeapon() && player->canDiscard(player, player->getWeapon()->getEffectiveId()))
+                room->throwCard(player->getWeapon(), player);
+            if (player->getMark("zhanshen") == 1)
+                room->handleAcquireDetachSkills(player, "mashu|shenji");
+        }
+        return false;
+    }
+};
+
+class ZhanshenDeath : public TriggerSkill
+{
+public:
+    ZhanshenDeath() : TriggerSkill("#zhanshen")
+    {
+        events << Death;
+        //frequency = Wake;
     }
 
     bool triggerable(const ServerPlayer *target) const
@@ -422,51 +475,21 @@ public:
         return target != NULL;
     }
 
-    bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
     {
-        if (triggerEvent == Death) {
-            DeathStruct death = data.value<DeathStruct>();
-            if (death.who != player)
-                return false;
-            foreach (ServerPlayer *lvbu, room->getAllPlayers()) {
-                if (!TriggerSkill::triggerable(lvbu)) continue;
-                if (room->getMode().startsWith("06_") || room->getMode().startsWith("04_")) {
-                    if (lvbu->getMark(objectName()) == 0 && lvbu->getMark("zhanshen_fight") == 0
-                        && AI::GetRelation3v3(lvbu, player) == AI::Friend)
-                        lvbu->addMark("zhanshen_fight");
-                } else {
-                    if (lvbu->getMark(objectName()) == 0 && lvbu->getMark("@fight") == 0
-                        && room->askForSkillInvoke(player, objectName(), "mark:" + lvbu->objectName()))
-                        room->addPlayerMark(lvbu, "@fight");
-                }
-            }
-        } else if (TriggerSkill::triggerable(player)
-            && player->getPhase() == Player::Start
-            && player->getMark(objectName()) == 0
-            && player->isWounded()
-            && (player->getMark("zhanshen_fight") > 0 || player->getMark("@fight") > 0)) {
-            room->notifySkillInvoked(player, objectName());
-
-            LogMessage log;
-            log.type = "#ZhanshenWake";
-            log.from = player;
-            log.arg = objectName();
-            room->sendLog(log);
-
-            room->broadcastSkillInvoke(objectName());
-            //room->doLightbox("$ZhanshenAnimate");
-            room->doSuperLightbox("vs_nos_lvbu", "zhanshen");
-
-            if (player->getMark("@fight") > 0)
-                room->setPlayerMark(player, "@fight", 0);
-            player->setMark("zhanshen_fight", 0);
-
-            room->setPlayerMark(player, "zhanshen", 1);
-            if (room->changeMaxHpForAwakenSkill(player)) {
-                if (player->getWeapon())
-                    room->throwCard(player->getWeapon(), player);
-                if (player->getMark("zhanshen") == 1)
-                    room->handleAcquireDetachSkills(player, "mashu|shenji");
+        DeathStruct death = data.value<DeathStruct>();
+        if (death.who != player)
+            return false;
+        foreach (ServerPlayer *lvbu, room->getAllPlayers()) {
+            if (!TriggerSkill::triggerable(lvbu)) continue;
+            if (room->getMode().startsWith("06_") || room->getMode().startsWith("04_")) {
+                if (lvbu->getMark(objectName()) == 0 && lvbu->getMark("zhanshen_fight") == 0
+                    && AI::GetRelation3v3(lvbu, player) == AI::Friend)
+                    lvbu->addMark("zhanshen_fight");
+            } else {
+                if (lvbu->getMark(objectName()) == 0 && lvbu->getMark("@fight") == 0
+                    && room->askForSkillInvoke(player, objectName(), "mark:" + lvbu->objectName()))
+                    room->addPlayerMark(lvbu, "@fight");
             }
         }
         return false;
@@ -641,6 +664,8 @@ Special3v3Package::Special3v3Package()
     General *vs_nos_lvbu = new General(this, "vs_nos_lvbu", "qun");
     vs_nos_lvbu->addSkill("wushuang");
     vs_nos_lvbu->addSkill(new Zhanshen);
+    vs_nos_lvbu->addSkill(new ZhanshenDeath);
+    related_skills.insertMulti("zhanshen", "#zhanshen");
 
     addMetaObject<ZhongyiCard>();
     addMetaObject<JiuzhuCard>();

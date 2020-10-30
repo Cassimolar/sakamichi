@@ -276,15 +276,37 @@ void CardItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidge
         painter->setOpacity(0.7 * opacity());
     }
 
+    const Card *card = Sanguosha->getEngineCard(m_cardId);
+    QString yingbian;
+    if (card)
+        yingbian = card->property("YingBianEffects").toString();
+
     if (!_m_isUnknownGeneral)
         painter->drawPixmap(G_COMMON_LAYOUT.m_cardMainArea, G_ROOM_SKIN.getCardMainPixmap(objectName(), true));
     else
         painter->drawPixmap(G_COMMON_LAYOUT.m_cardMainArea, G_ROOM_SKIN.getPixmap("generalCardBack", QString(), true));
-    const Card *card = Sanguosha->getEngineCard(m_cardId);
     if (card) {
         painter->drawPixmap(G_COMMON_LAYOUT.m_cardSuitArea, G_ROOM_SKIN.getCardSuitPixmap(card->getSuit()));
         painter->drawPixmap(G_COMMON_LAYOUT.m_cardNumberArea, G_ROOM_SKIN.getCardNumberPixmap(card->getNumber(), card->isBlack()));
+        if (!yingbian.isEmpty()) {
+            setYingbiannote(Sanguosha->translate(":" + yingbian));
+            painter->drawImage(G_COMMON_LAYOUT.m_cardYingbianArea, _m_yingbiannoteImage);
+        }
+
         QRect rect = G_COMMON_LAYOUT.m_cardFootnoteArea;
+
+        const Card *card_now = Sanguosha->getCard(m_cardId, false);
+        if (card_now && !_m_showFootnote) {
+            if (card->objectName() != card_now->objectName() || card->getSuit() != card_now->getSuit() || card->getNumber() != card_now->getNumber()) {
+                QString info = Sanguosha->translate(card_now->objectName());
+                info.append(Sanguosha->translate(card_now->getSuitString()));
+                info.append(card_now->getNumberString());
+                setFootnote(info);
+                // Deal with stupid QT...
+                painter->drawImage(rect, _m_footnoteImage);
+            }
+        }
+
         // Deal with stupid QT...
         if (_m_showFootnote) painter->drawImage(rect, _m_footnoteImage);
     }
@@ -311,3 +333,14 @@ void CardItem::setFootnote(const QString &desc)
         (Qt::AlignmentFlag)((int)Qt::AlignHCenter | Qt::AlignBottom | Qt::TextWrapAnywhere), desc);
 }
 
+void CardItem::setYingbiannote(const QString &desc)
+{
+    const IQSanComponentSkin::QSanShadowTextFont &font = G_COMMON_LAYOUT.m_cardFootnoteFont;
+    QRect rect = G_COMMON_LAYOUT.m_cardYingbianArea;
+    rect.moveTopLeft(QPoint(0, 0));
+    _m_yingbiannoteImage = QImage(rect.size(), QImage::Format_ARGB32);
+    _m_yingbiannoteImage.fill(Qt::transparent);
+    QPainter painter(&_m_yingbiannoteImage);
+    font.paintText(&painter, QRect(QPoint(0, 0), rect.size()),
+        (Qt::AlignmentFlag)((int)Qt::AlignHCenter | Qt::AlignBottom | Qt::TextWrapAnywhere), desc);
+}

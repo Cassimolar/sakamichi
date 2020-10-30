@@ -11,6 +11,7 @@
 #include "wrapped-card.h"
 #include "room.h"
 #include "roomthread.h"
+#include "sp4.h"
 
 class Yizhong : public TriggerSkill
 {
@@ -83,7 +84,7 @@ public:
                 Config.AIDelay = 0;
                 while (card_ids.length() > 1) {
                     room->fillAG(card_ids, caozhi);
-                    int id = room->askForAG(caozhi, card_ids, true, objectName());
+                    int id = room->askForAG(caozhi, card_ids, true, objectName(), "@luoying-remove");
                     if (id == -1) {
                         room->clearAG(caozhi);
                         break;
@@ -323,8 +324,11 @@ public:
                 if (source->isAlive() && player->isAlive() && room->askForSkillInvoke(player, objectName(), data)) {
                     room->broadcastSkillInvoke(objectName(), 2);
                     const Card *card = NULL;
-                    if (!source->isKongcheng())
+                    if (!source->isKongcheng()) {
+                        source->tag["enyuan_data"] = data;
                         card = room->askForExchange(source, objectName(), 1, 1, false, "EnyuanGive::" + player->objectName(), true);
+                        source->tag.remove("enyuan_data");
+                    }
                     if (card) {
                         CardMoveReason reason(CardMoveReason::S_REASON_GIVE, source->objectName(),
                             player->objectName(), objectName(), QString());
@@ -491,7 +495,7 @@ public:
                     targets << target;
             }
             if (!targets.isEmpty()) {
-                second = room->askForPlayerChosen(lingtong, targets, "mobilexuanfeng");
+                second = room->askForPlayerChosen(lingtong, targets, "xuanfeng");
                 room->doAnimate(1, lingtong->objectName(), second->objectName());
             }
             if (second != NULL) {
@@ -659,6 +663,14 @@ public:
         WrappedCard *card = Sanguosha->getWrappedCard(originalCard->getId());
         card->takeOver(slash);
         return card;
+    }
+
+    int getEffectIndex(const ServerPlayer *player, const Card *) const
+    {
+        int index = qrand() % 2 + 1;
+        if (player->isJieGeneral())
+            index += 2;
+        return index;
     }
 };
 
@@ -1087,26 +1099,26 @@ public:
         frequency = Wake;
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return PhaseChangeSkill::triggerable(target)
-            && target->hasSkill(objectName())
-            && target->getPhase() == Player::Start
-            && target->getMark("zili") == 0
-            && target->getPile("power").length() >= 3;
+        if (player->getPhase() != Player::Start || player->getMark("zili") > 0) return false;
+        if (player->canWake(objectName())) return true;
+        if (player->getPile("power").length() >= 3) {
+            LogMessage log;
+            log.type = "#ZiliWake";
+            log.from = player;
+            log.arg = QString::number(player->getPile("power").length());
+            log.arg2 = objectName();
+            room->sendLog(log);
+            return true;
+        }
+        return false;
     }
 
     bool onPhaseChange(ServerPlayer *zhonghui) const
     {
         Room *room = zhonghui->getRoom();
         room->notifySkillInvoked(zhonghui, objectName());
-
-        LogMessage log;
-        log.type = "#ZiliWake";
-        log.from = zhonghui;
-        log.arg = QString::number(zhonghui->getPile("power").length());
-        log.arg2 = objectName();
-        room->sendLog(log);
 
         room->broadcastSkillInvoke(objectName());
         //room->doLightbox("$ZiliAnimate", 4000);
@@ -1195,7 +1207,7 @@ public:
         if (damage.from == zhangchunhua) {
             room->broadcastSkillInvoke(objectName());
             room->sendCompulsoryTriggerLog(zhangchunhua, objectName());
-            room->loseHp(damage.to, damage.damage);
+            room->loseHp(damage.to, damage.damage, damage.ignore_hujia);
 
             return true;
         }
@@ -1237,12 +1249,115 @@ bool Shangshi::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *zhan
     }
 
     if (zhangchunhua->getHandcardNum() < losthp && zhangchunhua->askForSkillInvoke(this)) {
-        room->broadcastSkillInvoke("shangshi");
+        int n = qrand() % 2 + 1;
+        if (zhangchunhua->isJieGeneral())
+            n += 2;
+        room->broadcastSkillInvoke("shangshi", n);
         zhangchunhua->drawCards(losthp - zhangchunhua->getHandcardNum(), objectName());
     }
 
     return false;
 }
+
+OLSanyaoCard::OLSanyaoCard()
+{
+}
+
+bool OLSanyaoCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const
+{
+    if (!targets.isEmpty()) return false;
+    QList<const Player *> players = Self->getAliveSiblings();
+    players << Self;
+    QString choice = Self->tag["olsanyao"].toString();
+    int max = -1000;
+    if (choice == "hp") {
+        foreach (const Player *p, players) {
+            if (max < p->getHp())
+                max = p->getHp();
+        }
+        return to_select->getHp() == max;
+    } else if (choice == "hand") {
+        foreach (const Player *p, players) {
+            if (max < p->getHandcardNum())
+                max = p->getHandcardNum();
+        }
+        return to_select->getHandcardNum() == max;
+    }
+    return false;
+}
+
+void OLSanyaoCard::onEffect(const CardEffectStruct &effect) const
+{
+    Room *room = effect.from->getRoom();
+    if (user_string == "hp")
+        room->addPlayerMark(effect.from, "olsanyao_hp-PlayClear");
+    else if (user_string == "hand")
+        room->addPlayerMark(effect.from, "olsanyao_hand-PlayClear");
+    room->damage(DamageStruct("olsanyao", effect.from, effect.to));
+}
+
+class OLSanyao : public OneCardViewAsSkill
+{
+public:
+    OLSanyao() : OneCardViewAsSkill("olsanyao")
+    {
+        filter_pattern = ".!";
+    }
+
+    QDialog *getDialog() const
+    {
+        return TiansuanDialog::getInstance("olsanyao");
+    }
+
+    bool isEnabledAtPlay(const Player *player) const
+    {
+        return player->canDiscard(player, "he") &&
+                (player->getMark("olsanyao_hp-PlayClear") <= 0 || player->getMark("olsanyao_hand-PlayClear") <= 0);
+    }
+
+    const Card *viewAs(const Card *originalcard) const
+    {
+        QString choice = Self->tag["olsanyao"].toString();
+        OLSanyaoCard *first = new OLSanyaoCard;
+        first->addSubcard(originalcard);
+        first->setUserString(choice);
+        return first;
+    }
+};
+
+class OLZhiman : public TriggerSkill
+{
+public:
+    OLZhiman() : TriggerSkill("olzhiman")
+    {
+        events << DamageCaused;
+    }
+
+    bool trigger(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data) const
+    {
+        DamageStruct damage = data.value<DamageStruct>();
+        if (damage.to == player || damage.to->isDead()) return false;
+
+        if (player->askForSkillInvoke(this, damage.to)) {
+            room->broadcastSkillInvoke(objectName());
+
+            LogMessage log;
+            log.type = "#Yishi";
+            log.from = player;
+            log.arg = objectName();
+            log.to << damage.to;
+            room->sendLog(log);
+
+            if (damage.to->isAllNude())
+                return true;
+            int card_id = room->askForCardChosen(player, damage.to, "hej", objectName());
+            CardMoveReason reason(CardMoveReason::S_REASON_EXTRACTION, player->objectName());
+            room->obtainCard(player, Sanguosha->getCard(card_id), reason);
+            return true;
+        }
+        return false;
+    }
+};
 
 YJCMPackage::YJCMPackage()
     : Package("YJCM")
@@ -1278,6 +1393,10 @@ YJCMPackage::YJCMPackage()
     masu->addSkill(new Xinzhan);
     masu->addSkill(new Huilei);
 
+    General *ol_masu = new General(this, "ol_masu", "shu", 3);
+    ol_masu->addSkill(new OLSanyao);
+    ol_masu->addSkill(new OLZhiman);
+
     General *wuguotai = new General(this, "wuguotai", "wu", 3, false); // YJ 007
     wuguotai->addSkill(new Ganlu);
     wuguotai->addSkill(new Buyi);
@@ -1309,6 +1428,7 @@ YJCMPackage::YJCMPackage()
     addMetaObject<XinzhanCard>();
     addMetaObject<JujianCard>();
     addMetaObject<PaiyiCard>();
+    addMetaObject<OLSanyaoCard>();
 
     skills << new Paiyi;
 }

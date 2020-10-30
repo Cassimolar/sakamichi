@@ -675,7 +675,7 @@ local zhiba_pindian_skill = {}
 zhiba_pindian_skill.name = "zhiba_pindian"
 table.insert(sgs.ai_skills, zhiba_pindian_skill)
 zhiba_pindian_skill.getTurnUseCard = function(self)
-	if self.player:isKongcheng() or self:needBear() or self:getOverflow() <= 0 or self.player:getKingdom() ~= "wu"
+	if not self.player:canPindian() or self:needBear() or self:getOverflow() <= 0 or self.player:getKingdom() ~= "wu"
 		or self.player:hasFlag("ForbidZhiba") then return end
 	return sgs.Card_Parse("@ZhibaCard=.")
 end
@@ -685,7 +685,7 @@ sgs.ai_use_priority.ZhibaCard = 0
 sgs.ai_skill_use_func.ZhibaCard = function(card, use, self)
 	local lords = {}
 	for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-		if player:hasLordSkill("zhiba") and not player:isKongcheng() and not player:hasFlag("ZhibaInvoked")
+		if player:hasLordSkill("zhiba") and self.player:canPindian(player) and not player:hasFlag("ZhibaInvoked")
 			and not (self:isEnemy(player) and player:getMark("hunzi") > 0) then
 				table.insert(lords, player)
 		end

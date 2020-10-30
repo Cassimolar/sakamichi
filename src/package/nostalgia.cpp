@@ -12,6 +12,7 @@
 #include "clientstruct.h"
 #include "room.h"
 #include "roomthread.h"
+#include "maneuvering.h"
 
 class MoonSpearSkill : public WeaponSkill
 {
@@ -390,7 +391,7 @@ public:
 
     bool isEnabledAtResponse(const Player *, const QString &pattern) const
     {
-        return pattern == "slash";
+        return (pattern.contains("slash") || pattern.contains("Slash"));
     }
 
     bool viewFilter(const Card *to_select) const
@@ -769,7 +770,7 @@ public:
         if (player->getPhase() != Player::NotActive && move.from && move.from_places.contains(Player::PlaceHand)
             && move.is_last_handcard) {
             ServerPlayer *from = (ServerPlayer *)move.from;
-            if (from->getHp() > 0 && room->askForSkillInvoke(player, objectName(), data)) {
+            if (from->getHp() > 0 && from->isAlive() && room->askForSkillInvoke(player, objectName(), data)) {
                 room->broadcastSkillInvoke("juece");
                 room->damage(DamageStruct(objectName(), player, from));
             }
@@ -1360,36 +1361,47 @@ void NosYiji::onDamaged(ServerPlayer *guojia, const DamageStruct &damage) const
         room->notifyMoveCards(false, moves, false, _guojia);
 
         QList<int> origin_yiji = yiji_cards;
-        while (room->askForYiji(guojia, yiji_cards, objectName(), true, false, true, -1, room->getAlivePlayers())) {
-            CardsMoveStruct move(QList<int>(), guojia, NULL, Player::PlaceHand, Player::PlaceTable,
-                CardMoveReason(CardMoveReason::S_REASON_PREVIEW, guojia->objectName(), objectName(), QString()));
-            foreach (int id, origin_yiji) {
-                if (room->getCardPlace(id) != Player::DrawPile) {
-                    move.card_ids << id;
-                    yiji_cards.removeOne(id);
-                }
+        QHash<ServerPlayer *, QStringList> hash;
+
+        while (guojia->isAlive()) {
+            CardsMoveStruct yiji_move = room->askForYijiStruct(guojia, origin_yiji, objectName(), true, false, true, -1,
+                                        room->getAlivePlayers(), CardMoveReason(), QString(), false, false);
+            if (!yiji_move.to || yiji_move.card_ids.isEmpty()) break;
+            QStringList id_strings = hash[(ServerPlayer *)yiji_move.to];
+            foreach (int id, yiji_move.card_ids) {
+                id_strings << QString::number(id);
+                origin_yiji.removeOne(id);
             }
-            origin_yiji = yiji_cards;
-            QList<CardsMoveStruct> moves;
-            moves.append(move);
-            room->notifyMoveCards(true, moves, false, _guojia);
-            room->notifyMoveCards(false, moves, false, _guojia);
-            if (!guojia->isAlive())
-                return;
+            hash[(ServerPlayer *)yiji_move.to] = id_strings;
+            if (origin_yiji.isEmpty()) break;
         }
 
-        if (!yiji_cards.isEmpty()) {
-            CardsMoveStruct move(yiji_cards, guojia, NULL, Player::PlaceHand, Player::PlaceTable,
-                                 CardMoveReason(CardMoveReason::S_REASON_PREVIEW, guojia->objectName(), objectName(), QString()));
-            QList<CardsMoveStruct> moves;
-            moves.append(move);
-            room->notifyMoveCards(true, moves, false, _guojia);
-            room->notifyMoveCards(false, moves, false, _guojia);
+        CardsMoveStruct move2(yiji_cards, guojia, NULL, Player::PlaceHand, Player::PlaceTable,
+            CardMoveReason(CardMoveReason::S_REASON_PREVIEW, guojia->objectName(), objectName(), QString()));
+        moves.clear();
+        moves.append(move2);
+        room->notifyMoveCards(true, moves, false, _guojia);
+        room->notifyMoveCards(false, moves, false, _guojia);
 
-            DummyCard *dummy = new DummyCard(yiji_cards);
-            guojia->obtainCard(dummy, false);
-            delete dummy;
+        if (!origin_yiji.isEmpty()) {
+            QStringList id_strings = hash[guojia];
+            foreach (int id, origin_yiji)
+                id_strings << QString::number(id);
+            hash[guojia] = id_strings;
         }
+
+        moves.clear();
+        foreach (ServerPlayer *p, room->getAllPlayers()) {
+            if (p->isDead()) continue;
+            QList<int> ids = StringList2IntList(hash[p]);
+            if (ids.isEmpty()) continue;
+            hash.remove(p);
+            CardsMoveStruct move(ids, NULL, p, Player::DrawPile, Player::PlaceHand,
+                CardMoveReason(CardMoveReason::S_REASON_PREVIEWGIVE, guojia->objectName(), p->objectName(), "nosyiji", QString()));
+            moves.append(move);
+        }
+        if (moves.isEmpty()) return;
+        room->moveCardsAtomic(moves, false);
     }
 }
 
@@ -2191,12 +2203,18 @@ const Card *NosGuhuoCard::validate(CardUseStruct &card_use) const
     Room *room = yuji->getRoom();
 
     QString to_nosguhuo = user_string;
-    if (user_string == "slash"
+    if ((user_string.contains("slash") || (user_string.contains("Slash")))
         && Sanguosha->currentRoomState()->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_RESPONSE_USE) {
         QStringList nosguhuo_list;
-        nosguhuo_list << "slash";
-        if (!Config.BanPackages.contains("maneuvering"))
-            nosguhuo_list << "normal_slash" << "thunder_slash" << "fire_slash";
+        QList<const Slash *> slashs = Sanguosha->findChildren<const Slash *>();
+        foreach (const Slash *slash, slashs) {
+            QString name = slash->objectName();
+            if (nosguhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + slash->getPackage())) continue;
+            nosguhuo_list << name;
+        }
+
+        if (nosguhuo_list.isEmpty())
+            nosguhuo_list << "slash";
         to_nosguhuo = room->askForChoice(yuji, "nosguhuo_slash", nosguhuo_list.join("+"));
         yuji->tag["NosGuhuoSlash"] = QVariant(to_nosguhuo);
     }
@@ -2240,16 +2258,36 @@ const Card *NosGuhuoCard::validateInResponse(ServerPlayer *yuji) const
     QString to_nosguhuo;
     if (user_string == "peach+analeptic") {
         QStringList nosguhuo_list;
-        nosguhuo_list << "peach";
-        if (!Config.BanPackages.contains("maneuvering"))
-            nosguhuo_list << "analeptic";
+        QList<const Peach *> peachs = Sanguosha->findChildren<const Peach *>();
+        foreach (const Peach *peach, peachs) {
+            QString name = peach->objectName();
+            if (nosguhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + peach->getPackage())) continue;
+            nosguhuo_list << name;
+            break;
+        }
+        QList<const Analeptic *> anas = Sanguosha->findChildren<const Analeptic *>();
+        foreach (const Analeptic *ana, anas) {
+            QString name = ana->objectName();
+            if (nosguhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + ana->getPackage())) continue;
+            nosguhuo_list << name;
+            break;
+        }
+
+        if (nosguhuo_list.isEmpty())
+            nosguhuo_list << "peach";
         to_nosguhuo = room->askForChoice(yuji, "nosguhuo_saveself", nosguhuo_list.join("+"));
         yuji->tag["NosGuhuoSaveSelf"] = QVariant(to_nosguhuo);
-    } else if (user_string == "slash") {
+    } else if (user_string.contains("slash") || user_string.contains("Slash")) {
         QStringList nosguhuo_list;
-        nosguhuo_list << "slash";
-        if (!Config.BanPackages.contains("maneuvering"))
-            nosguhuo_list << "normal_slash" << "thunder_slash" << "fire_slash";
+        QList<const Slash *> slashs = Sanguosha->findChildren<const Slash *>();
+        foreach (const Slash *slash, slashs) {
+            QString name = slash->objectName();
+            if (nosguhuo_list.contains(name) || ServerInfo.Extensions.contains("!" + slash->getPackage())) continue;
+            nosguhuo_list << name;
+        }
+
+        if (nosguhuo_list.isEmpty())
+            nosguhuo_list << "slash";
         to_nosguhuo = room->askForChoice(yuji, "nosguhuo_slash", nosguhuo_list.join("+"));
         yuji->tag["NosGuhuoSlash"] = QVariant(to_nosguhuo);
     } else

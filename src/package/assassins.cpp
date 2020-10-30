@@ -134,7 +134,10 @@ void MizhaoCard::onEffect(const CardEffectStruct &effect) const
     delete handcards;
     if (effect.to->isKongcheng()) return;
 
-    room->broadcastSkillInvoke("mizhao", effect.to->getGeneralName().contains("liubei") ? 2 : 1);
+    int index = (effect.to->getGeneralName().contains("liubei") || effect.to->getGeneral2Name().contains("liubei")) ? 2 : 1;
+    if (effect.from->getGeneralName().startsWith("new_") || effect.from->getGeneral2Name().startsWith("new_"))
+        index = qrand() % 2 + 3;
+    room->broadcastSkillInvoke("mizhao", index);
 
     QList<ServerPlayer *> targets;
     foreach (ServerPlayer *p, room->getOtherPlayers(effect.to)) {
@@ -527,7 +530,7 @@ public:
 
     bool triggerable(const ServerPlayer *target) const
     {
-        return target != NULL && target->hasInnateSkill(this);
+        return target != NULL;
     }
 
     bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const

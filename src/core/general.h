@@ -20,11 +20,12 @@ class General : public QObject
 
 public:
     explicit General(Package *package, const QString &name, const QString &kingdom,
-        int max_hp = 4, bool male = true, bool hidden = false, bool never_shown = false, int start_hp = pow(2, 31) - 1);
+        int max_hp = 4, bool male = true, bool hidden = false, bool never_shown = false, int start_hp = pow(2, 31) - 1, int start_hujia = 0);
 
     // property getters/setters
     int getMaxHp() const;
     QString getKingdom() const;
+    QString getKingdoms() const;
     bool isMale() const;
     bool isFemale() const;
     bool isNeuter() const;
@@ -32,7 +33,12 @@ public:
     bool isLord() const;
     bool isHidden() const;
     bool isTotallyHidden() const;
+    void setStartHp(int hp);
     int getStartHp() const;
+    void setStartHujia(int hujia);
+    int getStartHujia() const;
+    void setImage(const QString &general_name);
+    QString getImage() const;
 
     enum Gender
     {
@@ -44,6 +50,7 @@ public:
     void addSkill(Skill *skill);
     void addSkill(const QString &skill_name);
     bool hasSkill(const QString &skill_name) const;
+    bool hasHideSkill() const;
     QList<const Skill *> getSkillList() const;
     QList<const Skill *> getVisibleSkillList() const;
     QSet<const Skill *> getVisibleSkills() const;
@@ -75,6 +82,8 @@ private:
     bool hidden;
     bool never_shown;
     int start_hp;
+    int start_hujia;
+    QString image;
 };
 
 #endif

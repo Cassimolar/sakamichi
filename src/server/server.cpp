@@ -1,4 +1,4 @@
-﻿#include "server.h"
+#include "server.h"
 #include "settings.h"
 #include "room.h"
 #include "engine.h"
@@ -401,13 +401,18 @@ QWidget *ServerDialog::createMiscTab()
     surrender_at_death_checkbox = new QCheckBox(tr("Surrender at the time of Death"));
     surrender_at_death_checkbox->setChecked(Config.SurrenderAtDeath);
 
-    luck_card_checkbox = new QCheckBox(tr("Enable the luck card"));
-    luck_card_checkbox->setChecked(Config.EnableLuckCard);
+    luck_card_label = new QLabel(tr("Enable the luck card"));
+    luck_card_label->setToolTip(tr("-1 means no limit"));
+    luck_card_spinbox = new QSpinBox;
+    luck_card_spinbox->setRange(-1, 10);
+    luck_card_spinbox->setValue(Config.value("LuckCardTimes", -1).toInt());
+
+    QVBoxLayout *layout = new QVBoxLayout;
+
+    layout->addLayout(HLay(luck_card_label, luck_card_spinbox));
 
     QGroupBox *ai_groupbox = new QGroupBox(tr("Artificial intelligence"));
     ai_groupbox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    QVBoxLayout *layout = new QVBoxLayout;
 
     ai_enable_checkbox = new QCheckBox(tr("Enable AI"));
     ai_enable_checkbox->setChecked(Config.EnableAI);
@@ -445,7 +450,6 @@ QWidget *ServerDialog::createMiscTab()
     tablayout->addLayout(HLay(new QLabel(tr("Nullification count down")), nullification_spinbox));
     tablayout->addWidget(minimize_dialog_checkbox);
     tablayout->addWidget(surrender_at_death_checkbox);
-    tablayout->addWidget(luck_card_checkbox);
     tablayout->addWidget(ai_groupbox);
     tablayout->addStretch();
 
@@ -495,7 +499,7 @@ BanlistDialog::BanlistDialog(QWidget *parent, bool view)
     setMinimumWidth(455);
 
     if (ban_list.isEmpty())
-        ban_list << "Roles" << "1v1" << "BossMode" << "Basara" << "Hegemony" << "Pairs" << "Cards";
+        ban_list << "Roles" << "1v1" << "Doudizhu" << "Happy2v2" << "BossMode" << "Basara" << "Hegemony" << "Pairs" << "Cards";
     QVBoxLayout *layout = new QVBoxLayout;
 
     QTabWidget *tab = new QTabWidget;
@@ -633,7 +637,7 @@ void BanlistDialog::doAddButton()
         if (!pattern.isEmpty())
             addGeneral(pattern);
     } else {
-        FreeChooseDialog *chooser = new FreeChooseDialog(this,
+        FreeChooseDialog *chooser = new FreeChooseDialog(QString(), this,
             (list->objectName() == "Pairs") ? FreeChooseDialog::Pair : FreeChooseDialog::Multi);
         connect(chooser, SIGNAL(general_chosen(QString)), this, SLOT(addGeneral(QString)));
         connect(chooser, SIGNAL(pair_chosen(QString, QString)), this, SLOT(addPair(QString, QString)));
@@ -643,7 +647,7 @@ void BanlistDialog::doAddButton()
 
 void BanlistDialog::doAdd2ndButton()
 {
-    FreeChooseDialog *chooser = new FreeChooseDialog(this, FreeChooseDialog::Multi);
+    FreeChooseDialog *chooser = new FreeChooseDialog(QString(), this, FreeChooseDialog::Multi);
     connect(chooser, SIGNAL(general_chosen(QString)), this, SLOT(add2ndGeneral(QString)));
     chooser->exec();
 }
@@ -1269,7 +1273,6 @@ int ServerDialog::config()
     Config.ServerPort = port_edit->text().toInt();
     Config.DisableLua = disable_lua_checkbox->isChecked();
     Config.SurrenderAtDeath = surrender_at_death_checkbox->isChecked();
-    Config.EnableLuckCard = luck_card_checkbox->isChecked();
 
     // game mode
     if (mode_group->checkedButton()) {
@@ -1320,7 +1323,7 @@ int ServerDialog::config()
     Config.setValue("AlterAIDelayAD", ai_delay_altered_checkbox->isChecked());
     Config.setValue("AIDelayAD", Config.AIDelayAD);
     Config.setValue("SurrenderAtDeath", Config.SurrenderAtDeath);
-    Config.setValue("EnableLuckCard", Config.EnableLuckCard);
+    Config.setValue("LuckCardTimes", luck_card_spinbox->value());
     Config.setValue("ServerPort", Config.ServerPort);
     Config.setValue("Address", Config.Address);
     Config.setValue("DisableLua", disable_lua_checkbox->isChecked());

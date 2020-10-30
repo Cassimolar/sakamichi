@@ -1254,7 +1254,7 @@ local yijue_skill = {}
 yijue_skill.name = "yijue"
 table.insert(sgs.ai_skills, yijue_skill)
 yijue_skill.getTurnUseCard = function(self)
-	if not self.player:hasUsed("YijueCard") and not self.player:isKongcheng() then return sgs.Card_Parse("@YijueCard=.") end
+	if not self.player:hasUsed("YijueCard") and self.player:canPindian() then return sgs.Card_Parse("@YijueCard=.") end
 end
 
 sgs.ai_skill_use_func.YijueCard = function(card, use, self)
@@ -1265,7 +1265,7 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 	if self.player:hasSkill("yingyang") then max_point = math.min(max_point + 3, 13) end
 	if self.player:hasSkill("kongcheng") and self.player:getHandcardNum() == 1 then
 		for _, enemy in ipairs(self.enemies) do
-			if not enemy:isKongcheng() and self:hasLoseHandcardEffective(enemy) and not (enemy:hasSkills("tuntian+zaoxian") and enemy:getHandcardNum() > 2) then
+			if self.player:canPindian(enemy) and self:hasLoseHandcardEffective(enemy) and not (enemy:hasSkills("tuntian+zaoxian") and enemy:getHandcardNum() > 2) then
 				sgs.ai_use_priority.YijueCard = 1.2
 				self.tianyi_card = max_card:getId()
 				use.card = sgs.Card_Parse("@YijueCard=.")
@@ -1275,7 +1275,7 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 		end
 	end
 	for _, enemy in ipairs(self.enemies) do
-		if enemy:hasFlag("AI_HuangtianPindian") and enemy:getHandcardNum() == 1 then
+		if enemy:hasFlag("AI_HuangtianPindian") and enemy:getHandcardNum() == 1 and self.player:canPindian(enemy) then
 			sgs.ai_use_priority.YijueCard = 7.2
 			self.yijue_card = max_card:getId()
 			use.card = sgs.Card_Parse("@YijueCard=.")
@@ -1293,7 +1293,7 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 	self:sort(self.enemies)
 	self.enemies = sgs.reverse(self.enemies)
 	for _, enemy in ipairs(self.enemies) do
-		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() then
+		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) then
 			local enemy_max_card = self:getMaxCard(enemy)
 			local enemy_max_point = enemy_max_card and enemy_max_card:getNumber() or 100
 			if enemy_max_card and enemy:hasSkill("yingyang") then enemy_max_point = math.min(enemy_max_point + 3, 13) end
@@ -1306,7 +1306,7 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 		end
 	end
 	for _, enemy in ipairs(self.enemies) do
-		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not enemy:isKongcheng() then
+		if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) then
 			if max_point >= 10 then
 				self.yijue_card = max_card:getId()
 				use.card = sgs.Card_Parse("@YijueCard=.")
@@ -1325,7 +1325,7 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 	local wounded_friends = self:getWoundedFriend()
 	if #wounded_friends > 0 then
 		for _, wounded in ipairs(wounded_friends) do
-			if wounded:getHandcardNum() > 1 and wounded:getLostHp() / wounded:getMaxHp() >= 0.3 then
+			if wounded:getHandcardNum() > 1 and wounded:getLostHp() / wounded:getMaxHp() >= 0.3 and self.player:canPindian(wounded) then
 				local w_max_card = self:getMaxCard(wounded)
 				local w_max_number = w_max_card and w_max_card:getNumber() or 0
 				if w_max_card and wounded:hasSkill("yingyang") then w_max_number = math.min(w_max_number + 3, 13) end
@@ -1339,7 +1339,8 @@ sgs.ai_skill_use_func.YijueCard = function(card, use, self)
 		end
 	end
 
-	if zhugeliang and self:isFriend(zhugeliang) and zhugeliang:getHandcardNum() == 1 and zhugeliang:objectName() ~= self.player:objectName() then
+	if zhugeliang and self:isFriend(zhugeliang) and zhugeliang:getHandcardNum() == 1 and zhugeliang:objectName() ~= self.player:objectName()
+		and self.player:canPindian(zhugeliang) then
 		if min_point <= 4 then
 			self.yijue_card = min_card:getId()
 			use.card = sgs.Card_Parse("@YijueCard=.")

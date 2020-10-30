@@ -54,6 +54,7 @@
     <addaction name="actionNever_nullify_my_trick"/>
     <addaction name="actionView_Discarded"/>
     <addaction name="actionView_distance"/>
+    <addaction name="actionView_Maxcards"/>
     <addaction name="actionServerInformation"/>
     <addaction name="actionSurrender"/>
     <addaction name="actionSaveRecord"/>
@@ -93,6 +94,7 @@
     <addaction name="actionDamage_maker"/>
     <addaction name="actionDeath_note"/>
     <addaction name="actionRevive_wand"/>
+    <addaction name="actionState_editor"/>
     <addaction name="actionExecute_script_at_server_side"/>
    </widget>
    <widget class="QMenu" name="menuDIY">
@@ -422,6 +424,22 @@
   <action name="actionManage_Ban_IP">
    <property name="text">
     <string>Manage Ban IP</string>
+   </property>
+  </action>
+  <action name="actionState_editor">
+   <property name="text">
+    <string>State editor</string>
+   </property>
+  </action>
+  <action name="actionView_Maxcards">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>View Maxcards</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
  </widget>

@@ -123,12 +123,43 @@ public:
     void onEffect(const CardEffectStruct &effect) const;
 };
 
+class NewMingjianCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE NewMingjianCard();
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
+class NewAnguoCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE NewAnguoCard();
+    bool isOK(ServerPlayer *player, const QString &flag) const;
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
 class YJCM2015Package : public Package
 {
     Q_OBJECT
 
 public:
     YJCM2015Package();
+};
+
+class OLzhaofuCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE OLzhaofuCard();
+
+    bool targetFilter(const QList<const Player *> &targets, const Player *, const Player *) const;
+    void use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const;
+    void onEffect(const CardEffectStruct &effect) const;
 };
 
 #endif

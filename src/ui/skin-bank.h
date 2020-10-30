@@ -235,10 +235,13 @@ public:
         QRect m_cardMainArea;
         QRect m_cardSuitArea;
         QRect m_cardNumberArea;
+        QRect m_cardYingbianArea;
         QRect m_cardFootnoteArea;
         QRect m_cardAvatarArea;
         QRect m_cardFrameArea;
         QSanShadowTextFont m_cardFootnoteFont;
+        QSize m_promptInfoSize;
+        QSanShadowTextFont m_promptInfoFont;
         QSanShadowTextFont m_hpFont[6];
         int m_hpExtraSpaceHolder;
 
@@ -334,6 +337,7 @@ public:
     static const char *S_SKIN_KEY_VOTES_NUMBER;
     static const char *S_SKIN_KEY_HAND_CARD_BACK;
     static const char *S_SKIN_KEY_HAND_CARD_SUIT;
+    static const char *S_SKIN_KEY_HAND_CARD_YINGBIAN;
     static const char *S_SKIN_KEY_JUDGE_CARD_ICON;
     static const char *S_SKIN_KEY_HAND_CARD_MAIN_PHOTO;
     static const char *S_SKIN_KEY_HAND_CARD_NUMBER_BLACK;

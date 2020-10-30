@@ -41,7 +41,7 @@ CardOverview::CardOverview(QWidget *parent)
 
 void CardOverview::loadFromAll()
 {
-    int n = Sanguosha->getCardCount();
+    /*int n = Sanguosha->getCardCount();
     ui->tableWidget->setRowCount(n);
     for (int i = 0; i < n; i++) {
         const Card *card = Sanguosha->getEngineCard(i);
@@ -61,7 +61,18 @@ void CardOverview::loadFromAll()
             ui->malePlayButton->show();
             ui->femalePlayButton->show();
         }
+    }*/
+    int n = Sanguosha->getCardCount();
+    //ui->tableWidget->setRowCount(n);
+
+    QList<int> ava = Sanguosha->getRandomCards(true);
+    QList<const Card *> list;
+    for (int i = 0; i < n; i++) {
+        if (!ava.isEmpty() && !ava.contains(i)) continue;
+        list << Sanguosha->getEngineCard(i);
     }
+
+    loadFromList(list);
 }
 
 void CardOverview::loadFromList(const QList<const Card *> &list)
@@ -90,6 +101,11 @@ void CardOverview::loadFromList(const QList<const Card *> &list)
 void CardOverview::addCard(int i, const Card *card)
 {
     QString name = Sanguosha->translate(card->objectName());
+
+    QString yingbian = card->property("YingBianEffects").toString();
+    if (!yingbian.isEmpty())
+        name.append("(").append(Sanguosha->translate(yingbian)).append(")");
+
     QIcon suit_icon = QIcon(QString("image/system/suit/%1.png").arg(card->getSuitString()));
     QString suit_str = Sanguosha->translate(card->getSuitString());
     QString point = card->getNumberString();
@@ -124,7 +140,10 @@ void CardOverview::on_tableWidget_itemSelectionChanged()
     int row = ui->tableWidget->currentRow();
     int card_id = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toInt();
     const Card *card = Sanguosha->getEngineCard(card_id);
-    QString pixmap_path = QString("image/big-card/%1.png").arg(card->objectName());
+
+    QString name = card->objectName();
+
+    QString pixmap_path = QString("image/big-card/%1.png").arg(name);
     ui->cardLabel->setPixmap(pixmap_path);
 
     ui->cardDescriptionBox->setText(card->getDescription());

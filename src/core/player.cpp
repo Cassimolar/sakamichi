@@ -10,7 +10,7 @@
 
 Player::Player(QObject *parent)
     : QObject(parent), owner(false), general(NULL), general2(NULL),
-    m_gender(General::Sexless), hp(-1), max_hp(-1), state("online"), seat(0), alive(true),
+    m_gender(General::Sexless), hp(-1), max_hp(-1), state("online"), seat(0), player_seat(0), alive(true),
     phase(NotActive),
     weapon(NULL), armor(NULL), defensive_horse(NULL), offensive_horse(NULL), treasure(NULL),
     face_up(true), chained(false),
@@ -135,6 +135,16 @@ void Player::setSeat(int seat)
     this->seat = seat;
 }
 
+int Player::getPlayerSeat() const
+{
+    return player_seat;
+}
+
+void Player::setPlayerSeat(int player_seat)
+{
+    this->player_seat = player_seat;
+}
+
 bool Player::isAdjacentTo(const Player *another) const
 {
     int alive_length = 1 + getAliveSiblings().length();
@@ -199,20 +209,48 @@ int Player::getAttackRange(bool include_weapon) const
     if (hasFlag("InfinityAttackRange") || getMark("InfinityAttackRange") > 0)
         return 1000;
 
-    include_weapon = include_weapon && weapon != NULL;
+    //include_weapon = include_weapon && weapon != NULL;
 
     int fixeddis = Sanguosha->correctAttackRange(this, include_weapon, true);
     if (fixeddis > 0)
         return fixeddis;
 
     int original_range = 1, weapon_range = 0;
+    bool has_weapon = false;
 
     if (include_weapon) {
-        const Weapon *card = qobject_cast<const Weapon *>(weapon->getRealCard());
-        Q_ASSERT(card);
-        weapon_range = card->getRange();
+        if (weapon) {
+            const Weapon *card = qobject_cast<const Weapon *>(weapon->getRealCard());
+            Q_ASSERT(card);
+            weapon_range = card->getRange();
+            has_weapon = true;
+        }
+
+        QStringList view_as_equips = property("View_As_Equips_List").toString().split("+");
+        QList<const Weapon *> weapons = Sanguosha->findChildren<const Weapon *>();
+
+        foreach (const Weapon *card, weapons) {
+            if (view_as_equips.contains(card->objectName()) || view_as_equips.contains(card->getClassName())) {
+                weapon_range = qMax(weapon_range, card->getRange());
+                has_weapon = true;
+            } else {
+                foreach (const Skill *skill, getSkillList(false, false)) {
+                    if (!skill->inherits("ViewAsEquipSkill") || !hasSkill(skill)) continue;
+                    const ViewAsEquipSkill *vaes = Sanguosha->getViewAsEquipSkill(skill->objectName());
+                    if (!vaes) continue;
+                    if (vaes->viewAsEquip(this).split(",").contains(card->objectName()) ||
+                            vaes->viewAsEquip(this).split(",").contains(card->getClassName())) {
+                        weapon_range = qMax(weapon_range, card->getRange());
+                        has_weapon = true;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
+    if (weapon_range <= 0 && has_weapon)
+        original_range = weapon_range;
     int real_range = qMax(original_range, weapon_range) + Sanguosha->correctAttackRange(this, include_weapon, false);
 
     if (real_range < 0)
@@ -221,13 +259,28 @@ int Player::getAttackRange(bool include_weapon) const
     return real_range;
 }
 
-bool Player::inMyAttackRange(const Player *other, int distance_fix) const
+bool Player::inMyAttackRange(const Player *other, int distance_fix, bool chengwu) const
 {
+    if (this != other) {
+        QStringList kingdoms = other->property("inMyAttackRangeKingdoms").toString().split("+");
+        if (kingdoms.contains(getKingdom()))
+            return true;
+    }
+
     // for zhaofu
 
     foreach (const Player *p, getAliveSiblings()) {
         if (p->hasLordSkill("zhaofu") && p->distanceTo(other) == 1 && getKingdom() == "wu")
             return true;
+    }
+
+    // for jinchengwu
+
+    if (chengwu && hasLordSkill("jinchengwu") && this != other) {
+        foreach (const Player *p, getAliveSiblings()) {
+            if (p->getKingdom() == "jin" && p->inMyAttackRange(other, distance_fix, false))
+                return true;
+        }
     }
 
     // end
@@ -271,15 +324,16 @@ int Player::distanceTo(const Player *other, int distance_fix) const
     if (hasSkill("newzhuiji") && other->getHp() <= getHp())
         return 1;
 
-    int mark = 10000;
-    bool has_mark = false;
+    int mark = -1;
     foreach (QString mark_name, getMarkNames()) {
         if (mark_name.startsWith("fixed_distance_to_" + other->objectName()) && getMark(mark_name) > 0) {
-            mark = qMin(mark, getMark(mark_name));
-            has_mark = true;
+            if (mark < 0)
+                mark = getMark(mark_name);
+            else
+                mark = qMin(mark, getMark(mark_name));
         }
     }
-    if (has_mark)
+    if (mark > 0)
         return mark;
 
     if (fixed_distance.contains(other)) {
@@ -419,15 +473,18 @@ bool Player::isLord() const
 
 bool Player::hasSkill(const QString &skill_name, bool include_lose) const
 {
+    const Skill *skill = Sanguosha->getSkill(skill_name);
+    if (skill && !skill->isVisible())
+        include_lose = true;
+
     if (!include_lose) {
         if (!hasEquipSkill(skill_name)) {
-            const Skill *skill = Sanguosha->getSkill(skill_name);
             if (skill && !Sanguosha->correctSkillValidity(this, skill))
                 return false;
         }
     }
     return skills.contains(skill_name)
-        || acquired_skills.contains(skill_name);
+        || acquired_skills.contains(skill_name) || property("pingjian_triggerskill").toString() == skill_name;
 }
 
 bool Player::hasSkill(const Skill *skill, bool include_lose /* = false */) const
@@ -686,19 +743,54 @@ const EquipCard *Player::getEquip(int index) const
     return NULL;
 }
 
-bool Player::hasWeapon(const QString &weapon_name) const
+bool Player::viewAsEquip(const QString &equip_name) const
 {
-    if (!weapon || getMark("Equips_Nullified_to_Yourself") > 0) return false;
+    QStringList view_as_equips = property("View_As_Equips_List").toString().split("+");
+    if (view_as_equips.contains(equip_name)) return true;
+
+    foreach (const Skill *skill, getSkillList(false, false)) {
+        if (!skill->inherits("ViewAsEquipSkill") || !hasSkill(skill)) continue;
+        const ViewAsEquipSkill *vaes = Sanguosha->getViewAsEquipSkill(skill->objectName());
+        if (!vaes) continue;
+        if (vaes->viewAsEquip(this).split(",").contains(equip_name)) return true;
+        QList<const EquipCard *> equips = Sanguosha->findChildren<const EquipCard *>();
+        QString equip_class_name;
+        foreach (const EquipCard *equip, equips) {
+            if (equip->isKindOf(equip_name.toStdString().c_str())) {
+                equip_class_name = equip->getClassName();
+                break;
+            }
+        }
+        if (equip_class_name.isEmpty()) continue;
+        if (vaes->viewAsEquip(this).split(",").contains(equip_class_name) || view_as_equips.contains(equip_class_name)) return true;
+    }
+    return false;
+}
+
+bool Player::hasWeapon(const QString &weapon_name, bool need_area) const
+{
+    if (getMark("Equips_Nullified_to_Yourself") > 0) return false;
+    if (!alive || (need_area && !hasEquipArea(0))) return false;
+    if (!weapon)
+        return viewAsEquip(weapon_name);
+
+    if (viewAsEquip(weapon_name)) return true;
     if (weapon->objectName() == weapon_name || weapon->isKindOf(weapon_name.toStdString().c_str())) return true;
     const Card *real_weapon = Sanguosha->getEngineCard(weapon->getEffectiveId());
     return real_weapon->objectName() == weapon_name || real_weapon->isKindOf(weapon_name.toStdString().c_str());
+    return false;
 }
 
-bool Player::hasArmorEffect(const QString &armor_name) const
+bool Player::hasArmorEffect(const QString &armor_name, bool need_area) const
 {
     if (!tag["Qinggang"].toStringList().isEmpty() || getMark("Armor_Nullified") > 0
-        || getMark("Equips_Nullified_to_Yourself") > 0 || !hasEquipArea(1))
+        || getMark("Equips_Nullified_to_Yourself") > 0)
         return false;
+
+    if (armor) {
+        if (armor->isRed() && getMark("&tenyearqianxi+red-Clear") > 0) return false;
+        if (armor->isBlack() && getMark("&tenyearqianxi+black-Clear") > 0) return false;
+    }
 
     const Player *current = NULL;
     foreach (const Player *p, getAliveSiblings()) {
@@ -718,26 +810,47 @@ bool Player::hasArmorEffect(const QString &armor_name) const
         if (alladj) return false;
     }
 
-    QStringList equips = property("View_As_Equips_List").toStringList();
-    if (equips.contains(armor_name)) return true;
+    if (!armor_name.isEmpty()) {
+        if (!alive) return false;
 
-    if (armor == NULL && alive) {
-        if (armor_name == "eight_diagram" && (hasSkill("bazhen") || hasSkill("linglong")))
-            return true;
-        if (armor_name == "vine" && hasSkill("bossmanjia"))
-            return true;
+        if (!need_area) {
+            if (!armor) return false;
+            if (armor->objectName() == armor_name || armor->isKindOf(armor_name.toStdString().c_str())) return true;
+            const Card *real_armor = Sanguosha->getEngineCard(armor->getEffectiveId());
+            return real_armor->objectName() == armor_name || real_armor->isKindOf(armor_name.toStdString().c_str());
+        }
+
+        if (!armor && hasEquipArea(1))
+            return viewAsEquip(armor_name);
+        else if (!armor && !hasEquipArea(1))
+            return false;
+
+        if (viewAsEquip(armor_name)) return true;
+        if (armor->objectName() == armor_name || armor->isKindOf(armor_name.toStdString().c_str())) return true;
+        const Card *real_armor = Sanguosha->getEngineCard(armor->getEffectiveId());
+        return real_armor->objectName() == armor_name || real_armor->isKindOf(armor_name.toStdString().c_str());
+    } else {
+        if (!alive || !hasEquipArea(1)) return false;
+        if (armor != NULL) return true;
+        foreach (const Skill *skill, getSkillList(false, false)) {
+            if (!skill->inherits("ViewAsEquipSkill") || !hasSkill(skill)) continue;
+            const ViewAsEquipSkill *vaes = Sanguosha->getViewAsEquipSkill(skill->objectName());
+            if (!vaes) continue;
+            if (vaes->viewAsEquip(this) != QString()) return true;
+        }
     }
-    if (!armor) return false;
-    if (armor->objectName() == armor_name || armor->isKindOf(armor_name.toStdString().c_str())) return true;
-    const Card *real_armor = Sanguosha->getEngineCard(armor->getEffectiveId());
-    return real_armor->objectName() == armor_name || real_armor->isKindOf(armor_name.toStdString().c_str());
 
     return false;
 }
 
-bool Player::hasTreasure(const QString &treasure_name) const
+bool Player::hasTreasure(const QString &treasure_name, bool need_area) const
 {
-    if (!treasure || getMark("Equips_Nullified_to_Yourself") > 0) return false;
+    if (getMark("Equips_Nullified_to_Yourself") > 0) return false;
+    if (!alive || (need_area && !hasEquipArea(4))) return false;
+    if (!treasure)
+        return viewAsEquip(treasure_name);
+
+    if (viewAsEquip(treasure_name)) return true;
     if (treasure->objectName() == treasure_name || treasure->isKindOf(treasure_name.toStdString().c_str())) return true;
     const Card *real_treasure = Sanguosha->getEngineCard(treasure->getEffectiveId());
     return real_treasure->objectName() == treasure_name || real_treasure->isKindOf(treasure_name.toStdString().c_str());
@@ -800,14 +913,26 @@ QString Player::getKingdom() const
 {
     if (kingdom.isEmpty() && general)
         return general->getKingdom();
-    else
-        return kingdom;
+    else if (!kingdom.isEmpty()) {
+        QStringList kins = kingdom.split("+");
+        QString kin = kins.first();
+        if (kin == "god" && kins.length() > 1) {
+            foreach (QString king, kins) {
+                if (king == "god") continue;
+                kin = king;
+                break;
+            }
+        }
+        return kin;
+    }
+    return QString();
 }
 
 void Player::setKingdom(const QString &kingdom)
 {
-    if (this->kingdom != kingdom) {
-        this->kingdom = kingdom;
+    QString _kingdom = kingdom.split("+").first();
+    if (this->kingdom != _kingdom) {
+        this->kingdom = _kingdom;
         emit kingdom_changed();
     }
 }
@@ -829,6 +954,7 @@ bool Player::isAllNude() const
 
 bool Player::canDiscard(const Player *to, const QString &flags) const
 {
+    if (to == NULL || isDead() || to->isDead()) return false;
     static QChar handcard_flag('h');
     static QChar equip_flag('e');
     static QChar judging_flag('j');
@@ -846,6 +972,8 @@ bool Player::canDiscard(const Player *to, int card_id) const
 {
     if (to == NULL)
         return false;
+
+    if (isDead() || to->isDead()) return false;
 
     if (to->hasSkill("qicai") && this != to) {
         if ((to->getWeapon() && card_id == to->getWeapon()->getEffectiveId())
@@ -920,6 +1048,11 @@ int Player::getMark(const QString &mark) const
     return marks.value(mark, 0);
 }
 
+int Player::getHujia() const
+{
+    return getMark("@HuJia");
+}
+
 QStringList Player::getMarkNames() const
 {
     return marks.keys();
@@ -937,7 +1070,7 @@ bool Player::canSlash(const Player *other, const Card *slash, bool distance_limi
     Slash *newslash = new Slash(Card::NoSuit, 0);
     newslash->deleteLater();
 #define THIS_SLASH (slash == NULL ? newslash : slash)
-    if (isProhibited(other, THIS_SLASH, others))
+    if (isLocked(THIS_SLASH) || isProhibited(other, THIS_SLASH, others))
         return false;
 
     if (distance_limit)
@@ -1021,10 +1154,21 @@ void Player::addHistory(const QString &name, int times)
 }
 
 int Player::getSlashCount() const
-{
+{/*
     return history.value("Slash", 0)
         + history.value("ThunderSlash", 0)
-        + history.value("FireSlash", 0);
+        + history.value("FireSlash", 0)
+        + history.value("IceSlash", 0);*/
+    QList<const Slash *> slashs = Sanguosha->findChildren<const Slash *>();
+    QStringList classnames;
+    int count = 0;
+    foreach (const Slash *slash, slashs) {
+        QString classname = slash->getClassName();
+        if (classnames.contains(classname)) continue;
+        classnames << classname;
+        count += history.value(classname, 0);
+    }
+    return count;
 }
 
 void Player::clearHistory(const QString &name)
@@ -1035,13 +1179,27 @@ void Player::clearHistory(const QString &name)
         history.remove(name);
 }
 
-bool Player::hasUsed(const QString &card_class) const
+bool Player::hasUsed(const QString &card_class, bool actual) const
 {
+    if (!actual) {
+        if (property("AllSkillNoLimitingTimes").toBool()) return false;
+
+        QStringList card_class_names = property("SkillNoLimitingTimes").toString().split("+");
+        if (card_class_names.contains(card_class)) return false;
+    }
+
     return history.value(card_class, 0) > 0;
 }
 
-int Player::usedTimes(const QString &card_class) const
+int Player::usedTimes(const QString &card_class, bool actual) const
 {
+    if (!actual) {
+        if (property("AllSkillNoLimitingTimes").toBool()) return 0;
+
+        QStringList card_class_names = property("SkillNoLimitingTimes").toString().split("+");
+        if (card_class_names.contains(card_class)) return 0;
+    }
+
     return history.value(card_class, 0);
 }
 
@@ -1129,6 +1287,9 @@ QString Player::getSkillDescription() const
         }
     }
 
+    QStringList waked_skillList;
+    QString waked_skills_description;
+
     foreach (const Skill *skill, skill_list + basara_list) {
         if (skill->isAttachedLordSkill() || (!hasSkill(skill) && !basara_list.contains(skill)))
             continue;
@@ -1136,7 +1297,34 @@ QString Player::getSkillDescription() const
         QString desc = skill->getDescription();
         desc.replace("\n", "<br/>");
         description.append(QString("<b>%1</b>: %2 <br/> <br/>").arg(skill_name).arg(desc));
+
+        if (!skill->getWakedSkills().isEmpty()) {
+            QStringList waked_skills = skill->getWakedSkills().split(",");
+            foreach (QString sk_name, waked_skills) {
+                if (waked_skillList.contains(sk_name)) continue;
+                waked_skillList << sk_name;
+                QString new_desc;
+
+                const Skill *sk = Sanguosha->getSkill(sk_name);
+                if (sk) {
+                    if (!sk->isVisible() || hasSkill(sk, true)) continue;
+                    new_desc = sk->getDescription();
+                } else {
+                    QString tran = Sanguosha->translate(":" + sk_name);
+                    if (tran == ":" + sk_name) continue;
+                    new_desc = tran;
+                }
+                if (new_desc.isEmpty()) continue;
+
+                new_desc.replace("\n", "<br/>");
+                QString _desc = QString("<font color=\"#01A5AF\"><b>%1</b></font>: <font color=\"#01A5AF\">%2</font> <br/> <br/>")
+                        .arg(Sanguosha->translate(sk_name)).arg(new_desc);
+                waked_skills_description.append(_desc);
+            }
+        }
     }
+
+    description.append(waked_skills_description);
 
     if (description.isEmpty()) description = tr("No skills");
     return description;
@@ -1211,6 +1399,8 @@ void Player::clearCardLimitation(bool single_turn)
 
 bool Player::isCardLimited(const Card *card, Card::HandlingMethod method, bool isHandcard) const
 {
+    if (Sanguosha->isCardLimited(this, card, method, isHandcard)) return true;
+
     if (method == Card::MethodNone)
         return false;
     if (card->getTypeId() == Card::TypeSkill && method == card->getHandlingMethod()) {
@@ -1421,7 +1611,7 @@ void Player::setDefensiveHorseArea(bool flag)
 
 bool Player::hasOffensiveHorseArea() const
 {
-    return hasdefensivehorsearea;
+    return hasoffensivehorsearea;
 }
 
 void Player::setOffensiveHorseArea(bool flag)
@@ -1460,7 +1650,7 @@ void Player::setJudgeArea(bool flag)
 
 bool Player::canPindian(const Player *target, bool except_self) const
 {
-    if (isDead() || isKongcheng() || target->isDead() || target->isKongcheng()) return false;
+    if (isDead() || isKongcheng() || !target || target->isDead() || target->isKongcheng()) return false;
     if (except_self && this == target) return false;
     if (isPindianProhibited(target)) return false;
     return true;
@@ -1479,13 +1669,30 @@ bool Player::canPindian(bool except_self) const
     return false;
 }
 
+bool Player::canBePindianed(bool except_self) const
+{
+    if (isDead() || isKongcheng()) return false;
+    QList<const Player *> players = getAliveSiblings();
+    players << this;
+    foreach (const Player *p, players) {
+        if (p->canPindian(this, except_self))
+            return true;
+    }
+    return false;
+}
+
 bool Player::isYourFriend(const Player *fri) const
 {
-    QString role = isLord() ? "loyalist" : getRole();
-    QString f_role = fri->isLord() ? "loyalist" : fri->getRole();
-    if (f_role == role && f_role != "renegade" && getRole() != "renegade")
-         return true;
-    return false;
+    if (getRole() == "renegade") {
+        if (this == fri) return true;
+        return false;
+    }
+
+    QChar c = getRole().at(0);
+    if (fri->getRole().startsWith(c))
+        return true;
+    else
+        return false;
 }
 
 bool Player::isWeidi() const
@@ -1498,14 +1705,14 @@ bool Player::isWeidi() const
 int Player::getChangeSkillState(const QString &skill_name) const
 {
     QString str = "ChangeSkill_" + skill_name + "_State";
-    const char *ch = str.toLatin1().constData();
-    int n = property(ch).toInt();
+    int n = property(str.toStdString().c_str()).toInt();
     if (n <= 0) n = 1;
     return n;
 }
 
 bool Player::hasCard(const Card *card) const
 {
+    if (!card) return false;
     if (getEquips().contains(card))
         return true;
     if (getHandcards().contains(card))
@@ -1516,6 +1723,7 @@ bool Player::hasCard(const Card *card) const
 bool Player::hasCard(int id) const
 {
     const Card *card = Sanguosha->getCard(id);
+    if (!card) return false;
     if (getEquips().contains(card))
         return true;
     if (getHandcards().contains(card))
@@ -1525,10 +1733,80 @@ bool Player::hasCard(int id) const
 
 QList<int> Player::getdrawPile() const
 {
-    return StringList2IntList(property("PlayerWantToGetDrawPile").toStringList());
+    return StringList2IntList(property("PlayerWantToGetDrawPile").toString().split("+"));
 }
 
 QList<int> Player::getdiscardPile() const
 {
-    return StringList2IntList(property("PlayerWantToGetDiscardPile").toStringList());
+    return StringList2IntList(property("PlayerWantToGetDiscardPile").toString().split("+"));
+}
+
+QString Player::getDeathReason() const
+{
+    return property("My_Death_Reason").toString();
+}
+
+bool Player::isJieGeneral() const
+{
+    if (getGeneralName().startsWith("tenyear_") || getGeneral2Name().startsWith("tenyear_"))
+        return true;
+    if (getGeneralName().startsWith("ol_") || getGeneral2Name().startsWith("ol_"))
+        return true;
+    if (getGeneralName().startsWith("second_ol_") || getGeneral2Name().startsWith("second_ol_"))
+        return true;
+    if (getGeneralName().startsWith("mobile_") || getGeneral2Name().startsWith("mobile_"))
+        return true;
+
+    QString translate, translate2;
+    if (translate.startsWith("界") || translate2.startsWith("界")) return true;
+    if (translate.startsWith("OL界") || translate2.startsWith("OL界")) return true;
+    if (translate.startsWith("手杀界") || translate2.startsWith("手杀界")) return true;
+    if ((translate.startsWith("界") && translate.endsWith("-手杀")) ||
+            (translate2.startsWith("界") && translate2.endsWith("-手杀"))) return true;
+
+    return false;
+}
+
+bool Player::isJieGeneral(const QString &name, const QString &except_name) const
+{
+    if (!isJieGeneral()) return false;
+
+    if (except_name != QString()) {
+        if (getGeneralName().contains(except_name) || getGeneral2Name().contains(except_name))
+            return false;
+    }
+
+    if (name == QString()) return true;
+
+    if (getGeneralName().contains(name) || getGeneral2Name().contains(name)) return true;
+    return false;
+}
+
+bool Player::hasHideSkill(int general) const
+{
+    if (general == 1 && getGeneral())
+        return getGeneral()->hasHideSkill();
+    else if (general == 2 && getGeneral2())
+        return getGeneral2()->hasHideSkill();
+    return false;
+}
+
+bool Player::inYinniState() const
+{
+    return !property("yinni_general").toString().isEmpty() || !property("yinni_general2").toString().isEmpty();
+}
+
+bool Player::canSeeHandcard(const Player *player) const
+{
+    if (this == player) return true;
+    if (ServerInfo.GameMode == "04_2v2" && isYourFriend(player)) return true;
+    foreach (QString mark, player->getMarkNames()) {
+        if (mark.startsWith("HandcardVisible_ALL") && player->getMark(mark) > 0)
+            return true;
+    }
+    foreach (QString mark, getMarkNames()) {
+        if (mark.startsWith("HandcardVisible_" + player->objectName()) && getMark(mark) > 0)
+            return true;
+    }
+    return false;
 }

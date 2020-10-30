@@ -145,6 +145,49 @@ public:
     void use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const;
 };
 
+class PoxiCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE PoxiCard();
+    bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
+    void onEffect(const CardEffectStruct &effect) const;
+};
+
+class PoxiDisCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE PoxiDisCard();
+    void onUse(Room *, const CardUseStruct &) const;
+};
+
+class JiwuCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE JiwuCard();
+    void use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &) const;
+};
+
+class Guixin : public MasochismSkill
+{
+public:
+    Guixin();
+    void onDamaged(ServerPlayer *target, const DamageStruct &damage) const;
+};
+
+class PingxiangCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE PingxiangCard();
+    void use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &) const;
+};
 
 #endif
 

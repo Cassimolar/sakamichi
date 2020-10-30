@@ -29,6 +29,7 @@ public:
     {
         response_pattern = "@@feiyang";
         expand_pile = "#feiyang";
+        attached_lord_skill = true;
     }
 
     bool viewFilter(const QList<const Card *> &selected, const Card *to_select) const
@@ -78,6 +79,7 @@ public:
     Feiyang() : PhaseChangeSkill("feiyang")
     {
         view_as_skill = new FeiyangVS;
+        attached_lord_skill = true;
     }
 
     bool onPhaseChange(ServerPlayer *player) const
@@ -138,6 +140,7 @@ public:
     Bahu() : PhaseChangeSkill("bahu")
     {
         frequency = Compulsory;
+        attached_lord_skill = true;
     }
 
     bool onPhaseChange(ServerPlayer *player) const
@@ -154,6 +157,7 @@ class BahuTargetMod : public TargetModSkill
 public:
     BahuTargetMod() : TargetModSkill("#bahu-target")
     {
+        attached_lord_skill = true;
     }
 
     int getResidueNum(const Player *from, const Card *, const Player *) const

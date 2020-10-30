@@ -57,3 +57,16 @@ SWIG_arg++;
 %{
     $1 = lua_istable(L, $input) ? 1 : 0;
 %}
+
+// const QString &
+%typemap(arginit) QString const &
+  "QString $1_str;"
+
+%typemap(in, checkfn = "lua_isstring") QString const &
+%{
+    $1_str = QString::fromUtf8(lua_tostring(L, $input));
+    $1 = &$1_str;
+%}
+
+%typemap(out) QString const &
+%{ lua_pushstring(L, $1.toUtf8()); SWIG_arg++; %}

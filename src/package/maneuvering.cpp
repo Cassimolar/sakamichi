@@ -11,6 +11,7 @@ NatureSlash::NatureSlash(Suit suit, int number, DamageStruct::Nature nature)
 {
     this->nature = nature;
     damage_card = true;
+    single_target = true;
 }
 
 bool NatureSlash::match(const QString &pattern) const
@@ -27,6 +28,7 @@ ThunderSlash::ThunderSlash(Suit suit, int number)
 {
     setObjectName("thunder_slash");
     damage_card = true;
+    single_target = true;
 }
 
 FireSlash::FireSlash(Suit suit, int number)
@@ -35,6 +37,7 @@ FireSlash::FireSlash(Suit suit, int number)
     setObjectName("fire_slash");
     nature = DamageStruct::Fire;
     damage_card = true;
+    single_target = true;
 }
 
 Analeptic::Analeptic(Card::Suit suit, int number)
@@ -42,6 +45,7 @@ Analeptic::Analeptic(Card::Suit suit, int number)
 {
     setObjectName("analeptic");
     target_fixed = true;
+    single_target = true;
 }
 
 QString Analeptic::getSubtype() const
@@ -77,7 +81,7 @@ void Analeptic::onUse(Room *room, const CardUseStruct &card_use) const
 void Analeptic::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const
 {
     if (targets.isEmpty())
-        targets << source;
+        return; //targets << source;
     BasicCard::use(room, source, targets);
 }
 
@@ -109,7 +113,7 @@ public:
     bool isEnabledAtResponse(const Player *player, const QString &pattern) const
     {
         return Sanguosha->currentRoomState()->getCurrentCardUseReason() == CardUseStruct::CARD_USE_REASON_RESPONSE_USE
-            && pattern == "slash" && player->getMark("Equips_Nullified_to_Yourself") == 0;
+            && (pattern.contains("slash") || pattern.contains("Slash")) && player->getMark("Equips_Nullified_to_Yourself") == 0;
     }
 
     const Card *viewAs(const Card *originalCard) const
@@ -133,21 +137,30 @@ public:
     bool trigger(TriggerEvent, Room *, ServerPlayer *player, QVariant &data) const
     {
         CardUseStruct use = data.value<CardUseStruct>();
-        if (use.card->isKindOf("Slash") && use.card->objectName() != "slash") return false;
-        FireSlash *fire_slash = new FireSlash(use.card->getSuit(), use.card->getNumber());
-        if (!use.card->isVirtualCard() || use.card->subcardsLength() > 0)
-            fire_slash->addSubcard(use.card);
-        fire_slash->setSkillName("fan");
-        bool can_use = true;
-        foreach (ServerPlayer *p, use.to) {
-            if (!player->canSlash(p, fire_slash, false)) {
-                can_use = false;
-                break;
-            }
+        if (use.card->objectName() != "slash") return false;
+        bool has_changed = false;
+        QString skill_name = use.card->getSkillName();
+        if (!skill_name.isEmpty()) {
+            const Skill *skill = Sanguosha->getSkill(skill_name);
+            if (skill && !skill->inherits("FilterSkill") && !skill->objectName().contains("guhuo"))
+                has_changed = true;
         }
-        if (can_use && player->askForSkillInvoke(this, data, false)) {
-            use.card = fire_slash;
-            data = QVariant::fromValue(use);
+        if (!has_changed || (use.card->isVirtualCard() && use.card->subcardsLength() == 0)) {
+            FireSlash *fire_slash = new FireSlash(use.card->getSuit(), use.card->getNumber());
+            if (!use.card->isVirtualCard() || use.card->subcardsLength() > 0)
+                fire_slash->addSubcard(use.card);
+            fire_slash->setSkillName("fan");
+            bool can_use = true;
+            foreach (ServerPlayer *p, use.to) {
+                if (!player->canSlash(p, fire_slash, false)) {
+                    can_use = false;
+                    break;
+                }
+            }
+            if (can_use && player->askForSkillInvoke(this, data)) {
+                use.card = fire_slash;
+                data = QVariant::fromValue(use);
+            }
         }
         return false;
     }
@@ -182,6 +195,7 @@ public:
             log.arg = QString::number(damage.damage);
             log.arg2 = QString::number(++damage.damage);
             room->sendLog(log);
+            room->notifySkillInvoked(player, objectName());
 
             data = QVariant::fromValue(damage);
         }
@@ -216,13 +230,14 @@ public:
                 log.arg = objectName();
                 log.arg2 = effect.slash->objectName();
                 room->sendLog(log);
+                room->notifySkillInvoked(player, objectName());
 
                 effect.to->setFlags("Global_NonSkillNullify");
                 return true;
             }
         } else if (triggerEvent == CardEffected) {
             CardEffectStruct effect = data.value<CardEffectStruct>();
-            if (effect.card->isKindOf("AOE")) {
+            if (effect.card->isKindOf("SavageAssault") || effect.card->isKindOf("ArcheryAttack") || effect.card->isKindOf("Chuqibuyi")) {
                 room->setEmotion(player, "armor/vine");
                 LogMessage log;
                 log.from = player;
@@ -230,6 +245,7 @@ public:
                 log.arg = objectName();
                 log.arg2 = effect.card->objectName();
                 room->sendLog(log);
+                room->notifySkillInvoked(player, objectName());
 
                 effect.to->setFlags("Global_NonSkillNullify");
                 return true;
@@ -244,6 +260,7 @@ public:
                 log.arg = QString::number(damage.damage);
                 log.arg2 = QString::number(++damage.damage);
                 room->sendLog(log);
+                room->notifySkillInvoked(player, objectName());
 
                 data = QVariant::fromValue(damage);
             }
@@ -284,6 +301,7 @@ public:
                 log.arg = QString::number(damage.damage);
                 log.arg2 = objectName();
                 room->sendLog(log);
+                room->notifySkillInvoked(player, objectName());
 
                 damage.damage = 1;
                 data = QVariant::fromValue(damage);
@@ -299,8 +317,9 @@ public:
                     player->setFlags("-SilverLionRecover");
                     if (player->isWounded()) {
                         room->setEmotion(player, "armor/silver_lion");
-                        room->recover(player, RecoverStruct(NULL, card));
+                        room->notifySkillInvoked(player, objectName());
                     }
+                    room->recover(player, RecoverStruct(NULL, card));
                     return false;
                 }
             }
@@ -317,7 +336,7 @@ SilverLion::SilverLion(Suit suit, int number)
 
 void SilverLion::onUninstall(ServerPlayer *player) const
 {
-    if (player->isAlive() && player->hasArmorEffect(objectName()))
+    if (player->isAlive() && player->hasArmorEffect(objectName(), false))
         player->setFlags("SilverLionRecover");
 }
 
@@ -344,8 +363,11 @@ void FireAttack::onEffect(const CardEffectStruct &effect) const
     room->showCard(effect.to, card->getEffectiveId());
 
     QString suit_str = card->getSuitString();
+    QString suit_str_png = suit_str;
+    if (card->hasSuit())
+        suit_str_png = "<img src='image/system/cardsuit/" + suit_str + ".png' height = 17/>";
     QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
-    QString prompt = QString("@fire-attack:%1::%2").arg(effect.to->objectName()).arg(suit_str);
+    QString prompt = QString("@fire-attack:%1::%2").arg(effect.to->objectName()).arg(suit_str_png);
     if (effect.from->isAlive()) {
         const Card *card_to_throw = room->askForCard(effect.from, pattern, prompt);
         if (card_to_throw)

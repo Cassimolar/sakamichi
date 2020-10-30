@@ -4,6 +4,7 @@
 #include "package.h"
 #include "card.h"
 #include "skill.h"
+#include "wind.h"
 
 class YCZH2016Package : public Package
 {
@@ -99,6 +100,41 @@ public:
     Q_INVOKABLE ZhigeCard();
     bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     void onEffect(const CardEffectStruct &effect) const;
+};
+
+class TaoluanCard : public SkillCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE TaoluanCard(QString this_skill_name = "taoluan");
+    bool targetFixed() const;
+    bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
+    bool targetsFeasible(const QList<const Player *> &targets, const Player *Self) const;
+    const Card *validate(CardUseStruct &card_use) const;
+    const Card *validateInResponse(ServerPlayer *zhangrang) const;
+private:
+    QString this_skill_name;
+};
+
+class TaoluanDialog : public GuhuoDialog
+{
+    Q_OBJECT
+
+public:
+    static TaoluanDialog *getInstance(const QString &object);
+
+protected:
+    explicit TaoluanDialog(const QString &object);
+    bool isButtonEnabled(const QString &button_name) const;
+};
+
+class TenyearTaoluanCard : public TaoluanCard
+{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE TenyearTaoluanCard();
 };
 
 #endif

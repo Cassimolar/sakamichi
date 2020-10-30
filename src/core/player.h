@@ -28,6 +28,7 @@ class Player : public QObject
     Q_PROPERTY(QString state READ getState WRITE setState)
     Q_PROPERTY(int handcard_num READ getHandcardNum)
     Q_PROPERTY(int seat READ getSeat WRITE setSeat)
+    Q_PROPERTY(int player_seat READ getPlayerSeat WRITE setPlayerSeat)
     Q_PROPERTY(QString phase READ getPhaseString WRITE setPhaseString)
     Q_PROPERTY(bool faceup READ faceUp WRITE setFaceUp)
     Q_PROPERTY(bool alive READ isAlive WRITE setAlive)
@@ -109,6 +110,8 @@ public:
 
     int getSeat() const;
     void setSeat(int seat);
+    int getPlayerSeat() const;
+    void setPlayerSeat(int player_seat);
     bool isAdjacentTo(const Player *another) const;
     QString getPhaseString() const;
     void setPhaseString(const QString &phase_str);
@@ -116,7 +119,7 @@ public:
     void setPhase(Phase phase);
 
     int getAttackRange(bool include_weapon = true) const;
-    bool inMyAttackRange(const Player *other, int distance_fix = 0) const;
+    bool inMyAttackRange(const Player *other, int distance_fix = 0, bool chengwu = true) const;
 
     bool isAlive() const;
     bool isDead() const;
@@ -182,9 +185,10 @@ public:
     QList<int> getEquipsId() const;
     const EquipCard *getEquip(int index) const;
 
-    bool hasWeapon(const QString &weapon_name) const;
-    bool hasArmorEffect(const QString &armor_name) const;
-    bool hasTreasure(const QString &treasure_name) const;
+    bool viewAsEquip(const QString &equip_name) const;
+    bool hasWeapon(const QString &weapon_name, bool need_area = true) const;
+    bool hasArmorEffect(const QString &armor_name, bool need_area = true) const;
+    bool hasTreasure(const QString &treasure_name, bool need_area = true) const;
 
     bool isKongcheng() const;
     bool isNude() const;
@@ -197,6 +201,7 @@ public:
     void removeMark(const QString &mark, int remove_num = 1);
     virtual void setMark(const QString &mark, int value);
     int getMark(const QString &mark) const;
+    int getHujia() const;
     QStringList getMarkNames() const;
 
     void setChained(bool chained);
@@ -215,8 +220,8 @@ public:
 
     void addHistory(const QString &name, int times = 1);
     void clearHistory(const QString &name = QString());
-    bool hasUsed(const QString &card_class) const;
-    int usedTimes(const QString &card_class) const;
+    bool hasUsed(const QString &card_class, bool actual = false) const;
+    int usedTimes(const QString &card_class, bool actual = false) const;
     int getSlashCount() const;
 
     bool hasEquipSkill(const QString &skill_name) const;
@@ -250,6 +255,7 @@ public:
     void setJudgeArea(bool flag);
     bool canPindian(const Player *target, bool except_self = true) const;
     bool canPindian(bool except_self = true) const;
+    bool canBePindianed(bool except_self = true) const;
     bool isYourFriend(const Player *fri) const;
     bool isWeidi() const;
     int getChangeSkillState(const QString &skill_name) const;
@@ -257,6 +263,12 @@ public:
     bool hasCard(int id) const;
     QList<int> getdrawPile() const;
     QList<int> getdiscardPile() const;
+    QString getDeathReason() const;
+    bool isJieGeneral() const;
+    bool isJieGeneral(const QString &name, const QString &except_name = QString()) const;
+    bool hasHideSkill(int general = 1) const;
+    bool inYinniState() const;
+    bool canSeeHandcard(const Player *player) const;
 
     inline bool isJilei(const Card *card, bool isHandcard = false) const
     {
@@ -303,7 +315,7 @@ private:
     QString kingdom;
     QString role;
     QString state;
-    int seat;
+    int seat, player_seat;
     bool alive;
 
     Phase phase;
@@ -333,8 +345,6 @@ signals:
     void kingdom_changed();
     void phase_changed();
     void owner_changed(bool owner);
-    //void equiparea_changed(int i, bool lose);
-    //void judgearea_changed();
 };
 
 #endif

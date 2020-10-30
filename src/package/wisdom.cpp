@@ -916,23 +916,27 @@ public:
     {
         events << CardFinished;
         frequency = Wake;
+        waked_skills = "shien";
     }
 
-    bool triggerable(const ServerPlayer *target) const
+    bool canWake(TriggerEvent, ServerPlayer *player, QVariant &, Room *room) const
     {
-        return target != NULL && target->getMark("jiehuo") == 0
-            && target->getMark("@shouye") >= 7;
+        if (player->getMark("jiehuo") > 0) return false;
+        if (player->canWake(objectName())) return true;
+        if (player->getMark("@shouye") >= 7) {
+            LogMessage log;
+            log.type = "#JiehuoWake";
+            log.from = player;
+            log.arg = objectName();
+            log.arg2 = "shouye";
+            room->sendLog(log);
+            return true;
+        }
+        return false;
     }
 
     bool trigger(TriggerEvent, Room* room, ServerPlayer *player, QVariant &) const
     {
-        LogMessage log;
-        log.type = "#JiehuoWake";
-        log.from = player;
-        log.arg = objectName();
-        log.arg2 = "shouye";
-        room->sendLog(log);
-
         room->broadcastSkillInvoke(objectName());
         room->notifySkillInvoked(player, objectName());
         //room->doLightbox("$JiehuoAnimate", 3000);

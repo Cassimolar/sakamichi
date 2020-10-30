@@ -29,6 +29,9 @@ public:
     bool isLordSkill() const;
     bool isAttachedLordSkill() const;
     bool isChangeSkill() const;
+    bool isLimitedSkill() const;
+    bool isHideSkill() const;
+    bool isShiMingSkill() const;
     virtual bool shouldBeVisible(const Player *Self) const; // usually for attached skill
     QString getDescription() const;
     QString getNotice(int index) const;
@@ -41,6 +44,7 @@ public:
     void playAudioEffect(int index = -1, bool superpose = true) const;
     virtual Frequency getFrequency(const Player *target = NULL) const;
     QString getLimitMark() const;
+    QString getWakedSkills() const;
     QStringList getSources() const;
 
 protected:
@@ -48,6 +52,10 @@ protected:
     QString limit_mark;
     bool attached_lord_skill;
     bool change_skill;
+    bool limited_skill;
+    bool hide_skill;
+    bool shiming_skill;
+    QString waked_skills;
 
 private:
     bool lord_skill;
@@ -134,7 +142,9 @@ public:
     virtual int getPriority(TriggerEvent triggerEvent) const;
     virtual bool triggerable(const ServerPlayer *target, Room *room) const;
     virtual bool triggerable(const ServerPlayer *target) const;
+    virtual bool canWake(TriggerEvent triggerEvent, ServerPlayer *player, QVariant &data, Room *room) const;
     virtual bool trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &data) const = 0;
+    virtual bool hasEvent(TriggerEvent triggerEvent) const;
 
     inline double getDynamicPriority() const
     {
@@ -345,6 +355,27 @@ public:
 
     virtual int getExtra(const Player *target, bool include_weapon) const;
     virtual int getFixed(const Player *target, bool include_weapon) const;
+};
+
+class ViewAsEquipSkill : public Skill
+{
+    Q_OBJECT
+
+public:
+    ViewAsEquipSkill(const QString &name);
+
+    virtual QString viewAsEquip(const Player *target) const;
+};
+
+class CardLimitSkill : public Skill
+{
+    Q_OBJECT
+
+public:
+    CardLimitSkill(const QString &name);
+
+    virtual QString limitList(const Player *target) const;
+    virtual QString limitPattern(const Player *target) const;
 };
 
 // a nasty way for 'fake moves', usually used in the process of multi-card chosen

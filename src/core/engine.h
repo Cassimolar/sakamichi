@@ -1,4 +1,4 @@
-﻿#ifndef _ENGINE_H
+#ifndef _ENGINE_H
 #define _ENGINE_H
 
 #include "card.h"
@@ -75,26 +75,32 @@ public:
     QStringList getSkillNames() const;
     const TriggerSkill *getTriggerSkill(const QString &skill_name) const;
     const ViewAsSkill *getViewAsSkill(const QString &skill_name) const;
+    const ViewAsEquipSkill *getViewAsEquipSkill(const QString &skill_name) const;
+    const CardLimitSkill *getCardLimitSkill(const QString &skill_name) const;
     QList<const DistanceSkill *> getDistanceSkills() const;
     QList<const MaxCardsSkill *> getMaxCardsSkills() const;
     QList<const TargetModSkill *> getTargetModSkills() const;
     QList<const InvaliditySkill *> getInvaliditySkills() const;
     QList<const TriggerSkill *> getGlobalTriggerSkills() const;
     QList<const AttackRangeSkill *> getAttackRangeSkills() const;
+    QList<const ViewAsEquipSkill *> getViewAsEquipSkills() const;
+    QList<const CardLimitSkill *> getCardLimitSkills() const;
     void addSkills(const QList<const Skill *> &skills);
 
     int getCardCount() const;
     const Card *getEngineCard(int cardId) const;
     // @todo: consider making this const Card *
-    Card *getCard(int cardId);
+    Card *getCard(int cardId, bool need_Q_ASSERT = true);
     WrappedCard *getWrappedCard(int cardId);
 
     QStringList getLords(bool contain_banned = false) const;
     QStringList getRandomLords() const;
     QStringList getRandomGenerals(int count, const QSet<QString> &ban_set = QSet<QString>(), const QString &kingdom = QString()) const;
-    QList<int> getRandomCards() const;
+    QList<int> getRandomCards(bool derivative = false) const;
     QString getRandomGeneralName() const;
     QStringList getLimitedGeneralNames(const QString &kingdom = QString()) const;
+    QStringList getSlashNames() const;
+    bool hasCard(const QString &name) const;
     inline QList<const General *> getAllGenerals() const
     {
         return findChildren<const General *>();
@@ -106,6 +112,7 @@ public:
 
     const ProhibitSkill *isProhibited(const Player *from, const Player *to, const Card *card, const QList<const Player *> &others = QList<const Player *>()) const;
     const ProhibitPindianSkill *isPindianProhibited(const Player *from, const Player *to) const;
+    const CardLimitSkill *isCardLimited(const Player *player, const Card *card, Card::HandlingMethod method, bool isHandcard = false) const;
     int correctDistance(const Player *from, const Player *to) const;
     int correctMaxCards(const Player *target, bool fixed = false) const;
     int correctCardTarget(const TargetModSkill::ModType type, const Player *from, const Card *card, const Player *to = NULL) const;
@@ -123,6 +130,8 @@ public:
 
     QString findConvertFrom(const QString &general_name) const;
     bool isGeneralHidden(const QString &general_name) const;
+
+    QString removeNumberInQString(const QString &str) const;
 
 private:
     void _loadMiniScenarios();
@@ -150,6 +159,8 @@ private:
     QList<const InvaliditySkill *> invalidity_skills;
     QList<const TriggerSkill *> global_trigger_skills;
     QList<const AttackRangeSkill *> attack_range_skills;
+    QList<const ViewAsEquipSkill *> view_as_equip_skills;
+    QList<const CardLimitSkill *> card_limit_skills;
 
     QList<Card *> cards;
     QStringList lord_list;

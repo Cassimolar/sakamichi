@@ -19,7 +19,7 @@ ClientLogBox::ClientLogBox(QWidget *parent)
 }
 
 void ClientLogBox::appendLog(const QString &type, const QString &from_general, const QStringList &tos,
-    QString card_str, QString arg, QString arg2)
+    QString card_str, QString arg, QString arg2, QString arg3, QString arg4, QString arg5)
 {
     if (Self->hasFlag("marshalling")) return;
 
@@ -66,6 +66,21 @@ void ClientLogBox::appendLog(const QString &type, const QString &from_general, c
         log.replace("%from", from);
         log.replace("%to", to);
         log.replace("%card", log_name);
+
+        if (!arg5.isEmpty()) {
+            arg5 = bold(Sanguosha->translate(arg5), Qt::yellow);
+            log.replace("%arg5", arg5);
+        }
+
+        if (!arg4.isEmpty()) {
+            arg4 = bold(Sanguosha->translate(arg4), Qt::yellow);
+            log.replace("%arg4", arg4);
+        }
+
+        if (!arg3.isEmpty()) {
+            arg3 = bold(Sanguosha->translate(arg3), Qt::yellow);
+            log.replace("%arg3", arg3);
+        }
 
         if (!arg2.isEmpty()) {
             arg2 = bold(Sanguosha->translate(arg2), Qt::yellow);
@@ -154,6 +169,21 @@ void ClientLogBox::appendLog(const QString &type, const QString &from_general, c
     log.replace("%from", from);
     log.replace("%to", to);
 
+    if (!arg5.isEmpty()) {
+        arg5 = bold(Sanguosha->translate(arg5), Qt::yellow);
+        log.replace("%arg5", arg5);
+    }
+
+    if (!arg4.isEmpty()) {
+        arg4 = bold(Sanguosha->translate(arg4), Qt::yellow);
+        log.replace("%arg4", arg4);
+    }
+
+    if (!arg3.isEmpty()) {
+        arg3 = bold(Sanguosha->translate(arg3), Qt::yellow);
+        log.replace("%arg3", arg3);
+    }
+
     if (!arg2.isEmpty()) {
         arg2 = bold(Sanguosha->translate(arg2), Qt::yellow);
         log.replace("%arg2", arg2);
@@ -178,13 +208,13 @@ QString ClientLogBox::bold(const QString &str, QColor color) const
 void ClientLogBox::appendLog(const QStringList &log_str)
 {
     QString err_string = QString();
-    if (log_str.length() != 6 || (!log_str.first().startsWith("$") && !log_str.first().startsWith("#"))) {
+    if (log_str.length() != 9 || (!log_str.first().startsWith("$") && !log_str.first().startsWith("#"))) {
         err_string = tr("Log string is not well formatted: %1").arg(log_str.join(","));
         append(QString("<font color='%2'>%1</font>").arg(err_string).arg(Config.TextEditColor.name()));
         return;
     }
     appendLog(log_str[0], log_str[1], log_str[2].isEmpty() ? QStringList() : log_str[2].split("+"),
-        log_str[3], log_str[4], log_str[5]);
+        log_str[3], log_str[4], log_str[5], log_str[6], log_str[7], log_str[8]);
 }
 
 QString ClientLogBox::append(const QString &text)

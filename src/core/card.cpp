@@ -19,11 +19,11 @@ const Card::Suit Card::AllSuits[4] = {
     Card::Diamond
 };
 
-Card::Card(Suit suit, int number, bool target_fixed)
+Card::Card(Suit suit, int number, bool target_fixed, bool damage_card, bool is_gift, bool single_target)
     :target_fixed(target_fixed), mute(false),
     will_throw(true), has_preact(false), can_recast(false),
     m_suit(suit), m_number(number), m_id(-1),
-    is_gift(false), damage_card(false)
+    is_gift(is_gift), damage_card(damage_card), single_target(single_target)
 {
     handling_method = will_throw ? Card::MethodDiscard : Card::MethodUse;
 }
@@ -79,17 +79,19 @@ int Card::getEffectiveId() const
 
 int Card::getNumber() const
 {
+    foreach (QString flag, getFlags()) {
+        if (!flag.startsWith("CardInformationHelper")) continue;
+        QStringList info = flag.split("???");
+        if (info.length() != 3) continue;
+        return info.last().toInt();
+    }
+
     if (m_number > 0) return m_number;
     if (isVirtualCard()) {
-        if (subcardsLength() == 0)
+        if (subcardsLength() == 1)
+            return Sanguosha->getCard(subcards.first())->getNumber();
+        else
             return 0;
-        else {
-            int num = 0;
-            foreach (int id, subcards) {
-                num += Sanguosha->getCard(id)->getNumber();
-            }
-            return qMin(num, 13);
-        }
     } else
         return m_number;
 }
@@ -115,6 +117,21 @@ QString Card::getNumberString() const
 
 Card::Suit Card::getSuit() const
 {
+    foreach (QString flag, getFlags()) {
+        if (!flag.startsWith("CardInformationHelper")) continue;
+        QStringList info = flag.split("???");
+        if (info.length() != 3) continue;
+        QString suit_str = info.at(1);
+
+        if (suit_str == "spade") return Spade;
+        if (suit_str == "heart") return Heart;
+        if (suit_str == "club") return Club;
+        if (suit_str == "diamond") return Diamond;
+        if (suit_str == "no_suit_black") return NoSuitBlack;
+        if (suit_str == "no_suit_red") return NoSuitRed;
+        return NoSuit;
+    }
+
     if (m_suit != NoSuit && m_suit != SuitToBeDecided)
         return m_suit;
     if (isVirtualCard()) {
@@ -163,6 +180,23 @@ Card::Color Card::getColor() const
     default:
         return Colorless;
     }
+}
+
+QString Card::getColorString() const
+{
+    switch (getColor()) {
+    case Black:
+        return "black";
+    case Red:
+        return "red";
+    default:
+        return "no_color";
+    }
+}
+
+bool Card::hasSuit() const
+{
+    return getSuit() == Spade || getSuit() == Heart || getSuit() == Club || getSuit() == Diamond;
 }
 
 bool Card::isEquipped() const
@@ -346,7 +380,8 @@ void Card::setSkillName(const QString &name)
 
 bool Card::isGift() const
 {
-  return is_gift;
+    const Card *c = qobject_cast<const Card *>(getRealCard());
+    return c && c->is_gift;
 }
 
 void Card::setGift(bool flag)
@@ -357,7 +392,8 @@ void Card::setGift(bool flag)
 
 bool Card::isDamageCard() const
 {
-  return damage_card;
+    const Card *c = qobject_cast<const Card *>(getRealCard());
+    return c && c->damage_card;
 }
 
 void Card::setDamageCard(bool flag)
@@ -366,9 +402,25 @@ void Card::setDamageCard(bool flag)
         this->damage_card = flag;
 }
 
+bool Card::isSingleTargetCard() const
+{
+    if (isKindOf("EquipCard") || isKindOf("DelayedTrick") ||
+            (isKindOf("SingleTargetTrick") && !isKindOf("Nullification"))) return true;
+    const Card *c = qobject_cast<const Card *>(getRealCard());
+    return c && c->single_target;
+}
+
+void Card::setSingleTargetCard(bool flag)
+{
+    if (this->single_target != flag)
+        this->single_target = flag;
+}
+
 QString Card::getDescription() const
 {
-    QString desc = Sanguosha->translate(":" + objectName());
+    QString yingbian = property("YingBianEffects").toString();
+    QString desc = !yingbian.isEmpty() ? "<br />" + Sanguosha->translate(":" + yingbian) : "";
+    desc = Sanguosha->translate(":" + objectName()).append(QString("<font color=red><b>%1</b></font>").arg(desc));
     if (desc.startsWith(":"))
         desc = QString();
     else if (desc.startsWith("[NoAutoRep]"))
@@ -709,6 +761,7 @@ void Card::onUse(Room *room, const CardUseStruct &use) const
         if (card_use.to.size() == 1)
             reason.m_targetId = card_use.to.first()->objectName();
         reason.m_extraData = QVariant::fromValue(card_use.card);
+        reason.m_useStruct = card_use;
         foreach (int id, used_cards) {
             CardsMoveStruct move(id, NULL, Player::PlaceTable, reason);
             moves.append(move);
@@ -725,6 +778,26 @@ void Card::onUse(Room *room, const CardUseStruct &use) const
 
     thread->trigger(CardUsed, room, card_use.from, data);
     card_use = data.value<CardUseStruct>();
+
+    QList<int> card_ids;
+    if (isVirtualCard())
+        card_ids = subcards;
+    else
+        card_ids << getId();
+    QList<CardsMoveStruct> moves2;
+    CardMoveReason reason(CardMoveReason::S_REASON_USE, card_use.from->objectName(), QString(), this->getSkillName(), QString());
+    if (card_use.to.size() == 1) reason.m_targetId = card_use.to.first()->objectName();
+    reason.m_extraData = QVariant::fromValue(this);
+    reason.m_useStruct = card_use;
+    foreach (int id, card_ids) {
+        if (room->getCardPlace(id) == Player::PlaceTable) {
+            CardsMoveStruct move(id, card_use.from, NULL, Player::PlaceTable, Player::DiscardPile, reason);
+            moves2 << move;
+        }
+    }
+    if (!moves2.isEmpty())
+        room->moveCardsAtomic(moves2, true);
+
     thread->trigger(CardFinished, room, card_use.from, data);
 }
 
@@ -739,6 +812,35 @@ void Card::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets)
     QStringList no_offset_list = room->getTag("CardUseNoOffsetList").toStringList();
     bool all_no_offset = no_offset_list.contains("_ALL_TARGETS");
 
+    if (source) {
+        foreach (ServerPlayer *target, room->getAllPlayers(true)) {
+            if (all_no_respond || no_respond_list.contains(target->objectName()))
+                room->setCardFlag(this, "no_respond_" + source->objectName() + target->objectName());
+        }
+
+        foreach (ServerPlayer *target, room->getAllPlayers(true)) {
+            if (all_no_offset || no_offset_list.contains(target->objectName()))
+                room->setCardFlag(this, "no_offset_" + source->objectName() + target->objectName());
+        }
+    }
+
+
+    if (targets.isEmpty()) {
+        foreach (ServerPlayer *target, room->getAllPlayers(true)) {
+            if (all_no_respond || no_respond_list.contains(target->objectName()))
+                room->setPlayerMark(target, "no_respond_" + toString() + "-Clear", 1);
+            if (all_no_offset || no_offset_list.contains(target->objectName()))
+                room->setPlayerMark(target, "no_offset_" + toString() + "-Clear", 1);
+        }
+    }
+
+
+    if (source) {
+        QStringList users = room->getTag("CurrentCardUsers_" + toString()).toStringList();
+        users << source->objectName();
+        room->setTag("CurrentCardUsers_" + toString(), users);
+    }
+
     foreach (ServerPlayer *target, targets) {
         CardEffectStruct effect;
         effect.card = this;
@@ -750,29 +852,7 @@ void Card::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets)
         effect.no_offset = (all_no_offset || no_offset_list.contains(target->objectName()));
 
         room->cardEffect(effect);
-        if (!isKindOf("Slash")) {
-            const Card *card = getRealCard();
-            effect.to->removeQinggangTag(card);
-        }
     }
-
-    QList<int> card_ids;
-    if (isVirtualCard())
-        card_ids = subcards;
-    else
-        card_ids << getId();
-    QList<CardsMoveStruct> moves;
-    CardMoveReason reason(CardMoveReason::S_REASON_USE, source->objectName(), QString(), this->getSkillName(), QString());
-    if (targets.size() == 1) reason.m_targetId = targets.first()->objectName();
-    reason.m_extraData = QVariant::fromValue(this);
-    foreach (int id, card_ids) {
-        if (room->getCardPlace(id) == Player::PlaceTable) {
-            CardsMoveStruct move(id, source, NULL, Player::PlaceTable, Player::DiscardPile, reason);
-            moves << move;
-        }
-    }
-    if (!moves.isEmpty())
-        room->moveCardsAtomic(moves, true);
 }
 
 void Card::onEffect(const CardEffectStruct &) const
@@ -912,9 +992,12 @@ bool Card::sameNameWith(const QString &card_name, bool different_slash) const
     if (card_name == QString()) return false;
     if (different_slash && objectName() != card_name)
         return false;
+
     Card *card = Sanguosha->cloneCard(card_name);
+    if (!card) return objectName() == card_name;
     card->deleteLater();
-    if (isKindOf("Slash") && card->isKindOf("Slash"))
+
+    if (card && isKindOf("Slash") && card->isKindOf("Slash"))
         return true;
     return objectName() == card_name;
 }

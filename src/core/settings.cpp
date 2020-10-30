@@ -133,10 +133,12 @@ void Settings::init()
 
     BubbleChatBoxKeepTime = value("BubbleChatboxKeepTime", 2000).toInt();
 
-    QStringList roles_ban, kof_ban, hulao_ban, xmode_ban, bossmode_ban, basara_ban, hegemony_ban, pairs_ban;
+    QStringList roles_ban, kof_ban, doudizhu_ban, happy2v2_ban, hulao_ban, xmode_ban, bossmode_ban, basara_ban, hegemony_ban, pairs_ban;
 
     roles_ban = GetConfigFromLuaState(lua, "roles_ban").toStringList();
     kof_ban = GetConfigFromLuaState(lua, "kof_ban").toStringList();
+    doudizhu_ban = GetConfigFromLuaState(lua, "doudizhu_ban").toStringList();
+    happy2v2_ban = GetConfigFromLuaState(lua, "happy2v2_ban").toStringList();
     hulao_ban = GetConfigFromLuaState(lua, "hulao_ban").toStringList();
     xmode_ban = GetConfigFromLuaState(lua, "xmode_ban").toStringList();
     bossmode_ban = GetConfigFromLuaState(lua, "bossmode_ban").toStringList();
@@ -163,6 +165,22 @@ void Settings::init()
             banlist << ban_general;
 
         setValue("Banlist/1v1", banlist);
+    }
+
+    banlist = value("Banlist/Doudizhu").toStringList();
+    if (banlist.isEmpty()) {
+        foreach(QString ban_general, doudizhu_ban)
+            banlist << ban_general;
+
+        setValue("Banlist/Doudizhu", banlist);
+    }
+
+    banlist = value("Banlist/Happy2v2").toStringList();
+    if (banlist.isEmpty()) {
+        foreach(QString ban_general, happy2v2_ban)
+            banlist << ban_general;
+
+        setValue("Banlist/Happy2v2", banlist);
     }
 
     banlist = value("Banlist/BossMode").toStringList();

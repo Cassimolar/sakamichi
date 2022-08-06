@@ -404,6 +404,9 @@ public:
     QList<const Card *> askForPindianRace(ServerPlayer *from, ServerPlayer *to, const QString &reason);
     ServerPlayer *askForPlayerChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const QString &reason,
         const QString &prompt = QString(), bool optional = false, bool notify_skill = false);
+    QList<ServerPlayer *> askForPlayersChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets,
+        const QString &reason, int min_num = 0, int max_num = 2, const QString &prompt = QString(),
+        bool notify_skill = false, bool sort_ActionOrder = true);
     QString askForGeneral(ServerPlayer *player, const QStringList &generals, QString default_choice = QString());
     QString askForGeneral(ServerPlayer *player, const QString &generals, QString default_choice = QString());
     const Card *askForSinglePeach(ServerPlayer *player, ServerPlayer *dying);

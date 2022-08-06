@@ -6747,7 +6747,8 @@ ServerPlayer *Room::askForPlayerChosen(ServerPlayer *player, const QList<ServerP
         req << QVariant(req_targets);
         req << skillName;
         req << prompt;
-        req << optional;
+        req << 1;
+        req << (optional ? 0 : 1);
         bool success = doRequest(player, S_COMMAND_CHOOSE_PLAYER, req, true);
 
         const QVariant &clientReply = player->getClientReply();
@@ -6776,6 +6777,99 @@ ServerPlayer *Room::askForPlayerChosen(ServerPlayer *player, const QList<ServerP
         thread->trigger(ChoiceMade, this, player, data);
     }
     return choice;
+}
+
+QList<ServerPlayer *> Room::askForPlayersChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const QString &skillName,
+                      int min_num, int max_num, const QString &prompt, bool notify_skill, bool sort_ActionOrder)
+{
+    if (targets.length() <= min_num) {
+        QStringList names;
+        QList<ServerPlayer *> copys = targets;
+        if (sort_ActionOrder)
+            sortByActionOrder(copys);
+        foreach (ServerPlayer *p, copys)
+            names.append(p->objectName());
+        if (notify_skill) {
+            if (player->getAI())
+                thread->delay();
+            notifySkillInvoked(player, skillName);
+            QVariant decisionData = QVariant::fromValue("skillInvoke:" + skillName + ":yes");
+            thread->trigger(ChoiceMade, this, player, decisionData);
+            foreach (QString name, names)
+                doAnimate(S_ANIMATE_INDICATE, player->objectName(), name);
+            LogMessage log;
+            log.type = "#ChoosePlayerWithSkill";
+            log.from = player;
+            log.to << copys;
+            log.arg = skillName;
+            sendLog(log);
+        }
+        QVariant data = QString("%1:%2:%3").arg("playerChosen").arg(skillName).arg(names.join("+"));
+        thread->trigger(ChoiceMade, this, player, data);
+        return copys;
+    }
+
+    tryPause();
+    min_num = qMin(min_num, targets.length());
+    max_num = qMin(max_num, targets.length());
+    notifyMoveFocus(player, S_COMMAND_CHOOSE_PLAYER);
+    AI *ai = player->getAI();
+    QList<ServerPlayer *> result;
+    if (ai) {
+        result = ai->askForPlayersChosen(targets, skillName, max_num, min_num);
+        thread->delay();
+    } else {
+        JsonArray req;
+        JsonArray req_targets;
+        foreach (ServerPlayer *target, targets)
+            req_targets << target->objectName();
+        req << QVariant(req_targets);
+        req << skillName;
+        req << prompt;
+        req << max_num;
+        req << min_num;
+
+        bool success = doRequest(player, S_COMMAND_CHOOSE_PLAYER, req, true);
+
+        const QVariant &clientReply = player->getClientReply();
+        if (success && JsonUtils::isString(clientReply)) {
+            foreach (const QString &name, clientReply.toString().split("+")) {
+                if (targets.contains(findChild<ServerPlayer *>(name)))
+                    result << findChild<ServerPlayer *>(name);
+            }
+        }
+    }
+    if (result.length() < min_num) {
+        QList<ServerPlayer *> copy = targets;
+        foreach (ServerPlayer *p, result)
+            copy.removeOne(p);
+        while (result.length() < min_num)
+            result << copy.takeAt(qrand() % copy.length());
+
+    }
+    if (!result.isEmpty()) {
+        if (sort_ActionOrder)
+            sortByActionOrder(result);
+        if (notify_skill) {
+            notifySkillInvoked(player, skillName);
+            QVariant decisionData = QVariant::fromValue("skillInvoke:" + skillName + ":yes");
+            thread->trigger(ChoiceMade, this, player, decisionData);
+            foreach (ServerPlayer *choice, result)
+                doAnimate(S_ANIMATE_INDICATE, player->objectName(), choice->objectName());
+            LogMessage log;
+            log.type = "#ChoosePlayerWithSkill";
+            log.from = player;
+            log.to << result;
+            log.arg = skillName;
+            sendLog(log);
+        }
+        QStringList names;
+        foreach (ServerPlayer *p, result)
+            names.append(p->objectName());
+        QVariant data = QString("%1:%2:%3").arg("playerChosen").arg(skillName).arg(names.join("+"));
+        thread->trigger(ChoiceMade, this, player, data);
+    }
+    return result;
 }
 
 void Room::_setupChooseGeneralRequestArgs(ServerPlayer *player)

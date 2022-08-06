@@ -233,7 +233,7 @@ public slots:
     void onPlayerMakeChoice();
     void onPlayerChooseCard(int card_id = -2);
     void onPlayerChooseAG(int card_id);
-    void onPlayerChoosePlayer(const Player *player);
+    void onPlayerChoosePlayer(const QList<const Player *> &players);
     void trust();
     void addRobot(int num);
 

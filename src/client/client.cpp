@@ -1010,12 +1010,25 @@ void Client::onPlayerChooseCard(int card_id)
     setStatus(NotActive);
 }
 
-void Client::onPlayerChoosePlayer(const Player *player)
+void Client::onPlayerChoosePlayer(const QList<const Player *> &players)
 {
-    if (player == NULL && !m_isDiscardActionRefusable)
-        player = findChild<const Player *>(players_to_choose.first());
+    if (replayer) return;
+    QStringList names;
+    foreach (const Player *p, players)
+        names << p->objectName();
+    if (players.length() < choose_min_num && !m_isDiscardActionRefusable) {
+        QList<const Player*> to_choose;
+        foreach (const Player *p, findChildren<const Player *>()) {
+            if (!players.contains(p))
+                to_choose.append(p);
+        }
+        while (names.length() < choose_min_num) {
+            if (to_choose.isEmpty()) break;
+            names << to_choose.takeAt(qrand() % to_choose.length())->objectName();
+        }
+    }
 
-    replyToServer(S_COMMAND_CHOOSE_PLAYER, (player == NULL) ? QVariant() : player->objectName());
+    replyToServer(S_COMMAND_CHOOSE_PLAYER, (names.isEmpty()) ? QVariant() : names.join("+"));
     setStatus(NotActive);
 }
 
@@ -1800,8 +1813,9 @@ void Client::askForYiji(const QVariant &ask_str)
 void Client::askForPlayerChosen(const QVariant &players)
 {
     JsonArray args = players.value<JsonArray>();
-    if (args.size() != 4) return;
-    if (!JsonUtils::isString(args[1]) || !args[0].canConvert<JsonArray>() || !JsonUtils::isBool(args[3])) return;
+    if (args.size() != 5) return;
+    if (!JsonUtils::isString(args[1]) || !args[0].canConvert<JsonArray>() ||
+            !JsonUtils::isNumber(args[3]) || !JsonUtils::isNumber(args[4])) return;
 
     JsonArray choices = args[0].value<JsonArray>();
     if (choices.size() == 0) return;
@@ -1809,7 +1823,10 @@ void Client::askForPlayerChosen(const QVariant &players)
     players_to_choose.clear();
     for (int i = 0; i < choices.size(); i++)
         players_to_choose.push_back(choices[i].toString());
-    m_isDiscardActionRefusable = args[3].toBool();
+    m_isDiscardActionRefusable = (args[4].toInt() <= 0);
+
+    choose_max_num = args[3].toInt();
+    choose_min_num = args[4].toInt();
 
     QString text;
     QString description = Sanguosha->translate(ClientInstance->skill_name);
@@ -1820,7 +1837,12 @@ void Client::askForPlayerChosen(const QVariant &players)
         if (prompt.startsWith("@") && !description.isEmpty() && description != skill_name)
             text.append(tr("<br/> <b>Source</b>: %1<br/>").arg(description));
     } else {
-        text = tr("Please choose a player");
+        if (choose_max_num > 1 && choose_min_num > 0)
+            text = tr("Please choose  %1  to  %2  players").arg(choose_min_num).arg(choose_max_num);
+        else if (choose_max_num > 1 && choose_min_num <= 0)
+            text = tr("Plsase choose  %1  players at most").arg(choose_max_num);
+        else
+            text = tr("Please choose a player");
         if (!description.isEmpty() && description != skill_name)
             text.append(tr("<br/> <b>Source</b>: %1<br/>").arg(description));
     }

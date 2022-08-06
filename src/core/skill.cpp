@@ -85,8 +85,13 @@ QString Skill::getDescription() const
     if (Self) {
         QString name = objectName();
 
-        QString arg = "SkillDescriptionRecord_" + name;
+        QString arg = "SkillDescriptionRecord_" + name, choice_record1 = "SkillDescriptionChoiceRecord1_" + name,
+                choice_record2 = "SkillDescriptionChoiceRecord2_" + name;
+
         QString record = Self->property(arg.toStdString().c_str()).toString();
+        QString choice1 = Self->property(choice_record1.toStdString().c_str()).toString();
+        QString choice2 = Self->property(choice_record2.toStdString().c_str()).toString();
+
         if (!record.isEmpty()) {
             QStringList records = record.split("+");
             QString _record;
@@ -98,6 +103,30 @@ QString Skill::getDescription() const
             }
             if (!_record.isEmpty())
                 des_src.replace("%arg11", _record);
+        }
+        if (!choice1.isEmpty()) {
+            QStringList choices1 = choice1.split("+");
+            QString _record;
+            int length = choices1.length();
+            for (int i = 0; i < length; i++) {
+                _record.append(Sanguosha->translate(choices1.at(i)));
+                if (i == length - 1) break;
+                _record.append(";");
+            }
+            if (!_record.isEmpty())
+                des_src.replace("%arg21", _record);
+        }
+        if (!choice2.isEmpty()) {
+            QStringList choices2 = choice1.split("+");
+            QString _record;
+            int length = choices2.length();
+            for (int i = 0; i < length; i++) {
+                _record.append(Sanguosha->translate(choices2.at(i)));
+                if (i == length - 1) break;
+                _record.append(";");
+            }
+            if (!_record.isEmpty())
+                des_src.replace("%arg22", _record);
         }
 
         int mark1 = Self->getMark("SkillDescriptionArg1_" + name), mark2 = Self->getMark("SkillDescriptionArg2_" + name),

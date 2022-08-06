@@ -832,6 +832,7 @@ enum TriggerEvent {
     PreCardResponded,
     CardResponded,
 	PostCardResponded,
+	
     BeforeCardsMove, // sometimes we need to record cards before the move
     CardsMoveOneTime,
 
@@ -1458,6 +1459,9 @@ public:
     QList<const Card *> askForPindianRace(ServerPlayer *from, ServerPlayer *to, const char *reason);
     ServerPlayer *askForPlayerChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const char *reason,
                                      const char *prompt = NULL, bool optional = false, bool notify_skill = false);
+	QList<ServerPlayer *> askForPlayersChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets,
+        const char *reason, int min_num = 0, int max_num = 2, const char *prompt = QString(),
+        bool notify_skill = false, bool sort_ActionOrder = true);
 	QString askForGeneral(ServerPlayer *player, const char *generals, char *default_choice = NULL);
     const Card *askForSinglePeach(ServerPlayer *player, ServerPlayer *dying);
     void addPlayerHistory(ServerPlayer *player, const char *key, int times = 1);

@@ -5,9 +5,7 @@ TARGET = QSanguosha
 QT += network widgets
 !winrt: QT += declarative
 TEMPLATE = app
-CONFIG(release,debug|release) {
-	CONFIG += audio
-}
+CONFIG += audio
 CONFIG += lua
 
 CONFIG -= flat

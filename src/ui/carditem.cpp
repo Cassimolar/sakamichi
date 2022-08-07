@@ -295,7 +295,7 @@ void CardItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidge
 
         QRect rect = G_COMMON_LAYOUT.m_cardFootnoteArea;
 
-        const Card *card_now = Sanguosha->getCard(m_cardId, false);
+        const Card *card_now = Sanguosha->getEngineCard(m_cardId);
         if (card_now && !_m_showFootnote) {
             if (card->objectName() != card_now->objectName() || card->getSuit() != card_now->getSuit() || card->getNumber() != card_now->getNumber()) {
                 QString info = Sanguosha->translate(card_now->objectName());

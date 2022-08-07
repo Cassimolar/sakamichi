@@ -161,9 +161,15 @@ QWidget *ServerDialog::createPackageTab()
     QWidget *widget = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(disable_lua_checkbox);
-    layout->addWidget(box1);
-    layout->addWidget(box2);
 
+    QScrollArea *scroll1 = new QScrollArea;
+    scroll1->setWidget(box1);
+    scroll1->setMaximumHeight(300);
+    QScrollArea *scroll2 = new QScrollArea;
+    scroll2->setWidget(box2);
+    scroll2->setMaximumHeight(300);
+    layout->addWidget(scroll1);
+    layout->addWidget(scroll2);
     widget->setLayout(layout);
     return widget;
 }

@@ -93,3 +93,7 @@ src/bot_version.cpp
 *.ipch
 serverlist.log
 record/
+moc_*
+*.o
+.qmake.stash
+QSanguosha.gch

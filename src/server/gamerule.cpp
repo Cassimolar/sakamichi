@@ -748,7 +748,7 @@ bool GameRule::trigger(TriggerEvent triggerEvent, Room *room, ServerPlayer *play
 
         if (use.from) {
             QStringList users = room->getTag("CurrentCardUsers_" + use.card->toString()).toStringList();
-            users.removeOne(users.last());
+            if (!users.isEmpty()) users.removeOne(users.last());
             room->setTag("CurrentCardUsers_" + use.card->toString(), users);
         }
 

@@ -281,27 +281,13 @@ sgs.ai_skill_choice["oljixi"] = function(self, choices, data)
     end
     return "wangzun"
 end
---[[
-    技能：雷击
-    描述：当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为：♠，你对该角色造成2点雷电伤害；♣，你回复1点体力，然后对该角色造成1点雷电伤害。
-]]--
---room->askForPlayerChosen(player, others, "olleiji", "@olleiji", true, true)
-sgs.ai_skill_playerchosen["olleiji"] = function(self, targets)
-    --
-end
---[[
-    技能：鬼道
-    描述：每当一名角色的判定牌生效前，你可以打出一张黑色牌替换之。
-]]--
---[[
-    技能：黄天（主公技、阶段技）
-    描述：其他群雄角色的出牌阶段，该角色可以交给你一张【闪】或【闪电】。
-]]--
+
 --[[
     技能：仁德
     描述：出牌阶段，你可以将任意张手牌交给一名其他角色，然后你于此阶段内不能再次以此法交给该角色牌。当你以此法交给其他角色的牌数在同一阶段内首次达到两张或更多时，你回复1点体力
 ]]--
-local function OlRendeArrange(self, cards, friends, enemies, unknowns, arrange)
+function OlRendeArrange(self, cards, friends, enemies, unknowns, arrange, recover_only)
+	recover_only = recover_only or true
     if #enemies > 0 then
         self:sort(enemies, "hp")
         for _,card in ipairs(cards) do
@@ -561,7 +547,36 @@ local function OlRendeArrange(self, cards, friends, enemies, unknowns, arrange)
             end
         end
     end
-    if arrange["count"] < 2 and self.player:getLostHp() > 0 and self.player:getHandcardNum() >= 2 and self:isWeak() then
+	
+	local slash = sgs.Sanguosha:cloneCard("slash")
+	slash:deleteLater()
+	local will_use_slash = false
+	local dummy_use = { isDummy = true, to = sgs.SPlayerList(), current_targets = {} }
+	self:useCardSlash(slash, dummy_use)
+	if dummy_use.card and dummy_use.to:length() > 0 then
+		will_use_slash = true
+	end
+	if not will_use_slash then
+		local fire_slash = sgs.Sanguosha:cloneCard("fire_slash")
+		fire_slash:deleteLater()
+		local dummy_use = { isDummy = true, to = sgs.SPlayerList(), current_targets = {} }
+		self:useCardSlash(fire_slash, dummy_use)
+		if dummy_use.card and dummy_use.to:length() > 0 then
+			will_use_slash = true
+		end
+		if not will_use_slash then
+			local thunder_slash = sgs.Sanguosha:cloneCard("thunder_slash")
+			thunder_slash:deleteLater()
+			local dummy_use = { isDummy = true, to = sgs.SPlayerList(), current_targets = {} }
+			self:useCardSlash(thunder_slash, dummy_use)
+			if dummy_use.card and dummy_use.to:length() > 0 then
+				will_use_slash = true
+			end
+		end
+	end
+	
+    if arrange["count"] < 2 and self.player:getHandcardNum() >= 2 and ((self.player:getLostHp() > 0 and self:isWeak()) or
+		(not recover_only and will_use_slash)) then
         if #friends > 0 then
             return friends[1], cards[1], "friend"
         elseif #unknowns > 0 then
@@ -591,7 +606,7 @@ local function resetPlayers(players, except)
     end
     return result
 end
-local rende_skill = {
+--[[local rende_skill = {
     name = "olrende",
     getTurnUseCard = function(self, inclusive)
         if not self.player:isKongcheng() then
@@ -700,8 +715,20 @@ end
 sgs.ai_use_value.OlRendeCard = sgs.ai_use_value.RendeCard
 sgs.ai_use_priority.OlRendeCard = sgs.ai_use_priority.RendeCard
 sgs.ai_card_intention.OlRendeCard = sgs.ai_card_intention.RendeCard
-sgs.dynamic_value.benefit.OlRendeCard = true
+sgs.dynamic_value.benefit.OlRendeCard = true]]
 --[[
     技能：激将（主公技）
     描述：每当你需要使用或打出一张【杀】时，你可以令其他蜀势力角色打出一张【杀】，视为你使用或打出之。
-]]--
+]]
+
+sgs.ai_skill_choice.fengpo = function(self, choices, data)
+	local use = data:toCardUse()
+	local to, slash = use.to:first(), use.card
+	if to:isDead() or not self:isEnemy(to) or not self:slashIsEffective(slash, to, from) then return "drawCards" end
+	local nature = sgs.DamageStruct_Normal
+	if slash:isKindOf("FireSlash") then nature = sgs.DamageStruct_Fire
+	elseif slash:isKindOf("ThunderSlash") then nature = sgs.DamageStruct_Thunder end
+	if not self:damageIsEffective(to, nature, from) then return "drawCards" end
+	if getCardsNum("Jink", to, self.player) == 0 and not self:cantDamageMore(self.player, to) then return "addDamage" end
+	return "drawCards"
+end

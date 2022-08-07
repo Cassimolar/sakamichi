@@ -1,114 +1,130 @@
-local function card_for_qiaobian(self, who, return_prompt)
+function card_for_qiaobian(self, who, return_prompt, flag, to_friends, to_enemies)
+	flag = flag or "ej"
+	to_friends = to_friends or self.friends
+	to_enemies = to_enemies or self.enemies
 	local card, target
 	if self:isFriend(who) then
-		local judges = who:getJudgingArea()
-		if not judges:isEmpty() then
-			for _, judge in sgs.qlist(judges) do
-				card = sgs.Sanguosha:getCard(judge:getEffectiveId())
-				if not judge:isKindOf("YanxiaoCard") then
-					for _, enemy in ipairs(self.enemies) do
-						if not enemy:containsTrick(judge:objectName()) and not enemy:containsTrick("YanxiaoCard")
-							and not self.room:isProhibited(self.player, enemy, judge) and not (enemy:hasSkill("hongyan") or judge:isKindOf("Lightning")) then
-							target = enemy
-							break
+		if flag:match("j") then
+			local judges = who:getJudgingArea()
+			if not judges:isEmpty() then
+				for _, judge in sgs.qlist(judges) do
+					card = sgs.Sanguosha:getCard(judge:getEffectiveId())
+					if not judge:isKindOf("YanxiaoCard") then
+						for _, enemy in ipairs(to_enemies) do
+							if not enemy:containsTrick(judge:objectName()) and not enemy:containsTrick("YanxiaoCard")
+								and not self.room:isProhibited(self.player, enemy, judge) and not (enemy:hasSkills("hongyan|olhongyan") or judge:isKindOf("Lightning")) then
+								target = enemy
+								break
+							end
 						end
+						if target then break end
 					end
-					if target then break end
 				end
 			end
 		end
-
-		local equips = who:getCards("e")
-		local weak
-		if not target and not equips:isEmpty() and self:hasSkills(sgs.lose_equip_skill, who) then
-			for _, equip in sgs.qlist(equips) do
-				if equip:isKindOf("OffensiveHorse") then card = equip break
-				elseif equip:isKindOf("Weapon") then card = equip break
-				elseif equip:isKindOf("DefensiveHorse") and not self:isWeak(who) then
-					card = equip
-					break
-				elseif equip:isKindOf("Armor") and (not self:isWeak(who) or self:needToThrowArmor(who)) then
-					card = equip
-					break
-				end
-			end
-
-			if card then
-				if card:isKindOf("Armor") or card:isKindOf("DefensiveHorse") then
-					self:sort(self.friends, "defense")
-				else
-					self:sort(self.friends, "handcard")
-					self.friends = sgs.reverse(self.friends)
-				end
-
-				for _, friend in ipairs(self.friends) do
-					if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName()
-						and self:hasSkills(sgs.need_equip_skill .. "|" .. sgs.lose_equip_skill, friend) then
-							target = friend
-							break
+		if flag:match("e") then
+			local equips = who:getCards("e")
+			local weak
+			if not target and not equips:isEmpty() and self:hasSkills(sgs.lose_equip_skill, who) then
+				for _, equip in sgs.qlist(equips) do
+					if equip:isKindOf("OffensiveHorse") then card = equip break
+					elseif equip:isKindOf("Weapon") then card = equip break
+					elseif equip:isKindOf("DefensiveHorse") and not self:isWeak(who) then
+						card = equip
+						break
+					elseif equip:isKindOf("Armor") and (not self:isWeak(who) or self:needToThrowArmor(who)) then
+						card = equip
+						break
 					end
 				end
-				for _, friend in ipairs(self.friends) do
-					if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() then
-						target = friend
-						break
+
+				if card then
+					local index = card:getRealCard():toEquipCard():location()
+					if card:isKindOf("Armor") or card:isKindOf("DefensiveHorse") then
+						self:sort(to_friends, "defense")
+					else
+						self:sort(to_friends, "handcard")
+						to_friends = sgs.reverse(to_friends)
+					end
+
+					for _, friend in ipairs(to_friends) do
+						if not friend:hasEquipArea(index) then continue end
+						if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName()
+							and self:hasSkills(sgs.need_equip_skill .. "|" .. sgs.lose_equip_skill, friend) then
+								target = friend
+								break
+						end
+					end
+					for _, friend in ipairs(to_friends) do
+						if not friend:hasEquipArea(index) then continue end
+						if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() then
+							target = friend
+							break
+						end
 					end
 				end
 			end
 		end
 	else
-		local judges = who:getJudgingArea()
-		if who:containsTrick("YanxiaoCard") then
-			for _, judge in sgs.qlist(judges) do
-				if judge:isKindOf("YanxiaoCard") then
-					card = sgs.Sanguosha:getCard(judge:getEffectiveId())
-					for _, friend in ipairs(self.friends) do
-						if not friend:containsTrick(judge:objectName()) and not self.room:isProhibited(self.player, friend, judge)
-							and not friend:getJudgingArea():isEmpty() then
-							target = friend
-							break
+		if flag:match("j") then
+			local judges = who:getJudgingArea()
+			if who:containsTrick("YanxiaoCard") then
+				for _, judge in sgs.qlist(judges) do
+					if judge:isKindOf("YanxiaoCard") then
+						card = sgs.Sanguosha:getCard(judge:getEffectiveId())
+						for _, friend in ipairs(to_friends) do
+							if not friend:containsTrick(judge:objectName()) and not self.room:isProhibited(self.player, friend, judge)
+								and not friend:getJudgingArea():isEmpty() then
+								target = friend
+								break
+							end
 						end
-					end
-					if target then break end
-					for _, friend in ipairs(self.friends) do
-						if not friend:containsTrick(judge:objectName()) and not self.room:isProhibited(self.player, friend, judge) then
-							target = friend
-							break
+						if target then break end
+						for _, friend in ipairs(to_friends) do
+							if not friend:containsTrick(judge:objectName()) and not self.room:isProhibited(self.player, friend, judge) then
+								target = friend
+								break
+							end
 						end
+						if target then break end
 					end
-					if target then break end
 				end
 			end
 		end
-		if card==nil or target==nil then
-			if not who:hasEquip() or self:hasSkills(sgs.lose_equip_skill, who) then return nil end
-			local card_id = self:askForCardChosen(who, "e", "snatch")
-			if card_id >= 0 and who:hasEquip(sgs.Sanguosha:getCard(card_id)) then card = sgs.Sanguosha:getCard(card_id) end
+		if flag:match("e") then
+			if card==nil or target==nil then
+				if not who:hasEquip() or self:hasSkills(sgs.lose_equip_skill, who) then return nil end
+				local card_id = self:askForCardChosen(who, "e", "snatch")
+				if card_id >= 0 and who:hasEquip(sgs.Sanguosha:getCard(card_id)) then card = sgs.Sanguosha:getCard(card_id) end
 
-			if card then
-				if card:isKindOf("Armor") or card:isKindOf("DefensiveHorse") then
-					self:sort(self.friends, "defense")
-				else
-					self:sort(self.friends, "handcard")
-					self.friends = sgs.reverse(self.friends)
-				end
-
-				for _, friend in ipairs(self.friends) do
-					if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() and self:hasSkills(sgs.lose_equip_skill .. "|shensu" , friend) then
-						target = friend
-						break
+				if card then
+					local index = card:getRealCard():toEquipCard():location()
+					if card:isKindOf("Armor") or card:isKindOf("DefensiveHorse") then
+						self:sort(to_friends, "defense")
+					else
+						self:sort(to_friends, "handcard")
+						to_friends = sgs.reverse(to_friends)
 					end
-				end
-				for _, friend in ipairs(self.friends) do
-					if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() then
-						target = friend
-						break
+
+					for _, friend in ipairs(to_friends) do
+						if not friend:hasEquipArea(index) then continue end
+						if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() and self:hasSkills(sgs.lose_equip_skill .. "|shensu|tenyearshensu" , friend) then
+							target = friend
+							break
+						end
+					end
+					for _, friend in ipairs(to_friends) do
+						if not friend:hasEquipArea(index) then continue end
+						if not self:getSameEquip(card, friend) and friend:objectName() ~= who:objectName() then
+							target = friend
+							break
+						end
 					end
 				end
 			end
 		end
 	end
-
+	
 	if return_prompt == "card" then return card
 	elseif return_prompt == "target" then return target
 	else
@@ -333,9 +349,10 @@ function sgs.ai_cardneed.qiaobian(to, card)
 end
 
 sgs.ai_skill_invoke.tuntian = function(self, data)
-	if self.player:hasSkill("zaoxian") and #self.enemies == 1 and self.room:alivePlayerCount() == 2
-		and self.player:getMark("zaoxian") == 0 and self:hasSkills("noswuyan|qianxun", self.enemies[1]) then
+	if #self.enemies == 1 and self.room:alivePlayerCount() == 2 and self:hasSkills("noswuyan|qianxun", self.enemies[1]) then
+		if (self.player:hasSkill("zaoxian") and self.player:getMark("zaoxian") == 0) or (self.player:hasSkill("olzaoxian") and self.player:getMark("olzaoxian") == 0) then
 			return false
+		end
 	end
 	return true
 end
@@ -836,7 +853,7 @@ sgs.ai_skill_use_func.ZhijianCard = function(card, use, self)
 				local slash = self:getCard("Slash")
 				for _, enemy in ipairs(self.enemies) do
 					if self.player:canSlash(enemy, slash, true) and not self:slashProhibit(slash, enemy) and
-						self:slashIsEffective(slash, enemy) and not self.player:hasSkill("jueqing") and enemy:isKongcheng() then
+						self:slashIsEffective(slash, enemy) and not hasJueqingEffect(self.player, enemy) and enemy:isKongcheng() then
 							HeavyDamage = true
 							break
 					end
@@ -855,6 +872,8 @@ sgs.ai_skill_use_func.ZhijianCard = function(card, use, self)
 	local select_equip, target
 	for _, friend in ipairs(self.friends_noself) do
 		for _, equip in ipairs(equips) do
+			local index = equip:getRealCard():toEquipCard():location()
+			if not friend:hasEquipArea(index) then continue end
 			if not self:getSameEquip(equip, friend) and self:hasSkills(sgs.need_equip_skill .. "|" .. sgs.lose_equip_skill, friend) then
 				target = friend
 				select_equip = equip
@@ -863,6 +882,8 @@ sgs.ai_skill_use_func.ZhijianCard = function(card, use, self)
 		end
 		if target then break end
 		for _, equip in ipairs(equips) do
+			local index = equip:getRealCard():toEquipCard():location()
+			if not friend:hasEquipArea(index) then continue end
 			if not self:getSameEquip(equip, friend) then
 				target = friend
 				select_equip = equip
@@ -901,11 +922,11 @@ sgs.ai_skill_use["@@guzheng"] = function(self, data)
 	local cards, except_Equip, except_Key = {}, {}, {}
 	for _, card_id in ipairs(card_ids) do
 		local card = sgs.Sanguosha:getCard(card_id)
-		if self.player:hasSkill("zhijian") and not card:isKindOf("EquipCard") then
+		if self.player:hasSkills("zhijian|mobilezhijianzhan") and not card:isKindOf("EquipCard") then
 			table.insert(except_Equip, card)
 		end
 		if not card:isKindOf("Peach") and not card:isKindOf("Jink") and not card:isKindOf("Analeptic") and
-			not card:isKindOf("Nullification") and not (card:isKindOf("EquipCard") and self.player:hasSkill("zhijian")) then
+			not card:isKindOf("Nullification") and not (card:isKindOf("EquipCard") and self.player:hasSkills("zhijian|mobilezhijianzhan")) then
 			table.insert(except_Key, card)
 		end
 		table.insert(cards, card)
@@ -992,7 +1013,7 @@ sgs.ai_skill_use["@@guzheng"] = function(self, data)
 		end
 
 		for _, card in ipairs(cards) do
-			if card:isKindOf("EquipCard") and self.player:hasSkill("zhijian") then
+			if card:isKindOf("EquipCard") and self.player:hasSkills("zhijian|mobilezhijianzhan") then
 				local Cant_Zhijian = true
 				for _, friend in ipairs(self.friends) do
 					if not self:getSameEquip(card, friend) then
@@ -1051,7 +1072,7 @@ function sgs.ai_cardneed.beige(to, card)
 end
 
 function sgs.ai_slash_prohibit.duanchang(self, from, to)
-	if from:hasSkill("jueqing") or (from:hasSkill("nosqianxi") and from:distanceTo(to) == 1) then return false end
+	if hasJueqingEffect(from, to) or (from:hasSkill("nosqianxi") and from:distanceTo(to) == 1) then return false end
 	if from:hasFlag("NosJiefanUsed") then return false end
 	if to:getHp() > 1 or #(self:getEnemies(from)) == 1 then return false end
 	if from:getMaxHp() == 3 and from:getArmor() and from:getDefensiveHorse() then return false end

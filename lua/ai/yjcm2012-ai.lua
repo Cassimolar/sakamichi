@@ -249,6 +249,23 @@ sgs.ai_skill_askforyiji.miji = function(self, card_ids)
 	return nil, -1
 end
 
+sgs.ai_skill_invoke.secondmiji = function(self, data)
+	for _, friend in ipairs(self.friends) do
+		if self:canDraw(friend) then return true end
+	end
+	return false
+end
+
+sgs.ai_skill_askforyiji.secondmiji = function(self, card_ids)
+	local optional = self.player:getTag("SecondMijiOptional"):toBool()
+	
+	if optional then
+		return sgs.ai_skill_askforyiji.nosyiji(self, card_ids)
+	end
+	
+	return sgs.ai_skill_askforyiji.miji(self, card_ids)
+end
+
 function sgs.ai_cardneed.jiangchi(to, card, self)
 	return isCard("Slash", card, to) and getKnownCard(to, self.player, "Slash", true) < 2
 end
@@ -769,7 +786,7 @@ function sgs.ai_cardneed.chunlao(to, card)
 end
 
 sgs.ai_skill_use["@@chunlao"] = function(self, prompt)
-	if prompt ~= "@chunlao" then return "." end
+	if prompt ~= "@chunlao" and prompt ~= "@tenyearchunlao" and prompt ~= "@secondtenyearchunlao" then return "." end
 	local slashcards={}
 	local chunlao = self.player:getPile("wine")
 	local cards = self.player:getCards("h")
@@ -790,6 +807,7 @@ function sgs.ai_cardsview_valuable.chunlao(self, class_name, player)
 		local dying = player:getRoom():getCurrentDyingPlayer()
 		if dying then
 			local analeptic = sgs.Sanguosha:cloneCard("analeptic")
+			analeptic:deleteLater()
 			if dying:isLocked(analeptic) then return nil end
 			return "@ChunlaoWineCard=" .. tostring(player:getPile("wine"):first())
 		end
@@ -981,3 +999,6 @@ sgs.ai_skill_use_func.QiceCard = function(card, use, self)
 end
 
 sgs.ai_use_priority.QiceCard = 1.5
+
+sgs.ai_skill_invoke["newzishou"] = sgs.ai_skill_invoke["zishou"]
+sgs.ai_skill_invoke["olzishou"] = sgs.ai_skill_invoke["zishou"]

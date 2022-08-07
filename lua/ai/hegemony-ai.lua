@@ -411,7 +411,7 @@ sgs.ai_skill_use["@@shuangren"] = function(self, prompt)
 			end
 		end
 		for _, enemy in ipairs(self.enemies) do
-			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and not self.player:canPindian(enemy) then
+			if not (enemy:hasSkill("kongcheng") and enemy:getHandcardNum() == 1) and self.player:canPindian(enemy) then
 				if max_point >= 10 then
 					self.shuangren_card = max_card:getEffectiveId()
 					return "@ShuangrenCard=.->" .. enemy:objectName()

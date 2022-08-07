@@ -216,8 +216,12 @@ sgs.ai_skill_cardask["@jieyuan-increase"] = function(self, data)
 	if not self:isEnemy(target) then return "." end
 	if target:hasArmorEffect("silver_lion") then return "." end
 	local cards = sgs.QList2Table(self.player:getHandcards())
+	if self.player:getMark("jieyuan_renegade-Keep") > 0 then
+		cards = sgs.QList2Table(self.player:getCards("he"))
+	end
 	self:sortByKeepValue(cards)
 	for _,card in ipairs(cards) do
+		if self.player:getMark("jieyuan_renegade-Keep") > 0 then return "$" .. card:getEffectiveId() end
 		if card:isBlack() then return "$" .. card:getEffectiveId() end
 	end
 	return "."
@@ -226,10 +230,14 @@ end
 sgs.ai_skill_cardask["@jieyuan-decrease"] = function(self, data)
 	local damage = data:toDamage()
 	local cards = sgs.QList2Table(self.player:getHandcards())
+	if self.player:getMark("jieyuan_renegade-Keep") > 0 then
+		cards = sgs.QList2Table(self.player:getCards("he"))
+	end
 	self:sortByKeepValue(cards)
 	if damage.card and damage.card:isKindOf("Slash") then
 		if self:hasHeavySlashDamage(damage.from, damage.card, self.player) then
 			for _,card in ipairs(cards) do
+				if self.player:getMark("jieyuan_renegade-Keep") > 0 then return "$" .. card:getEffectiveId() end
 				if card:isRed() then return "$" .. card:getEffectiveId() end
 			end
 		end
@@ -237,12 +245,16 @@ sgs.ai_skill_cardask["@jieyuan-decrease"] = function(self, data)
 	if self:getDamagedEffects(self.player, damage.from) and damage.damage <= 1 then return "." end
 	if self:needToLoseHp(self.player, damage.from) and damage.damage <= 1 then return "." end
 	for _,card in ipairs(cards) do
+		if self.player:getMark("jieyuan_renegade-Keep") > 0 then return "$" .. card:getEffectiveId() end
 		if card:isRed() then return "$" .. card:getEffectiveId() end
 	end
 	return "."
 end
 
 function sgs.ai_cardneed.jieyuan(to, card)
+	if to:getMark("jieyuan_renegade-Keep") > 0 then
+		return to:getHandcardNum() < 4 and (to:getHp() >= 3 and true)
+	end
 	return to:getHandcardNum() < 4 and (to:getHp() >= 3 and true or card:isRed())
 end
 

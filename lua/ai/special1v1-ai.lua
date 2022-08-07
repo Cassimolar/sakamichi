@@ -4,7 +4,7 @@ function SmartAI:useCardDrowning(card, use)
 	local targets, equip_enemy = {}, {}
 	for _, enemy in ipairs(self.enemies) do
 		if (not use.current_targets or not table.contains(use.current_targets, enemy:objectName()))
-			and self:hasTrickEffective(card, enemy) and self:damageIsEffective(enemy) and self:canAttack(enemy)
+			and self:hasTrickEffective(card, enemy) and self:damageIsEffective(enemy, sgs.DamageStruct_Thunder, self.player) and self:canAttack(enemy)
 			and not self:getDamagedEffects(enemy, self.player) and not self:needToLoseHp(enemy, self.player) then
 			if enemy:hasEquip() then table.insert(equip_enemy, enemy)
 			else table.insert(targets, enemy)
@@ -46,7 +46,7 @@ end
 
 sgs.ai_card_intention.Drowning = function(self, card, from, tos)
 	for _, to in ipairs(tos) do
-		if not self:hasTrickEffective(card, to, from) or not self:damageIsEffective(to, sgs.DamageStruct_Normal, from)
+		if not self:hasTrickEffective(card, to, from) or not self:damageIsEffective(to, sgs.DamageStruct_Thunder, from)
 			or self:needToThrowArmor(to) then
 		else
 			sgs.updateIntention(from, to, 80)
@@ -59,7 +59,7 @@ sgs.ai_use_priority.Drowning = 7
 
 sgs.ai_skill_choice.drowning = function(self, choices, data)
 	local effect = data:toCardEffect()
-	if not self:damageIsEffective(self.player, sgs.DamageStruct_Normal, effect.from)
+	if not self:damageIsEffective(self.player, sgs.DamageStruct_Thunder, effect.from)
 		or self:needToLoseHp(self.player, effect.from)
 		or self:getDamagedEffects(self.player, effect.from) then return "damage" end
 	if self:isWeak() and not self:needDeath() then return "throw" end

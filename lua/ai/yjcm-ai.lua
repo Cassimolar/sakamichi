@@ -187,9 +187,14 @@ sgs.ai_choicemade_filter.skillInvoke.enyuan = function(self, player, promptlist)
 end
 
 sgs.ai_skill_discard.enyuan = function(self, discard_num, min_num, optional, include_equip)
-	local to_discard = {}
+	if self.player:hasSkill("zhaxiang") and (self.player:getHp() > 1 or hasBuquEffect(self.player) or self:getSaveNum(true) >= 1) then return {} end
+
+	local damage = self.player:getTag("enyuan_data"):toDamage()
+	if not damage then return {} end
+	local fazheng = damage.to
+    if not fazheng then return {} end
+    local to_discard = {}
 	local cards = self.player:getHandcards()
-	local fazheng = self.room:findPlayerBySkillName("enyuan")
 	cards = sgs.QList2Table(cards)
 	if self:needToLoseHp(self.player, fazheng, nil, true) and not self:hasSkills(sgs.masochism_skill) then return {} end
 	if self:isFriend(fazheng) then
@@ -376,7 +381,7 @@ sgs.ai_skill_invoke.xuanfeng = function(self, data)
 			return true
 		end
 	end
-	for _, friend in ipairs(self.friends) do
+	for _, friend in ipairs(self.friends_noself) do
 		if(self:hasSkills(sgs.lose_equip_skill, friend) and not friend:getEquips():isEmpty())
 		or (self:needToThrowArmor(friend) and friend:getArmor()) or self:doNotDiscard(friend) then
 			return true
@@ -394,7 +399,7 @@ sgs.ai_skill_playerchosen.xuanfeng = function(self, targets)
 			return enemy
 		end
 	end
-	for _, friend in ipairs(self.friends) do
+	for _, friend in ipairs(self.friends_noself) do
 		if(self:hasSkills(sgs.lose_equip_skill, friend) and not friend:getEquips():isEmpty())
 		or (self:needToThrowArmor(friend) and friend:getArmor()) or self:doNotDiscard(friend) then
 			return friend
@@ -472,7 +477,7 @@ sgs.ai_skill_use_func.GanluCard = function(card, use, self)
 
 	for _, friend in ipairs(self.friends) do
 		for _, enemy in ipairs(self.enemies) do
-			if not self:hasSkills(sgs.lose_equip_skill, enemy) and not enemy:hasSkills("tuntian+zaoxian") then
+			if not self:hasSkills(sgs.lose_equip_skill, enemy) and not hasTuntianEffect(enemy, true) then
 				local ee = enemy:getEquips():length()
 				local fe = friend:getEquips():length()
 				local value = self:evaluateArmor(enemy:getArmor(),friend) - self:evaluateArmor(friend:getArmor(),enemy)
@@ -505,7 +510,7 @@ sgs.ai_skill_use_func.GanluCard = function(card, use, self)
 	target = nil
 	for _, friend in ipairs(self.friends) do
 		if self:needToThrowArmor(friend) or ((self:hasSkills(sgs.lose_equip_skill, friend)
-											or (friend:hasSkills("tuntian+zaoxian") and friend:getPhase() == sgs.Player_NotActive))
+											or (hasTuntianEffect(friend, true)  and friend:getPhase() == sgs.Player_NotActive))
 			and not friend:getEquips():isEmpty()) then
 				target = friend
 				break

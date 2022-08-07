@@ -285,8 +285,10 @@ sgs.ai_skill_askforag.manjuan = function(self, card_ids)
 	return cards[#cards]:getEffectiveId()
 end
 
-function hasManjuanEffect(player)
-	return player:hasSkill("manjuan") and player:getPhase() == sgs.Player_NotActive
+function hasManjuanEffect(player, manjuan_only)
+	if player:hasSkill("manjuan") and player:getPhase() == sgs.Player_NotActive then return true end
+	if not manjuan_only and player:hasSkill("zishu") and self.room:hasCurrent() and global_room:getCurrent():objectName() ~= player:objectName() then return true end
+	return false
 end
 
 sgs.ai_cardneed.jie = function(to, card)

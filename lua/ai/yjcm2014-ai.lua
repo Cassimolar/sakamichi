@@ -3,7 +3,8 @@ dingpin_skill.name = "dingpin"
 table.insert(sgs.ai_skills, dingpin_skill)
 dingpin_skill.getTurnUseCard = function(self, inclusive)
 	sgs.ai_use_priority.DingpinCard = 0
-	if not self.player:canDiscard(self.player, "h") or self.player:getMark("dingpin") == 0xE then return false end
+	--if not self.player:canDiscard(self.player, "h") or self.player:getMark("dingpin") == 0xE then return false end
+	if not self.player:canDiscard(self.player, "h") then return false end
 	for _, p in sgs.qlist(self.room:getAlivePlayers()) do
 		if not p:hasFlag("dingpin") and p:isWounded() then
 			if not self:toTurnOver(self.player) then sgs.ai_use_priority.DingpinCard = 8.9 end
@@ -15,18 +16,19 @@ sgs.ai_skill_use_func.DingpinCard = function(card, use, self)
 	local cards = {}
 	local cardType = {}
 	for _, card in sgs.qlist(self.player:getHandcards()) do
-		if bit32.band(self.player:getMark("dingpin"), bit32.lshift(1, card:getTypeId())) == 0 then
+		--if bit32.band(self.player:getMark("dingpin"), bit32.lshift(1, card:getTypeId())) == 0 then
+		if self.player:canDiscard(self.player, card:getEffectiveId()) and self.player:getMark("dingpin_" .. card:getType() .. "-Clear") == 0 then
 			table.insert(cards, card)
 			if not table.contains(cardType, card:getTypeId()) then table.insert(cardType, card:getTypeId()) end
 		end
 	end
-	for _, id in sgs.qlist(self.player:getPile("wooden_ox")) do
+	--[[for _, id in sgs.qlist(self.player:getPile("wooden_ox")) do
 		local card = sgs.Sanguosha:getCard(id)
 		if bit32.band(self.player:getMark("dingpin"), bit32.lshift(1, card:getTypeId())) == 0 then
 			table.insert(cards, card)
 			if not table.contains(cardType, card:getTypeId()) then table.insert(cardType, card:getTypeId()) end
 		end
-	end
+	end]]
 	if #cards == 0 then return end
 	self:sortByUseValue(cards, true)
 	if self:isValuableCard(cards[1]) then return end
@@ -101,11 +103,14 @@ end
 
 sgs.ai_skill_invoke.yonglve = function(self)
 	local current = self.room:getCurrent()
-	if self:isFriend(current) and self:askForCardChosen(current, "h", "dummyReason", sgs.Card_MethodDiscard) then
-		if not self:slashIsEffective(sgs.Sanguosha:cloneCard("slash"), current, self.player) then return true end
+	local slash = sgs.Sanguosha:cloneCard("slash")
+	slash:setSkillName("_yonglve")
+	slash:deleteLater()
+	if self:isFriend(current) and self:askForCardChosen(current, "j", "dummyReason", sgs.Card_MethodDiscard) then
+		if not self:slashIsEffective(slash, current, self.player) then return true end
 		if not self:isWeak(current) or getKnownCard(current, self.player, "Jink") > 0 then return true end
 	elseif self:isEnemy(current) then
-		if self:askForCardChosen(current, "h", "dummyReason", sgs.Card_MethodDiscard) then return true end
+		if self:askForCardChosen(current, "j", "dummyReason", sgs.Card_MethodDiscard) then return true end
 		for _, card in sgs.qlist(current:getJudgingArea()) do
 			if card:isKindOf("SupplyShortage") and (current:getHandcardNum() > 4 or current:containsTrick("indulgence")) then
 				sgs.ai_skill_cardchosen.yonglve = card:getEffectiveId()
@@ -116,7 +121,7 @@ sgs.ai_skill_invoke.yonglve = function(self)
 			end
 		end
 		if self:isWeak(current) and current:getHp() == 1 and (sgs.card_lack[current:objectName()]["Jink"] == 1 or getCardsNum("Jink", current, self.player) == 0)
-			and self:slashIsEffective(sgs.Sanguosha:cloneCard("slash"), current, self.player) then
+			and self:slashIsEffective(slash, current, self.player) then
 			sgs.ai_skill_cardchosen.yonglve = self:getCardRandomly(current, "j")
 			return true
 		end

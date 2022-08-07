@@ -57,3 +57,8 @@ sgs.ai_skill_askforag.xiuluo = function(self, card_ids)
 	end
 	return card_ids[1]
 end
+
+sgs.ai_skill_choice.hulaopass_shenlvbu = function(self, choices, data)  --待补充
+	local lvbus = choices:split("+")
+	return lvbus[math.random(1, #lvbus)]
+end

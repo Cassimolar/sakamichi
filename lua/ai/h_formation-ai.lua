@@ -327,13 +327,14 @@ sgs.ai_skill_choice.qianhuan = function(self, choices, data)
 	return "accept"
 end
 
-local function will_discard_zhendu(self)
+function will_discard_zhendu(self, skill_name)
 	local current = self.room:getCurrent()
 	local need_damage = self:getDamagedEffects(current, self.player) or self:needToLoseHp(current, self.player)
 	if self:isFriend(current) then
 		if current:getMark("drank") > 0 and not need_damage then return -1 end
 		if (getKnownCard(current, self.player, "Slash") > 0 or (getCardsNum("Slash", current, self.player) >= 1 and current:getHandcardNum() >= 2))
-			and (not self:damageIsEffective(current, nil, self.player) or current:getHp() > 2 or (getCardsNum("Peach", current, self.player) > 1 and not self:isWeak(current))) then
+			and (not self:damageIsEffective(current, nil, self.player) or current:getHp() > 2 or (getCardsNum("Peach", current, self.player) > 1 and not self:isWeak(current)) or
+			(skill_name == "newzhendu" and current:objectName() == self.player:objectName())) then
 			local slash = sgs.Sanguosha:cloneCard("slash")
 			local trend = 3
 			if current:hasWeapon("Axe") then trend = trend - 1

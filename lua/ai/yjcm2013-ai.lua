@@ -567,11 +567,14 @@ sgs.ai_skill_choice.qiaoshui = function(self, choices, data)
 				return "add"
 			end
 		end
-	elseif use.card:isKindOf("ExNihilo") then
-		local friend = self:findPlayerToDraw(false, 2)
-		if friend then
-			self.qiaoshui_extra_target = friend
-			return "add"
+	elseif use.card:isKindOf("ExNihilo") or use.card:isKindOf("Dongzhuxianji") then
+		local friends = self:findPlayerToDraw(false, 2, #self.friends_noself)
+		if #friends > 0 then
+			for _,p in ipairs(friends) do
+				if not self:hasTrickEffective(card, p, self.player) or self.player:isProhibited(p, use.card) then continue end
+				self.qiaoshui_extra_target = p
+				return "add"
+			end
 		end
 	elseif use.card:isKindOf("GodSalvation") then
 		self:sort(self.enemies, "hp")
@@ -698,7 +701,7 @@ sgs.ai_skill_cardask["@duodao-get"] = function(self, data)
 				if self:getCardsNum("Slash") == 0 or self:willSkipPlayPhase() then return "." end
 				local invoke = false
 				local range = sgs.weapon_range[damage.from:getWeapon():getClassName()] or 0
-				if self.player:hasSkill("anjian") then
+				if self.player:hasSkills("anjian|mobileanjian") then
 					for _, enemy in ipairs(self.enemies) do
 						if not enemy:inMyAttackRange(self.player) and not self.player:inMyAttackRange(enemy) and self.player:distanceTo(enemy) <= range then
 							invoke = true
@@ -917,7 +920,29 @@ end
 
 sgs.ai_playerchosen_intention.zhiyan = -60
 
-sgs.ai_skill_invoke.zhuikong = sgs.ai_skill_invoke.noszhuikong
+sgs.ai_skill_invoke.zhuikong = function(self, data)
+	if self.player:getHandcardNum() <= (self:isWeak() and 2 or 1) then return false end
+	local current = self.room:getCurrent()
+	if not current or self:isFriend(current) then return false end
+
+	local max_card = self:getMaxCard()
+	local max_point = max_card:getNumber()
+	if self.player:hasSkill("yingyang") then max_point = math.min(max_point + 3, 13) end
+	if not (current:hasSkill("zhiji") and current:getMark("zhiji") == 0 and current:getHandcardNum() == 1) then
+		local enemy_max_card = self:getMaxCard(current)
+		local enemy_max_point = enemy_max_card and enemy_max_card:getNumber() or 100
+		if enemy_max_card and current:hasSkill("yingyang") then enemy_max_point = math.min(enemy_max_point + 3, 13) end
+		if max_point > enemy_max_point or max_point > 10 then
+			self.zhuikong_card = max_card:getEffectiveId()
+			return true
+		end
+	end
+	if current:distanceTo(self.player) == 1 and not self:isValuableCard(max_card) then
+		self.zhuikong_card = max_card:getEffectiveId()
+		return true
+	end
+	return false
+end
 
 sgs.ai_skill_playerchosen.qiuyuan = function(self, targets)
 	local targetlist = sgs.QList2Table(targets)
@@ -1217,4 +1242,6 @@ sgs.ai_skill_cardask["@@miejidiscard!"] = function(self, prompt)
 return "."
 end
 
-
+sgs.ai_skill_invoke.oljingce = function(self, data)
+	return self:canDraw()
+end

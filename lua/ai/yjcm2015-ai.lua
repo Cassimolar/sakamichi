@@ -567,6 +567,20 @@ end
 
 -- qinwang buhui!!!
 
+olzhanjue_skill = {name = "olzhanjue"}
+table.insert(sgs.ai_skills, olzhanjue_skill)
+olzhanjue_skill.getTurnUseCard = function(self)
+    if (self.player:getMark("olzhanjuedraw") >= 2) then return nil end
+
+    if (self.player:isKongcheng()) then return nil end
+
+    local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_SuitToBeDecided, -1)
+    duel:addSubcards(self.player:getHandcards())
+    duel:setSkillName("olzhanjue")
+
+    return duel
+end
+
 -- zhenshan buhui!!!
 
 
@@ -627,10 +641,10 @@ end
 sgs.ai_skill_use["@@xingxue"] = function(self)
 
     local n = (self.player:getMark("yanzhu_lost") == 0) and self.player:getHp() or self.player:getMaxHp()
-
-    self:sort(self.friends, "defense")
-
-    n = math.min(n, #self.friends)
+	n = math.min(n, #self.friends)
+	if n <= 0 then return "." end
+    
+	self:sort(self.friends, "defense")
 
     local l = sgs.SPlayerList()
     local s = {}
@@ -1251,3 +1265,69 @@ sgs.ai_use_priority.AnguoCard = sgs.ai_use_priority.ExNihilo + 0.01
 sgs.ai_skill_cardchosen.anguo = function(self)
     return self.anguoid
 end
+
+--OL诏缚
+function SmartAI:zhaofuSort()
+	local func = function(a, b)
+		local a1, b1 = 0, 0
+		for _,p in ipairs(self.friends) do
+			if not p:inMyAttackRange(a) and a:getKingdom() == "wu" then --and canSlash
+				a1 = a1 + 1
+			end
+		end
+		for _,p in ipairs(self.friends) do
+			if not p:inMyAttackRange(b) and b:getKingdom() == "wu" then
+				b1 = b1 + 1
+			end
+		end
+		if a1 == b1 then
+			if sgs.getDefenseSlash(a, self) > sgs.getDefenseSlash(b, self) then
+				a1 = a1 - 1
+			end
+		end
+		return a1 > b1
+	end
+	table.sort(self.enemies, func)
+end
+
+local olzhaofu_skill = {}
+olzhaofu_skill.name = "olzhaofu"
+table.insert(sgs.ai_skills, olzhaofu_skill)
+olzhaofu_skill.getTurnUseCard = function(self)
+	if not self.player:hasLordSkill("olzhaofu") or self.player:getMark("@olzhaofuMark") <= 0 then return end
+	if #self.enemies <= 0 then return end
+	return sgs.Card_Parse("@OLzhaofuCard=.")
+end
+
+sgs.ai_skill_use_func.OLzhaofuCard = function(card, use, self)
+	self:zhaofuSort()
+	
+	local targets = {}
+	for _,e in ipairs(self.enemies) do
+		if #targets >= 2 then break end
+		local to
+		for _,f in ipairs(self.friends) do
+			if not f:inMyAttackRange(e) and f:getKingdom() == "wu" then
+				to = e
+				break
+			end
+		end
+		if to then
+			table.insert(targets, to)
+		end
+	end
+	
+	if #targets <= 0 then return end
+	
+	use.card = card
+	
+	for i = 1, 2 do
+		if #targets < i then break end
+		if use.to then use.to:append(targets[i]) end
+	end
+end
+
+sgs.ai_card_intention.OLzhaofuCard = 80
+
+sgs.ai_use_priority.OLzhaofuCard = 10
+sgs.ai_use_value.OLzhaofuCard = 3

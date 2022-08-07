@@ -474,7 +474,7 @@ local noslijian_skill = {}
 noslijian_skill.name = "noslijian"
 table.insert(sgs.ai_skills, noslijian_skill)
 noslijian_skill.getTurnUseCard = function(self)
-	if self.player:hasUsed("NosLijianCard") or self.player:isNude() then
+	if self.player:hasUsed("NosLijianCard") or self.player:isNude() or self.room:getAlivePlayers():length() < 3 then
 		return
 	end
 	local card_id = self:getLijianCard()
@@ -1027,17 +1027,18 @@ sgs.ai_skill_invoke.noszhuikong = function(self, data)
 	local max_card = self:getMaxCard()
 	local max_point = max_card:getNumber()
 	if self.player:hasSkill("yingyang") then max_point = math.min(max_point + 3, 13) end
-	if not (current:hasSkill("zhiji") and current:getMark("zhiji") == 0 and current:getHandcardNum() == 1) then
+	if not (current:hasSkill("zhiji") and current:getMark("zhiji") == 0 and current:getHandcardNum() == 1) and not
+		(current:hasSkill("mobilezhiji") and current:getMark("mobilezhiji") == 0 and current:getHandcardNum() == 1) then
 		local enemy_max_card = self:getMaxCard(current)
 		local enemy_max_point = enemy_max_card and enemy_max_card:getNumber() or 100
 		if enemy_max_card and current:hasSkill("yingyang") then enemy_max_point = math.min(enemy_max_point + 3, 13) end
 		if max_point > enemy_max_point or max_point > 10 then
-			self.zhuikong_card = max_card:getEffectiveId()
+			self.noszhuikong_card = max_card:getEffectiveId()
 			return true
 		end
 	end
 	if current:distanceTo(self.player) == 1 and not self:isValuableCard(max_card) then
-		self.zhuikong_card = max_card:getEffectiveId()
+		self.noszhuikong_card = max_card:getEffectiveId()
 		return true
 	end
 	return false
@@ -1883,11 +1884,11 @@ sgs.ai_skill_askforyiji.nosyiji = function(self, card_ids)
 end
 
 sgs.ai_need_damaged.nosyiji = function (self, attacker, player)
-	if not player:hasSkill("nosyiji") then return end
+	if not player:hasSkills("nosyiji|tenyearyiji") then return end
 	local need_card = false
 	local current = self.room:getCurrent()
 	if self:hasCrossbowEffect(current) or current:hasSkill("paoxiao") or current:hasFlag("shuangxiong") then need_card = true end
-	if self:hasSkills("jieyin|jijiu",current) and self:getOverflow(current) <= 0 then need_card = true end
+	if self:hasSkills("jieyin|jijiu", current) and self:getOverflow(current) <= 0 then need_card = true end
 	if self:isFriend(current, player) and need_card then return true end
 
 	local friends = {}

@@ -11,10 +11,10 @@ function SmartAI:toTurnOver(player, n, reason) -- @todo: param of toTurnOver
 			return false
 		end
 	end
-	if not player:faceUp() and not player:hasFlag("ShenfenUsing") and not player:hasFlag("GuixinUsing") then
+	if not player:faceUp() and not player:hasFlag("ShenfenUsing") and not player:hasFlag("guixinUsing") and not player:hasFlag("newguixinUsing") then
 		return false
 	end
-	if reason and reason == "fangzhu" and player:getHp() == 1 and sgs.ai_AOE_data then
+	if reason and (reason == "fangzhu" or reason == "mobilefangzhu") and player:getHp() == 1 and sgs.ai_AOE_data then
 		local use = sgs.ai_AOE_data:toCardUse()
 		if use.to:contains(player) and self:aoeIsEffective(use.card, player)
 			and self:playerGetRound(player) > self:playerGetRound(self.player)
@@ -786,9 +786,10 @@ jiuchi_skill.getTurnUseCard=function(self)
 	local card_id = card:getEffectiveId()
 	local card_str = ("analeptic:jiuchi[spade:%s]=%d"):format(number, card_id)
 	local analeptic = sgs.Card_Parse(card_str)
-
+	
+	assert(analeptic)
 	if sgs.Analeptic_IsAvailable(self.player, analeptic) then
-		assert(analeptic)
+		
 		return analeptic
 	end
 end

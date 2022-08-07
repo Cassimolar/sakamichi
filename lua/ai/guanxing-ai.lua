@@ -143,10 +143,10 @@ local function GuanXing(self, cards)
 
 	end
 
-	local conflict, AI_doNotInvoke_luoshen
+	local conflict, AI_doNotInvoke_luoshen, AI_doNotInvoke_tenyearluoshen
 	for _, skill in sgs.qlist(self.player:getVisibleSkillList()) do
 		local sname = skill:objectName()
-		if sname == "guanxing" or sname == "super_guanxing" then conflict = true continue end
+		if sname == "guanxing" or sname == "super_guanxing" or sname == "tenyearguanxing" then conflict = true continue end
 		if conflict then
 			if sname == "tuqi" then
 				if self.player:getPile("retinue"):length() > 0 and self.player:getPile("retinue"):length() <= 2 then
@@ -173,6 +173,25 @@ local function GuanXing(self, cards)
 					else
 						self.player:setFlags("AI_Luoshen_Conflict_With_Guanxing")
 						self.player:setMark("AI_loushen_times", count)
+					end
+				end
+			elseif sname == "tenyearluoshen" then
+				if #bottom == 0 then
+					self.player:setFlags("AI_doNotInvoke_tenyearluoshen")
+				else
+					local count = 0
+					if not self_has_judged then up = {} end
+					for i = 1, #bottom do
+						if bottom[i - count]:isBlack() then
+							table.insert(up, 1, table.remove(bottom, i - count))
+							count = count + 1
+						end
+					end
+					if count == 0 then
+						AI_doNotInvoke_tenyearluoshen = true
+					else
+						self.player:setFlags("AI_TenyearLuoshen_Conflict_With_Guanxing")
+						self.player:setMark("AI_tenyearluoshen_times", count)
 					end
 				end
 			else
@@ -260,6 +279,7 @@ local function GuanXing(self, cards)
 					up = getBackToId(self, up)
 					bottom = getBackToId(self, bottom)
 					if AI_doNotInvoke_luoshen then self.player:setFlags("AI_doNotInvoke_luoshen") end
+					if AI_doNotInvoke_tenyearluoshen then self.player:setFlags("AI_doNotInvoke_tenyearluoshen") end
 					return up, bottom
 				else
 					self.player:setFlags("AI_doNotInvoke_zhaolie")
@@ -536,6 +556,7 @@ local function GuanXing(self, cards)
 	up = getBackToId(self, up)
 	bottom = getBackToId(self, bottom)
 	if #up > 0 and AI_doNotInvoke_luoshen then self.player:setFlags("AI_doNotInvoke_luoshen") end
+	if #up > 0 and AI_doNotInvoke_tenyearluoshen then self.player:setFlags("AI_doNotInvoke_tenyearluoshen") end
 	return up, bottom
 end
 

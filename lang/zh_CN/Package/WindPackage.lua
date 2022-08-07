@@ -46,6 +46,13 @@ return {
 	["huangtian"] = "黄天",
         [":huangtian"] = "主公技，出牌阶段限一次，其他群雄角色的出牌阶段，该角色可以交给你一张【闪】或【闪电】。",
 	["huangtian_attach"] = "黄天送牌",
+	
+	["tenyear_zhangjiao"] = "张角-十周年",
+	["&tenyear_zhangjiao"] = "张角",
+	["illustrator:tenyear_zhangjiao"] = "LiuHeng",
+	["tenyearleiji"] = "雷击",
+	[":tenyearleiji"] = "当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为：黑桃，你对其造成2点雷电伤害；梅花，你回复1点体力，然后对其造成1点雷电伤害。",
+	["@tenyearleiji"] = "你可以发动“雷击”",
 
 	["#xiaoqiao"] = "矫情之花",
 	["xiaoqiao"] = "小乔",

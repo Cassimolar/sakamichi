@@ -24,6 +24,18 @@ return {
 	["$caishi2"] = "知书达礼，博古通今。",
 	["~xinxianying"] = "吾一生明鉴，竟错看于你……",
 	
+	--辛宪英-十周年
+	["$tenyearzhongjian1"] = "浊世风云变幻，当以明眸洞察。",
+	["$tenyearzhongjian2"] = "心中自有明镜，可鉴奸佞忠良。",
+	["$tenyearcaishi1"] = "清识难尚，至德可师。",
+	["$tenyearcaishi2"] = "知书达礼，博古通今。",
+	
+	--OL辛宪英
+	["$olzhongjian1"] = "浊世风云变幻，当以明眸洞察。",
+	["$olzhongjian2"] = "心中自有明镜，可鉴奸佞忠良。",
+	["$olcaishi1"] = "清识难尚，至德可师。",
+	["$olcaishi2"] = "知书达礼，博古通今。",
+	
 	--嵇康
 	["$qingxian1"] = "抚琴拨弦，悠然自得。",
 	["$qingxian2"] = "寄情于琴，和于天地。",
@@ -36,6 +48,10 @@ return {
 	["~jikang"] = "多少遗恨俱随琴音去……",
 	
 	--嵇康-手杀
+	["$mobileqingxian1"] = "抚琴拨弦，悠然自得。",
+	["$mobileqingxian2"] = "寄情于琴，和于天地。",
+	["$mobilejuexiang1"] = "此曲，不能绝矣。",
+	["$mobilejuexiang2"] = "一曲琴音，为我送别。",
 	
 	--徐氏
 	["$wengua1"] = "卦不能佳，可须异日。",

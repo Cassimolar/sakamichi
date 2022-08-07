@@ -14,4 +14,5 @@ return {
 	
 	["doudizhu"] = "斗地主",
 	["doudizhu:draw"] = "摸两张牌",
+	["doudizhu:recover"] = "回复1点体力",
 }

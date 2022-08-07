@@ -22,9 +22,9 @@ return {
 	["jingce:draw"] = "摸一张牌",
 	["jingce:recover"] = "回复1点体力",
 	
-	["ol_new_guohuai"] = "OL郭淮",
-	["&ol_new_guohuai"] = "郭淮",
-	["illustrator:ol_new_guohuai"] = "DH",
+	["ol_guohuai"] = "OL郭淮",
+	["&ol_guohuai"] = "郭淮",
+	["illustrator:ol_guohuai"] = "DH",
 	["oljingce"] = "精策",
 	[":oljingce"] = "出牌阶段，你每使用一种花色的手牌，你本回合手牌上限+1；出牌阶段结束时，你可摸X张牌（X为你本回合使用过牌的类型数）。",
 
@@ -99,7 +99,7 @@ return {
 	["~zongxuan"] = "选择任意数量的牌→点击确定（这些牌将以与你点击顺序相反的顺序置于牌堆顶）",
 	["zhiyan"] = "直言",
 	[":zhiyan"] = "结束阶段开始时，你可以令一名角色摸一张牌并展示之：若此牌为装备牌，该角色回复1点体力，然后使用之。",
-	["zhiyan-invoke"] = "你可以发动“直言”<br/> <b>操作提示</b>: 选择一名角色→点击确定<br/>",
+	["@zhiyan-invoke"] = "你可以发动“直言”",
 
 	["#zhuran"] = "不动之督",
 	["zhuran"] = "朱然",

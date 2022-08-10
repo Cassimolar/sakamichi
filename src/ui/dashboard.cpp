@@ -1175,7 +1175,24 @@ void Dashboard::expandPileCards(const QString &pile_name)
     //_m_pile_expanded << pile_name;
     QString new_name = pile_name;
     QList<int> pile;
-    if (new_name.startsWith("%")) {
+
+    if (new_name.startsWith("/")) {
+        new_name = new_name.mid(1);
+
+        QString equip = new_name.split("/").first();
+        new_name = new_name.split("/").last();
+
+        foreach (const Card *card, Self->getEquips()) {
+            if (card->isKindOf(equip.toStdString().c_str()))
+                pile << card->getEffectiveId();
+        }
+        foreach(const Player *p, Self->getAliveSiblings()) {
+            foreach (const Card *card, p->getEquips()) {
+                if (card->isKindOf(equip.toStdString().c_str()))
+                    pile << card->getEffectiveId();
+            }
+        }
+    } else if (new_name.startsWith("%")) {
         new_name = new_name.mid(1);
         foreach(const Player *p, Self->getAliveSiblings())
             pile += p->getPile(new_name);
@@ -1218,6 +1235,7 @@ void Dashboard::retractPileCards(const QString &pile_name)
     adjustCards();
     update();
 }
+
 void Dashboard::retractAllSkillPileCards()
 {
     foreach (const QString &pileName, _m_pile_expanded.keys()) {

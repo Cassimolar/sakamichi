@@ -164,6 +164,7 @@ SOURCES += \
     src/package/bei.cpp \
     src/package/guo.cpp \
 	src/package/jie.cpp \
+	src/package/yue.cpp \
 	src/package/yinhu.cpp
 
 HEADERS += \
@@ -318,6 +319,7 @@ HEADERS += \
     src/package/bei.h \
     src/package/guo.h \
 	src/package/jie.h \
+	src/package/yue.h \
 	src/package/yinhu.h
 
 FORMS += \

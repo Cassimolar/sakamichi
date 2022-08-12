@@ -1,4 +1,4 @@
-#include "roomscene.h"
+﻿#include "roomscene.h"
 #include "settings.h"
 #include "carditem.h"
 #include "engine.h"
@@ -1875,10 +1875,10 @@ void RoomScene::chooseOption(const QString &skillName, const QStringList &option
             //if (!tip.isEmpty() && ClientInstance->getPlayerName(tip) != tip)
             if (!tip.isEmpty())  //考虑到tip是数字的问题
                 translated.replace("%src", ClientInstance->getPlayerName(tip));
-            if (!tip2.isEmpty())
-                translated.replace("%arg", ClientInstance->getPlayerName(tip2));
             if (!tip3.isEmpty())
                 translated.replace("%arg2", ClientInstance->getPlayerName(tip3));
+            if (!tip2.isEmpty())
+                translated.replace("%arg", ClientInstance->getPlayerName(tip2));
 
             button->setObjectName(old_option);
             button->setText(translated);
@@ -1924,10 +1924,10 @@ void RoomScene::chooseOption(const QString &skillName, const QStringList &option
         //if (!tip.isEmpty() && ClientInstance->getPlayerName(tip) != tip)
         if (!tip.isEmpty())  //考虑到tip是数字的问题
             translated.replace("%src", ClientInstance->getPlayerName(tip));
-        if (!tip2.isEmpty())
-            translated.replace("%arg", ClientInstance->getPlayerName(tip2));
         if (!tip3.isEmpty())
             translated.replace("%arg2", ClientInstance->getPlayerName(tip3));
+        if (!tip2.isEmpty())
+            translated.replace("%arg", ClientInstance->getPlayerName(tip2));
 
         button->setObjectName(old_option);
         button->setText(translated);

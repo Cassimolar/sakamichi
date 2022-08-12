@@ -1,4 +1,4 @@
-#ifndef _ROOM_SCENE_H
+﻿#ifndef _ROOM_SCENE_H
 #define _ROOM_SCENE_H
 
 //#include "photo.h"

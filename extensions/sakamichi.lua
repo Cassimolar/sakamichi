@@ -1840,6 +1840,7 @@ sakamichi_ji_la = sgs.CreateTriggerSkill {
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
                     if p:getHp() > player:getHp() then
                         hp_max = false
+                        break
                     end
                 end
                 if hp_max then
@@ -9700,8 +9701,8 @@ sakamichi_gen_xing = sgs.CreateTriggerSkill {
 }
 TamamiSakaguchi:addSkill(sakamichi_gen_xing)
 
-sakamichi_yi_wang = sgs.CreateTriggerSkill {
-    name = "sakamichi_yi_wang",
+sakamichi_tou_ming = sgs.CreateTriggerSkill {
+    name = "sakamichi_tou_ming",
     frequency = sgs.Skill_Compulsory,
     events = {sgs.TargetConfirming},
     on_trigger = function(self, event, player, data, room)
@@ -9716,7 +9717,7 @@ sakamichi_yi_wang = sgs.CreateTriggerSkill {
         return false
     end,
 }
-TamamiSakaguchi:addSkill(sakamichi_yi_wang)
+TamamiSakaguchi:addSkill(sakamichi_tou_ming)
 
 sgs.LoadTranslationTable {
     ["TamamiSakaguchi"] = "阪口 珠美",
@@ -9730,8 +9731,8 @@ sgs.LoadTranslationTable {
     [":sakamichi_wu_wei"] = "你可以将一张【闪】当【杀】使用或打出，你以此法使用的【杀】无距离限制且无视防具。",
     ["sakamichi_gen_xing"] = "根性",
     [":sakamichi_gen_xing"] = "当你进入濒死时，你可以判定，若结果为基本牌，你回复1点体力。",
-    ["sakamichi_yi_wang"] = "遗忘",
-    [":sakamichi_yi_wang"] = "锁定技，当你成为其他角色使用牌的目标时，若此牌目标不唯一，则此牌对你无效。",
+    ["sakamichi_tou_ming"] = "透明",
+    [":sakamichi_tou_ming"] = "锁定技，当你成为其他角色使用牌的目标时，若此牌目标不唯一，则此牌对你无效。",
 }
 
 -- 吉田 綾乃クリスティー
@@ -16221,6 +16222,247 @@ sgs.LoadTranslationTable {
     ["sakamichi_she_ji"] = "设计",
     [":sakamichi_she_ji"] = "出牌阶段限一次，当你使用牌时，你可以改变其花色。",
     ["sakamichi_she_ji:@mei_shu"] = "是否改变此%arg的花色",
+}
+
+-- 上村 莉菜
+RinaUemura_Keyakizaka = sgs.General(Sakamichi, "RinaUemura_Keyakizaka", "Keyakizaka46", 3, false)
+SKMC.IKiSei.RinaUemura_Keyakizaka = true
+SKMC.SeiMeiHanDan.RinaUemura_Keyakizaka = {
+	name = {3, 7, 10, 11},
+	ten_kaku = {10, "xiong"},
+	jin_kaku = {17, "ji"},
+	ji_kaku = {21, "ji"},
+	soto_kaku = {14, "xiong"},
+	sou_kaku = {31, "da_ji"},
+	GoGyouSanSai = {
+		ten_kaku = "shui",
+		jin_kaku = "jin",
+		ji_kaku = "mu",
+		san_sai = "ji",
+	},
+}
+
+sakamichi_yao_jing = sgs.CreateTriggerSkill {
+    name = "sakamichi_yao_jing",
+    events = {sgs.CardUsed, sgs.CardResponded, sgs.TargetConfirming},
+    on_trigger = function(self, event, player, data, room)
+        local card = nil
+        if event == sgs.TargetConfirming or event == sgs.CardUsed then
+            card = data:toCardUse().card
+        else
+            card = data:toCardResponse().m_card
+        end
+        if card:getColor() == sgs.Card_Colorless then
+            local targets = sgs.SPlayerList()
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if not p:getEquips():isEmpty() or p:getJudgingArea():length() > 0 then
+                    targets:append(p)
+                end
+            end
+            if targets:length() ~= 0 then
+                local target = room:askForPlayerChosen(player, targets, self:objectName(), "@yaojing", true, false)
+                if target then
+                    local id = room:askForCardChosen(player, target, "ej", self:objectName(), false, sgs.Card_MethodNone)
+                    room:moveCardsInToDrawpile(player, id, self:objectName(), 1, false)
+                end
+            end
+        end
+        return false
+    end,
+}
+RinaUemura_Keyakizaka:addSkill(sakamichi_yao_jing)
+
+sakamichi_xiao_hao = sgs.CreateViewAsSkill {
+    name = "sakamichi_xiao_hao",
+    n = 2,
+    view_filter = function(self, selected, to_select)
+        if #selected == 0 then
+            return to_select:isEquipped()
+        elseif #selected == 1 then
+            return selected[1]:getColor() ~= to_select:getColor() and to_select:isEquipped()
+        end
+        return false
+    end,
+    view_as = function(self, cards)
+        if #cards == 2 then
+            local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, 0)
+            jink:deleteLater()
+            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+            slash:deleteLater()
+            local cd = nil
+            if sgs.Self:getPhase() ~= sgs.Player_NotActive then
+                cd = slash
+            else
+                cd = jink
+            end
+            for _, c in ipairs(cards) do
+                cd:addSubcard(c)
+            end
+            cd:setSkillName(self:objectName())
+            return cd
+        end
+    end,
+    enabled_at_play = function(self, player)
+        return sgs.Slash_IsAvailable(player)
+    end,
+    enabled_at_response = function(self, player, pattern)
+        return (pattern == "jink" and player:getPhase() == sgs.Player_NotActive) or
+            ((string.find(pattern, "slash") or string.find(pattern, "Slash")) and player:getPhase() ~= sgs.Player_NotActive)
+    end,
+}
+RinaUemura_Keyakizaka:addSkill(sakamichi_xiao_hao)
+
+sgs.LoadTranslationTable {
+    ["RinaUemura_Keyakizaka"] = "上村 莉菜",
+    ["&RinaUemura_Keyakizaka"] = "上村 莉菜",
+    ["#RinaUemura_Keyakizaka"] = "千叶妖精",
+    ["~RinaUemura_Keyakizaka"] = "だと思うじゃないですか？",
+    ["designer:RinaUemura_Keyakizaka"] = "Cassimolar",
+    ["cv:RinaUemura_Keyakizaka"] = "上村 莉菜",
+    ["illustrator:RinaUemura_Keyakizaka"] = "Cassimolar",
+    ["sakamichi_yao_jing"] = "妖精",
+    [":sakamichi_yao_jing"] = "当你使用或打出无色卡牌时/成为无色卡牌的目标时，你可以将场上的一张牌置于牌堆顶。",
+    ["@yaojing"] = "你可以将场上的一张牌置于牌堆顶",
+    ["sakamichi_xiao_hao"] = "小号",
+    [":sakamichi_xiao_hao"] = "你的回合内/外，你可以将两张不同颜色的手牌视为【杀】/【闪】使用或打出。",
+}
+
+-- 土生 瑞穂
+MizuhoHabu_Keyakizaka = sgs.General(Sakamichi, "MizuhoHabu_Keyakizaka", "Keyakizaka46", 4, false)
+SKMC.IKiSei.MizuhoHabu = true
+SKMC.SeiMeiHanDan.MizuhoHabu = {
+	name = {3, 5, 13, 15},
+	ten_kaku = {8, "ji"},
+	jin_kaku = {18, "ji"},
+	ji_kaku = {28, "xiong"},
+	soto_kaku = {18, "ji"},
+	sou_kaku = {36, "xiong"},
+	GoGyouSanSai = {
+		ten_kaku = "jin",
+		jin_kaku = "jin",
+		ji_kaku = "jin",
+		san_sai = "ji_xiong_hun_he",
+	},
+}
+
+sakamichi_hou_gong = sgs.CreateTriggerSkill {
+    name = "sakamichi_hou_gong",
+    events = {sgs.Damage, sgs.HpRecover},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.Damage then
+            local damage = data:toDamage()
+            if player:hasSkill(self:objectName()) and damage.to:isFemale() and damage.to:objectName() == player:objectName() then
+                room:askForUseSlashTo(damage.to, player, "@hou_gong_slash:" .. player:objectName(), false)
+            end
+        else
+            if player:isFemale() then
+                for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+                    if player:objectName() ~= p:objectName() then
+                        room:drawCards(p, 1, self:objectName())
+                    end
+                end
+            end
+        end
+        return false
+    end,
+    can_trigger = function(self, target)
+        return target
+    end,
+}
+MizuhoHabu_Keyakizaka:addSkill(sakamichi_hou_gong)
+
+sakamichi_jing_kong = sgs.CreateTriggerSkill {
+    name = "sakamichi_jing_kong",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.Damage, sgs.CardFinished},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isNDTrick() then
+                room:addPlayerMark(player, "jing_kong_damage_" .. damage.card:getId(), damage.damage)
+            end
+        else
+            local use = data:toCardUse()
+            if use.card:isNDTrick() then
+                local count = player:getMark("jing_kong_damage_" .. use.card:getId())
+                if count == 0 then
+                    room:askForUseCard(player, "slash", "@askforslash")
+                else
+                    if room:askForSkillInvoke(player, self:objectName(), data) then
+                        room:drawCards(player, count, self:objectName())
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+MizuhoHabu_Keyakizaka:addSkill(sakamichi_jing_kong)
+
+sakamichi_ju_ren = sgs.CreateTriggerSkill {
+    name = "sakamichi_ju_ren",
+    -- frequency = sgs.Skill_Frequent,
+    events = {sgs.EventPhaseProceeding},
+    on_trigger = function(self, event, player, data, room)
+        if player:getPhase() == sgs.Player_Start then
+            local can_trigger = false
+            for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                if player:getHp() > p:getHp() then
+                    can_trigger = true
+                    break
+                end
+            end
+            if can_trigger and room:askForSkillInvoke(player, self:objectName(), data) then
+                room:setPlayerFlag(player, "ju_ren")
+                if not room:askForUseCard(player, "slash", "@ju_ren_slash") then
+                    local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "@ju_ren_damage_invoke:::" .. SKMC.number_correction(player, 1))
+                    room:loseHp(player, SKMC.number_correction(player, 1))
+                    room:damage(sgs.DamageStruct(self:objectName(), player, target, SKMC.number_correction(player, 1)))
+                end
+                room:setPlayerFlag(player, "-ju_ren")
+            end
+        end
+        return false
+    end,
+}
+sakamichi_ju_ren_target_mod = sgs.CreateTargetModSkill {
+    name = "#sakamichi_ju_ren_target_mod",
+    pattern = "Slash",
+    extra_target_func = function(self, player)
+        if player:hasSkill("sakamichi_ju_ren") then
+            return 1000
+        else
+            return 0
+        end
+    end,
+    distance_limit_func = function(self, from, card)
+        if from:hasFlag("ju_ren") then
+            return 1000
+        else
+            return 0
+        end
+    end,
+}
+MizuhoHabu_Keyakizaka:addSkill(sakamichi_ju_ren)
+if not sgs.Sanguosha:getSkill("#sakamichi_ju_ren_target_mod") then SKMC.SkillList:append(sakamichi_ju_ren_target_mod) end
+
+sgs.LoadTranslationTable {
+    ["MizuhoHabu_Keyakizaka"] = "土生 瑞穂",
+    ["&MizuhoHabu_Keyakizaka"] = "土生 瑞穂",
+    ["#MizuhoHabu_Keyakizaka"] = "神の子",
+    ["~MizuhoHabu_Keyakizaka"] = "私もゴボウ！",
+    ["designer:MizuhoHabu_Keyakizaka"] = "Cassimolar",
+    ["cv:MizuhoHabu_Keyakizaka"] = "土生 瑞穂",
+    ["illustrator:MizuhoHabu_Keyakizaka"] = "Cassimolar",
+    ["sakamichi_hou_gong"] = "后宫",
+    [":sakamichi_hou_gong"] = "锁定技，你对其他女性角色造成伤害后，其可以对你使用一张【杀】；其他女性角色回复体力时，你摸一张牌。",
+    ["@hou_gong_slash"] = "你可以对%src使用一张【杀】",
+    ["sakamichi_jing_kong"] = "惊恐",
+    [":sakamichi_jing_kong"] = "你使用通常锦囊牌结算完成时，若此牌：未造成伤害，你可以使用一张【杀】；造成伤害，你可以摸X张牌（X为此牌造成的伤害量）。",
+    ["sakamichi_ju_ren"] = "巨人",
+    [":sakamichi_ju_ren"] = "你使用【杀】时无目标上限。准备阶段，若你的体力不为全场最少，你可以使用一张无距离限制的【杀】或失去1点体力对一名其他角色造成1点伤害。",
+    ["@ju_ren_slash"] = "你可以使用一张无距离限制的【杀】",
+    ["@ju_ren_damage_invoke"] = "你可以选择一名其他角色对其造成%arg点伤害",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

@@ -1142,7 +1142,7 @@ public:
     const ProhibitPindianSkill *isPindianProhibited(const Player *from, const Player *to) const;
 	const CardLimitSkill *isCardLimited(const Player *player, const Card *card, Card::HandlingMethod method, bool isHandcard = false) const;
     int correctDistance(const Player *from, const Player *to) const;
-    int correctMaxCards(const Player *target) const;
+    int correctMaxCards(const Player *target, bool fixed = false) const;
     int correctCardTarget(const TargetModSkill::ModType type, const Player *from, const Card *card, const Player *to = NULL) const;
     bool correctSkillValidity(const Player *player, const Skill *skill) const;
 

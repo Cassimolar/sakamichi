@@ -1353,7 +1353,7 @@ sakamichi_armor = sgs.CreateTriggerSkill {
                         local result = SKMC.run_judge(room, player, skill_name, ".|red", true)
                         room:setEmotion(player, "armor/eight_diagram")
                         if result.isGood then
-                            local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, 0)
+                            local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, -1)
                             jink:deleteLater()
                             jink:setSkillName(skill_name)
                             room:provide(jink)
@@ -3663,7 +3663,7 @@ sakamichi_jiu_xian_view_as = sgs.CreateOneCardViewAsSkill {
         return analeptic
     end,
     enabled_at_play = function(self, player)
-        local card = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+        local card = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, -1)
         card:deleteLater()
         if player:isCardLimited(card, sgs.Card_MethodUse) or player:isProhibited(player, card) then
             return false
@@ -5369,7 +5369,7 @@ sakamichi_ping_guo_quan_view_as = sgs.CreateOneCardViewAsSkill {
         return cd
     end,
     enabled_at_play = function(self, player)
-        local card = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, 0)
+        local card = sgs.Sanguosha:cloneCard("analeptic", sgs.Card_NoSuit, -1)
         card:deleteLater()
         if player:isCardLimited(card, sgs.Card_MethodUse) or player:isProhibited(player, card) then
             return false
@@ -5772,7 +5772,7 @@ sakamichi_fan_qie_view_as = sgs.CreateOneCardViewAsSkill {
         return cd
     end,
     enabled_at_play = function(self, player)
-        local card = sgs.Sanguosha:cloneCard("peach", sgs.Card_NoSuit, 0)
+        local card = sgs.Sanguosha:cloneCard("peach", sgs.Card_NoSuit, -1)
         card:deleteLater()
         if player:isCardLimited(card, sgs.Card_MethodUse) or player:isProhibited(player, card) then
             return false
@@ -7316,7 +7316,7 @@ sakamichi_kang_zheng_card = sgs.CreateSkillCard {
     on_effect = function(self, effect)
         local room = effect.from:getRoom()
         effect.from:turnOver()
-        local card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        local card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
         card:deleteLater()
         card:setSkillName(self:getSkillName())
         room:useCard(sgs.CardUseStruct(card, effect.from, effect.to))
@@ -8099,7 +8099,7 @@ sakamichi_you_neng = sgs.CreateTriggerSkill {
                         moves:append(move)
                         room:notifyMoveCards(true, moves, false, _player)
                         room:notifyMoveCards(false, moves, false, _player)
-                        local card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                        local card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                         card:deleteLater()
                         card:addSubcards(card_ids)
                         room:obtainCard(player, card, false)
@@ -8574,7 +8574,7 @@ sakamichi_sheng_you_card = sgs.CreateSkillCard {
     name = "sakamichi_sheng_youCard",
     skill_name = "sakamichi_sheng_you",
     filter = function(self, targets, to_select)
-        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
         slash:deleteLater()
         local plist = sgs.PlayerList()
         for i = 1, #targets, 1 do
@@ -8593,7 +8593,7 @@ sakamichi_sheng_you_card = sgs.CreateSkillCard {
                                                                                         SKMC.number_correction(p, 1) ..
                                                                                         ":" .. "slash")) then
                 room:loseHp(p)
-                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                 slash:setSkillName(self:getSkillName())
                 slash:deleteLater()
                 return slash
@@ -8656,7 +8656,7 @@ sakamichi_sheng_you = sgs.CreateTriggerSkill {
                                                           "invoke:" .. player:objectName() .. "::" ..
                                                               SKMC.number_correction(p, 1) .. ":" .. "jink")) then
                                 room:loseHp(p)
-                                local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, 0)
+                                local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, -1)
                                 jink:deleteLater()
                                 jink:setSkillName(self:objectName())
                                 room:provide(jink)
@@ -8676,7 +8676,7 @@ sakamichi_sheng_you = sgs.CreateTriggerSkill {
                                                           "invoke:" .. player:objectName() .. "::" ..
                                                               SKMC.number_correction(p, 1) .. ":" .. "slash")) then
                                 room:loseHp(p)
-                                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                                 slash:setSkillName(self:objectName())
                                 slash:deleteLater()
                                 room:provide(slash)
@@ -8908,7 +8908,7 @@ sakamichi_bu_she = sgs.CreateTriggerSkill {
                 room:gainMaxHp(dying.who, SKMC.number_correction(player, 1))
                 room:recover(dying.who, sgs.RecoverStruct(player, nil, player:getHp()))
                 if player:getCards("he"):length() > 0 then
-                    local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                    local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                     dummy:deleteLater()
                     dummy:addSubcards(player:getCards("he"))
                     room:obtainCard(dying.who, dummy, false)
@@ -9044,7 +9044,7 @@ sakamichi_li_nv = sgs.CreateTriggerSkill {
                     end
                 end
                 if to_gain_list:length() ~= 0 then
-                    local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                    local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                     dummy:deleteLater()
                     dummy:addSubcards(to_gain_list)
                     player:obtainCard(dummy)
@@ -9322,7 +9322,7 @@ sakamichi_jie_zi_card = sgs.CreateSkillCard {
                 break
             end
         end
-        local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
         dummy:deleteLater()
         if not to_get:isEmpty() then
             dummy:addSubcards(to_get)
@@ -9643,7 +9643,7 @@ sakamichi_ai_ku = sgs.CreateTriggerSkill {
             if room:askForSkillInvoke(player, self:objectName(), data) then
                 local result = SKMC.run_judge(room, player, self:objectName(), ".|heart", false)
                 if result.isGood then
-                    local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                    local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                     slash:setSkillName(self:objectName())
                     local targets = sgs.SPlayerList()
                     for _, p in sgs.qlist(room:getOtherPlayers(player)) do
@@ -10192,7 +10192,7 @@ sakamichi_re_xue_card = sgs.CreateSkillCard {
     will_throw = true,
     filter = function(self, targets, to_select)
         if #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() then
-            local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
+            local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, -1)
             duel:deleteLater()
             duel:setSkillName(self:getSkillName())
             return duel:targetFilter(sgs.PlayerList(), to_select, sgs.Self)
@@ -10202,7 +10202,7 @@ sakamichi_re_xue_card = sgs.CreateSkillCard {
     on_effect = function(self, effect)
         local room = effect.from:getRoom()
         room:loseHp(effect.from, SKMC.number_correction(effect.from, 1))
-        local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
+        local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, -1)
         duel:deleteLater()
         duel:setSkillName(self:getSkillName())
         room:useCard(sgs.CardUseStruct(duel, effect.from, effect.to))
@@ -10591,7 +10591,7 @@ YukiYoda:addSkill(sakamichi_bu_she_yuki_yoda)
 sakamichi_she_rou_view_as = sgs.CreateZeroCardViewAsSkill {
     name = "sakamichi_she_rou",
     view_as = function(self)
-        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
         slash:setSkillName(self:objectName())
         return slash
     end,
@@ -11659,7 +11659,7 @@ sakamichi_jian_shu = sgs.CreateTriggerSkill {
         elseif event == sgs.CardUsed then
             local use = data:toCardUse()
             if use.card:isKindOf("Weapon") then
-                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                 slash:deleteLater()
                 slash:setSkillName(self:objectName())
                 local targets = sgs.SPlayerList()
@@ -12023,7 +12023,7 @@ sakamichi_tiao_chuang = sgs.CreateTriggerSkill {
                     if n ~= 0 then
                         local card
                         if player:getHandcardNum() + player:getEquips():length() <= n then
-                            card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                            card = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                             card:deleteLater()
                             card:addSubcards(player:getCards("he"))
                         else
@@ -12255,7 +12255,7 @@ sakamichi_tong_yao = sgs.CreateTriggerSkill {
                     end
                     room:clearAG()
                     if #card_to_gotback > 0 then
-                        local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+                        local dummy = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
                         dummy:deleteLater()
                         for _, id in ipairs(card_to_gotback) do
                             dummy:addSubcard(id)
@@ -15722,7 +15722,7 @@ sakamichi_shi_shengCard = sgs.CreateSkillCard {
     name = "sakamichi_shi_shengCard",
     skill_name = "sakamichi_shi_sheng",
     filter = function(self, targets, to_select)
-        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
         slash:deleteLater()
         local _targets = sgs.PlayerList()
         for _, p in ipairs(targets) do
@@ -16370,7 +16370,7 @@ sakamichi_guan_chaCard = sgs.CreateSkillCard {
         room:showAllCards(effect.to, effect.from)
         if room:askForSkillInvoke(effect.to, self:getSKillName(),
                                   sgs.QVariant("@guan_cha_invoke:" .. effect.from:objectName())) then
-            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
             slash:deleteLater()
             slash:setSkillName(self:getSkillName())
             room:setPlayerFlag(effect.from, "guan_cha")
@@ -16805,9 +16805,9 @@ sakamichi_xiao_hao = sgs.CreateViewAsSkill {
     end,
     view_as = function(self, cards)
         if #cards == 2 then
-            local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, 0)
+            local jink = sgs.Sanguosha:cloneCard("jink", sgs.Card_NoSuit, -1)
             jink:deleteLater()
-            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
+            local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
             slash:deleteLater()
             local cd = nil
             if sgs.Self:getPhase() ~= sgs.Player_NotActive then
@@ -17978,6 +17978,90 @@ sgs.LoadTranslationTable {
     ["sakamichi_bi_ji"] = "笔记",
     [":sakamichi_bi_ji"] = "当一名其他角色使用的通常锦囊牌结算完成时，你可以弃置一张手牌获得之。",
     ["@bi_ji_discard"] = "你可以弃置一张手牌来获得%src使用的【%arg】",
+}
+
+-- 森田 ひかる
+HikaruMorita_Keyakizaka = sgs.General(Sakamichi, "HikaruMorita_Keyakizaka", "Keyakizaka46", 3, false)
+SKMC.NiKiSei.HikaruMorita_Keyakizaka = true
+SKMC.SeiMeiHanDan.HikaruMorita_Keyakizaka = {
+	name = {12, 5, 2, 3, 3},
+	ten_kaku = {17, "ji"},
+	jin_kaku = {7, "ji"},
+	ji_kaku = {8, "ji"},
+	soto_kaku = {18, "ji"},
+	sou_kaku = {25, "ji"},
+	GoGyouSanSai = {
+		ten_kaku = "jin",
+		jin_kaku = "jin",
+		ji_kaku = "jin",
+		san_sai = "ji_xiong_hun_he",
+	},
+}
+
+sakamichi_xiao_ju_ren = sgs.CreateTriggerSkill {
+    name = "sakamichi_xiao_ju_ren",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.TargetConfirmed},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.TargetConfirmed then
+            local use = data:toCardUse()
+            if use.to:contains(player) and use.card and use.card:isKindOf("Slash") and
+                room:askForSkillInvoke(player, self:objectName(), data) then
+                local result = SKMC.run_judge(room, player, self:objectName(), ".|" .. use.card:getSuitString())
+                if result.isGood then
+                    local nullified_list = use.nullified_list
+                    table.insert(nullified_list, player:objectName())
+                    use.nullified_list = nullified_list
+                    data:setValue(use)
+                    if room:askForChoice(player, self:objectName(), "xiao_ju_ren_1+xiao_ju_ren_2") == "xiao_ju_ren_1" then
+                        room:obtainCard(player, use.card)
+                    else
+                        room:obtainCard(player, result.card)
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+HikaruMorita_Keyakizaka:addSkill(sakamichi_xiao_ju_ren)
+
+sakamichi_guang_di = sgs.CreateTriggerSkill {
+    name = "sakamichi_guang_di",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.FinishJudge},
+    on_trigger = function(self, event, player, data, room)
+        local targets = sgs.SPlayerList()
+        local slash = sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, -1)
+        slash:setSkillName(self:objectName())
+        for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+            if player:canSlash(p, slash, true) then
+                targets:append(p)
+            end
+        end
+        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@guang_di_slash", true)
+        if target then
+            room:useCard(sgs.CardUseStruct(slash, player, target), false)
+        end
+    end,
+}
+HikaruMorita_Keyakizaka:addSkill(sakamichi_guang_di)
+
+sgs.LoadTranslationTable {
+    ["HikaruMorita_Keyakizaka"] = "森田 ひかる",
+    ["&HikaruMorita_Keyakizaka"] = "森田 ひかる",
+    ["#HikaruMorita_Keyakizaka"] = "坂道巨人",
+    ["~HikaruMorita_Keyakizaka"] = "欅坂46に必要だと思われる人になりたい。",
+    ["designer:HikaruMorita_Keyakizaka"] = "Cassimolar",
+    ["cv:HikaruMorita_Keyakizaka"] = "森田 ひかる",
+    ["illustrator:HikaruMorita_Keyakizaka"] = "Cassimolar",
+    ["sakamichi_xiao_ju_ren"] = "小巨人",
+    [":sakamichi_xiao_ju_ren"] = "当你成为【杀】的目标后，你可以判定，若结果花色与此【杀】相同，则此【杀】对你无效且你可以选择获得此【杀】或判定牌。",
+    ["xiao_ju_ren_1"] = "获得此【杀】",
+    ["xiao_ju_ren_2"] = "获得此判定牌",
+    ["sakamichi_guang_di"] = "光帝",
+    [":sakamichi_guang_di"] = "你的判定牌生效后，你可以视为对攻击范围内的一名其他角色使用了一张【杀】。",
+    ["@guang_di_slash"] = "你可以选择一名其他角色视为对其使用一张【杀】",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

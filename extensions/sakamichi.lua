@@ -16718,10 +16718,12 @@ sakamichi_she_ji = sgs.CreateTriggerSkill {
     events = {sgs.PreCardUsed},
     on_trigger = function(self, event, player, data, room)
         local use = data:toCardUse()
-        if not player:hasFlag("mei_shu_used") and
-            room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("@mei_shu:::" .. use.card:objectName())) then
-            use.card:setSuit(room:askForSuit(player, self:objectName()))
-            room:setPlayerFlag(player, "mei_shu_used")
+        if not player:hasFlag("she_ji_used") and
+            room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("@she_ji:::" .. use.card:objectName())) then
+            local suit = room:askForSuit(player, self:objectName())
+            use.card:setSuit(suit)
+            SKMC.send_message(room, "#mSuitChose", player, nil, nil, nil, sgs.Card_Suit2String(suit))
+            room:setPlayerFlag(player, "she_ji_used")
         end
     end,
 }
@@ -16740,7 +16742,7 @@ sgs.LoadTranslationTable {
     ["sakamichi_hua_lao:@hua_lao"] = "是否发动【话痨】展示所有手牌",
     ["sakamichi_she_ji"] = "设计",
     [":sakamichi_she_ji"] = "出牌阶段限一次，当你使用牌时，你可以改变其花色。",
-    ["sakamichi_she_ji:@mei_shu"] = "是否改变此%arg的花色",
+    ["sakamichi_she_ji:@she_ji"] = "是否改变此%arg的花色",
 }
 
 -- 上村 莉菜
@@ -17984,18 +17986,18 @@ sgs.LoadTranslationTable {
 HikaruMorita_Keyakizaka = sgs.General(Sakamichi, "HikaruMorita_Keyakizaka", "Keyakizaka46", 3, false)
 SKMC.NiKiSei.HikaruMorita_Keyakizaka = true
 SKMC.SeiMeiHanDan.HikaruMorita_Keyakizaka = {
-	name = {12, 5, 2, 3, 3},
-	ten_kaku = {17, "ji"},
-	jin_kaku = {7, "ji"},
-	ji_kaku = {8, "ji"},
-	soto_kaku = {18, "ji"},
-	sou_kaku = {25, "ji"},
-	GoGyouSanSai = {
-		ten_kaku = "jin",
-		jin_kaku = "jin",
-		ji_kaku = "jin",
-		san_sai = "ji_xiong_hun_he",
-	},
+    name = {12, 5, 2, 3, 3},
+    ten_kaku = {17, "ji"},
+    jin_kaku = {7, "ji"},
+    ji_kaku = {8, "ji"},
+    soto_kaku = {18, "ji"},
+    sou_kaku = {25, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "jin",
+        jin_kaku = "jin",
+        ji_kaku = "jin",
+        san_sai = "ji_xiong_hun_he",
+    },
 }
 
 sakamichi_xiao_ju_ren = sgs.CreateTriggerSkill {
@@ -18118,7 +18120,7 @@ sakamichi_gui_yuan = sgs.CreateTriggerSkill {
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Draw then
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if player:hasFlag("gui_yuan_to" .. p:objectName()) then
-                    local card = room:askForCard(p, ".|.|.|hand", "@gui_yuan_give:" .. player:objectName(), data,
+                    local card = room:askForCard(p, ".|.|.|hand", "@gui_yuan_give_1:" .. player:objectName(), data,
                                                  sgs.Card_MethodNone)
                     if card then
                         player:obtainCard(card)
@@ -18147,7 +18149,7 @@ sakamichi_gui_yuan = sgs.CreateTriggerSkill {
                 for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                     if player:hasFlag("gui_yuan_give" .. p:objectName()) then
                         if player:getHandcardNum() < player:getMaxCards() then
-                            local card = room:askForCard(p, ".|.|.|hand", "@gui_yuan_give2:" .. player:objectName(),
+                            local card = room:askForCard(p, ".|.|.|hand", "@gui_yuan_give_2:" .. player:objectName(),
                                                          data, sgs.Card_MethodNone)
                             if card then
                                 player:obtainCard(card)
@@ -18259,12 +18261,115 @@ sgs.LoadTranslationTable {
     ["illustrator:RinaMatsuda_Keyakizaka"] = "Cassimolar",
     ["sakamichi_gui_yuan"] = "柜员",
     [":sakamichi_gui_yuan"] = "出牌阶段限一次，你可以获得一名其他角色的一张手牌，若如此做，其下个摸牌阶段，你须交给其一张手牌，否则你的下个摸牌阶段你少摸一张牌且其摸一张牌；其他角色出牌阶段限一次，其可以将一张手牌交给你，若如此做，本回合结束阶段，若其手牌数小于手牌上限，你可以交给其一张手牌或令其将手牌补至手牌上限（至多为5张）。",
-    ["@gui_yuan_give"] = "请交给%src一张手牌，否则你的下个摸牌阶段你少摸一张牌且其摸一张牌",
+    ["@gui_yuan_give_1"] = "请交给%src一张手牌，否则你的下个摸牌阶段你少摸一张牌且其摸一张牌",
     ["sakamichi_gui_yuan_give"] = "柜员",
     [":sakamichi_gui_yuan_give"] = "出牌阶段限一次，你可以将一张手牌交给【柜员】的拥有者，若如此做，本回合结束时，若你的手牌数小于手牌上限，其须交给你一张手牌否则令你将手牌补至手牌上限（至多为5张）",
-    ["@gui_yuan_give2"] = "请交给%src一张手牌，否则将令其手牌补至手牌上限（至多5张）",
+    ["@gui_yuan_give_2"] = "请交给%src一张手牌，否则将令其手牌补至手牌上限（至多5张）",
     ["sakamichi_dian_chao"] = "点钞",
     [":sakamichi_dian_chao"] = "准备阶段，你可以观看牌堆顶的X张牌，并可以将这些牌以任意顺序置于牌堆顶（X为你当前手牌数）。",
+}
+
+-- 武元 唯衣
+YuiTakemoto_Keyakizaka = sgs.General(Sakamichi, "YuiTakemoto_Keyakizaka", "Keyakizaka46", 4, false)
+SKMC.NiKiSei.YuiTakemoto_Keyakizaka = true
+SKMC.SeiMeiHanDan.YuiTakemoto_Keyakizaka = {
+    name = {8, 4, 11, 6},
+    ten_kaku = {12, "xiong"},
+    jin_kaku = {15, "da_ji"},
+    ji_kaku = {17, "ji"},
+    soto_kaku = {14, "xiong"},
+    sou_kaku = {29, "te_shu_ge"},
+    GoGyouSanSai = {
+        ten_kaku = "mu",
+        jin_kaku = "tu",
+        ji_kaku = "jin",
+        san_sai = "ji_xiong_hun_he",
+    },
+}
+
+sakamichi_nao_ju = sgs.CreateTriggerSkill {
+    name = "sakamichi_nao_ju",
+    events = {sgs.EventPhaseSkipping},
+    on_trigger = function(self, event, player, data, room)
+        if room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("skip:::" .. player:getPhaseString())) then
+            local thread = room:getThread()
+            player:setPhase(player:getPhase())
+            room:broadcastProperty(player, "phase")
+            if not thread:trigger(sgs.EventPhaseStart, room, player) then
+                thread:trigger(sgs.EventPhaseProceeding, room, player)
+            end
+            thread:trigger(sgs.EventPhaseEnd, room, player)
+            player:setPhase(sgs.Player_Finish)
+            room:broadcastProperty(player, "phase")
+        end
+        return false
+    end,
+}
+YuiTakemoto_Keyakizaka:addSkill(sakamichi_nao_ju)
+
+sakamichi_jing_wu = sgs.CreateTriggerSkill {
+    name = "sakamichi_jing_wu",
+    events = {sgs.EventPhaseChanging, sgs.EventPhaseEnd},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.EventPhaseChanging then
+            local change = data:toPhaseChange()
+            if not player:hasFlag("jing_wu_used") and change.to ~= sgs.Player_RoundStart and change.to ~=
+                sgs.Player_Start and change.to ~= sgs.Player_Finish and change.to ~= sgs.Player_NotActive then
+                if not player:isSkipped(change.to) and
+                    room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("skip:::" .. "jing_wu_" .. change.to)) then
+                    room:setPlayerFlag(player, "jing_wu_used")
+                    player:skip(change.to)
+                end
+            end
+        else
+            if player:getPhase() == sgs.Player_Finish and player:hasFlag("jing_wu_used") then
+                if player:getHandcardNum() < player:getHp() then
+                    local targets = sgs.SPlayerList()
+                    for _, p in sgs.qlist(room:getAlivePlayers()) do
+                        if not p:isAllNude() then
+                            targets:append(p)
+                        end
+                    end
+                    if not targets:isEmpty() then
+                        local target = room:askForPlayerChosen(player, targets, self:objectName(), "@jing_wu_invoke",
+                                                               true, true)
+                        if target then
+                            local card = room:askForCardChosen(player, target, "hej", self:objectName(), false,
+                                                               sgs.Card_MethodDiscard)
+                            room:throwCard(card, target, player)
+                        end
+                    end
+                else
+                    if player:canDiscard(player, "he") then
+                        room:askForDiscard(player, self:objectName(), 1, 1, false, true)
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+YuiTakemoto_Keyakizaka:addSkill(sakamichi_jing_wu)
+
+sgs.LoadTranslationTable {
+    ["YuiTakemoto_Keyakizaka"] = "武元 唯衣",
+    ["&YuiTakemoto_Keyakizaka"] = "武元 唯衣",
+    ["#YuiTakemoto_Keyakizaka"] = "唯一無二",
+    ["~YuiTakemoto_Keyakizaka"] = "そういうヤツ無理やあ～",
+    ["designer:YuiTakemoto_Keyakizaka"] = "Cassimolar",
+    ["cv:YuiTakemoto_Keyakizaka"] = "武元 唯衣",
+    ["illustrator:YuiTakemoto_Keyakizaka"] = "Cassimolar",
+    ["sakamichi_nao_ju"] = "闹剧",
+    [":sakamichi_nao_ju"] = "当你的一个阶段被跳过时，你可以执行一个额外的此阶段。",
+    ["sakamichi_nao_ju:skip"] = "是否执行一个额外的%arg阶段",
+    ["sakamichi_jing_wu"] = "劲舞",
+    [":sakamichi_jing_wu"] = "<b><font color = #008000>每回合限一次</font></b>，你可以跳过除准备阶段和结束阶段外的一个阶段，若如此做，结束阶段若你的手牌数小于体力值你可以弃置场上一张牌，否则你须弃置一张牌。",
+    ["@jing_wu_invoke"] = "你可以弃置场上一张牌",
+    ["sakamichi_jing_wu:skip"] = "你可以跳过%arg",
+    ["jing_wu_2"] = "判定阶段",
+    ["jing_wu_3"] = "摸牌阶段",
+    ["jing_wu_4"] = "出牌阶段",
+    ["jing_wu_5"] = "弃牌阶段",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

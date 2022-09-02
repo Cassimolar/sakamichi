@@ -3954,7 +3954,7 @@ sgs.LoadTranslationTable {
     ["#hun_xue_down"] = "%from 发动【%arg】使其此次拼点点数<font color=\"yellow\"><b>-5</b></font>，此次拼点点数为 %arg2",
     ["sakamichi_ba_lei"] = "芭蕾",
     [":sakamichi_ba_lei"] = "准备阶段，若你未受伤，你可以拼点：若你赢，你可以获得对方的拼点牌，并可以立即再次与其拼点，你可以重复此流程直到你没赢或不愿意继续拼点为止；若你没赢，你失去1点体力。",
-    ["@ba_lei_invoke"] = "你可以发动【芭蕾】与一名其他角色拼点",
+    ["@ba_lei_invoke"] = "你可以发动【芭蕾】拼点",
     ["~sakamichi_ba_lei"] = "选择一张手牌 → 选择一名其他角色 → 点击确定",
     ["sakamichi_zu_qiu"] = "足球",
     [":sakamichi_zu_qiu"] = "出牌阶段限一次，你可以与一名势力与你不同的角色拼点，赢的一方获得双方的拼点牌。",
@@ -4139,7 +4139,7 @@ sgs.LoadTranslationTable {
     ["cv:ManatsuAkimoto"] = "秋元 真夏",
     ["illustrator:ManatsuAkimoto"] = "Cassimolar",
     ["sakamichi_zi_q"] = "子Q",
-    [":sakamichi_zi_q"] = "出牌阶段限一次，你可以将一张手牌交给一名未以此法翻面的其他角色令其进行判定，若判定结果为：黑桃，本回合内其非锁定技失效；红桃，其回复1点体力值并翻面，且此技能对其他角色视为未发动过；梅花，本回合内其防具失效；方块，其摸四张牌然后弃置两张牌。",
+    [":sakamichi_zi_q"] = "出牌阶段限一次，你可以将一张手牌交给一名未以此法翻面的其他角色令其判定，若结果为：黑桃，本回合内其非锁定技失效；红桃，其回复1点体力值并翻面，且此技能对其他角色视为未发动过；梅花，本回合内其防具失效；方块，其摸四张牌然后弃置两张牌。",
     ["#zi_q_spade"] = "本回合内%from 非锁定技失效",
     ["#zi_q_heart"] = "%from 回复1点体力并将武将牌翻面",
     ["#zi_q_club"] = "本回合内%from 防具无效",
@@ -4308,9 +4308,9 @@ sgs.LoadTranslationTable {
     ["cv:KazumiTakayama"] = "高山 一実",
     ["illustrator:KazumiTakayama"] = "Cassimolar",
     ["sakamichi_jiao_zhu"] = "教主",
-    [":sakamichi_jiao_zhu"] = "一名角色造成/受到伤害后，其可以进行判定，若结果为：黑桃，你回复1点体力；梅花，你摸一张牌。",
+    [":sakamichi_jiao_zhu"] = "一名角色造成/受到伤害后，其可以判定，若结果为：黑桃，你回复1点体力；梅花，你摸一张牌。",
     ["sakamichi_gai_ming_kazumi"] = "改名",
-    [":sakamichi_gai_ming_kazumi"] = "一名角色的判定牌生效前，你可以打出一张黑色牌替换之。限定技，一名角色进入濒死时，你可以令其进行判定，若结果不为黑色，其回复1点体力并从随机三个未上场的同势力武将中选择一个替换其武将牌。",
+    [":sakamichi_gai_ming_kazumi"] = "一名角色的判定牌生效前，你可以打出一张黑色牌替换之。限定技，一名角色进入濒死时，你可以令其判定，若结果不为黑色，其回复1点体力并从随机三个未上场的同势力武将中选择一个替换其武将牌。",
     ["@gaimingkazumi"] = "改名",
     ["@gai_ming_kazumiCard"] = "你可以打出一张黑色牌来替换 %src 的 %arg 的判定牌 %arg2",
     ["sakamichi_gai_ming_kazumi:to"] = "%src 进入濒死，是否发动%arg",
@@ -4609,7 +4609,7 @@ sgs.LoadTranslationTable {
     ["cv:MaiShiraishi"] = "白石 麻衣",
     ["illustrator:MaiShiraishi"] = "Cassimolar",
     ["sakamichi_gong_shi"] = "共时",
-    [":sakamichi_gong_shi"] = "主公技，乃木坂46势力角色出牌阶段限一次，其使用牌结算完成时可以进行判定，若判定牌与此牌类型相同，你与其各摸一张牌。",
+    [":sakamichi_gong_shi"] = "主公技，乃木坂46势力角色出牌阶段限一次，其使用牌结算完成时可以判定，若结果与此牌类型相同，你与其各摸一张牌。",
     ["sakamichi_gong_shi:invoke"] = "是否发动%src 的【%arg】",
     ["sakamichi_nv_shen"] = "女神",
     [":sakamichi_nv_shen"] = "锁定技，你不能被翻面或横置，且不是【乐不思蜀】、【兵粮寸断】的合法目标。其他角色武将牌翻至背面时／横置时你可以弃置一张红色牌防止此次翻面／横置。",
@@ -6135,7 +6135,7 @@ sgs.LoadTranslationTable {
     ["cv:MinamiHoshino"] = "星野 みなみ",
     ["illustrator:MinamiHoshino"] = "Cassimolar",
     ["sakamichi_ai_xin"] = "爱心",
-    [":sakamichi_ai_xin"] = "当你受到伤害后，你可以进行判定，若结果为红桃，你回复1点体力。",
+    [":sakamichi_ai_xin"] = "当你受到伤害后，你可以判定，若结果为红桃，你回复1点体力。",
     ["sakamichi_meng_hun"] = "萌混",
     [":sakamichi_meng_hun"] = "当你成为【杀】或【决斗】的目标时，你可以弃置所有手牌令此牌对你无效，然后你和此牌的使用者各摸一张牌。",
     ["sakamichi_meng_hun:invoke"] = "是否弃置所有手牌发动【%arg2】令%src使用的【%arg】对你无效",
@@ -14598,7 +14598,7 @@ sgs.LoadTranslationTable {
     ["sakamichi_ping_shou"] = "平手",
     [":sakamichi_ping_shou"] = "你的拼点牌亮出时，你可以弃置一张牌令你的拼点牌点数等于拼点目标的拼点牌点数。你使用的【杀】被闪避时，你可以与其拼点，没赢的角色可以摸一张牌。",
     ["@ping_shou_invoke"] = "你可以弃置一张手牌来令你的拼点牌点数等于%src的拼点牌点数为%arg",
-    ["sakamichi_ping_shou:@ping_shou_pindian"] = "你可以与%src进行一次拼点",
+    ["sakamichi_ping_shou:@ping_shou_pindian"] = "你可以与%src拼点",
     ["sakamichi_ji_shang"] = "积伤",
     [":sakamichi_ji_shang"] = "觉醒技，当你受到伤害后，若你未受到过此牌名的牌造成过的伤害，将此牌置于你的武将牌上称为「伤」，当你拥有至少六张「伤」时，你增加1点体力上限并回复1点体力，然后失去所有主公技获得【脱退】并将势力改为自闭群。",
     ["shang"] = "伤",
@@ -18370,6 +18370,160 @@ sgs.LoadTranslationTable {
     ["jing_wu_3"] = "摸牌阶段",
     ["jing_wu_4"] = "出牌阶段",
     ["jing_wu_5"] = "弃牌阶段",
+}
+
+-- 松平 璃子
+RikoMatsudaira_Keyakizaka = sgs.General(Sakamichi, "RikoMatsudaira_Keyakizaka", "Keyakizaka46", 4, false)
+SKMC.NiKiSei.RikoMatsudaira_Keyakizaka = true
+SKMC.SeiMeiHanDan.RikoMatsudaira_Keyakizaka = {
+	name = {8, 5, 15, 3},
+	ten_kaku = {13, "da_ji"},
+	jin_kaku = {20, "xiong"},
+	ji_kaku = {18, "ji"},
+	soto_kaku = {11, "ji"},
+	sou_kaku = {31, "da_ji"},
+	GoGyouSanSai = {
+		ten_kaku = "huo",
+		jin_kaku = "shui",
+		ji_kaku = "jin",
+		san_sai = "ji_xiong_hun_he",
+	},
+}
+
+sakamichi_mi_zi = sgs.CreateTriggerSkill {
+    name = "sakamichi_mi_zi",
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.DrawNCards},
+    on_trigger = function(self, event, player, data, room)
+        local n = data:toInt()
+        local result = SKMC.run_judge(room, player, self:objectName(), ".|red")
+        if result.isGood then
+            n = n + 1
+            data:setValue(n)
+        else
+            if player:canDiscard(player, "he") then
+                room:askForDiscard(player, self:objectName(), 1, 1, false, true)
+            end
+        end
+        return false
+    end,
+}
+RikoMatsudaira_Keyakizaka:addSkill(sakamichi_mi_zi)
+
+sakamichi_mei_tou_naoCard = sgs.CreateSkillCard {
+    name = "sakamichi_mei_tou_naoCard",
+    skill_name = "sakamichi_mei_tou_nao",
+    will_throw = false,
+    handling_method = sgs.Card_MethodPindian,
+    filter = function(self, targets, to_select)
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and sgs.Self:canPindian(to_select) and
+                   not sgs.Self:hasFlag("mei_tou_nao_to" .. to_select:objectName())
+    end,
+    on_effect = function(self, effect)
+        local room = effect.from:getRoom()
+        if effect.from:pindian(effect.to, self:getSkillName(), self) then
+            room:setPlayerFlag(effect.from, "mei_tou_nao_sussces" .. effect.to:objectName())
+        else
+            room:setPlayerFlag(effect.from, "mei_tou_nao_fail" .. effect.to:objectName())
+        end
+        if sgs.Sanguosha:getCard(self:getSubcards():first()):getNumber() ~= 13 then
+            room:setPlayerFlag(effect.from, "mei_tou_nao_used")
+        end
+        room:setPlayerFlag(effect.from, "mei_tou_nao_to" .. effect.to:objectName())
+    end,
+}
+sakamichi_mei_tou_nao_view_as = sgs.CreateOneCardViewAsSkill {
+    name = "sakamichi_mei_tou_nao",
+    filter_pattern = ".|.|.|hand",
+    view_as = function(self, card)
+        local skillcard = sakamichi_mei_tou_naoCard:clone()
+        skillcard:addSubcard(card)
+        return skillcard
+    end,
+    enabled_at_play = function(self, player)
+        return not player:hasFlag("mei_tou_nao_used") and not player:isKongcheng()
+    end,
+}
+sakamichi_mei_tou_nao = sgs.CreateTriggerSkill {
+    name = "sakamichi_mei_tou_nao",
+    view_as_skill = sakamichi_mei_tou_nao_view_as,
+    events = {sgs.PreCardUsed},
+    on_trigger = function(self, event, player, data, room)
+        local use = data:toCardUse()
+        if use.card:isNDTrick() or use.card:isKindOf("BasicCard") then
+            if sgs.Sanguosha:getCurrentCardUseReason() == sgs.CardUseStruct_CARD_USE_REASON_PLAY then
+                local extra_targets = sgs.SPlayerList()
+                for _, p in sgs.qlist(room:getOtherPlayers(player)) do
+                    if player:hasFlag("mei_tou_nao_sussces" .. p:objectName()) and
+                        not (use.to:contains(p) or room:isProhibited(player, p, use.card)) then
+                        if use.card:targetFixed() then
+                            if not use.card:isKindOf("Peach") or p:isWounded() then
+                                extra_targets:append(p)
+                            end
+                        else
+                            if use.card:targetFilter(sgs.PlayerList(), p, player) then
+                                extra_targets:append(p)
+                            end
+                        end
+                    end
+                end
+                if not extra_targets:isEmpty() then
+                    if use.card:isKindOf("Collateral") then
+                        for _, p in sgs.qlist(extra_targets) do
+                            local pl_list = sgs.SPlayerList()
+                            for _, pl in sgs.qlist(room:getOtherPlayers(p)) do
+                                local p_list = sgs.PlayerList()
+                                p_list:append(p)
+                                if use.card:targetFilter(p_list, pl, player) then
+                                    pl_list:append(pl)
+                                end
+                            end
+                            if pl_list:isEmpty() then
+                                extra_targets:removeOne(p)
+                            else
+                                local victim = room:askForPlayerChosen(player, pl_list, self:objectName(),
+                                                                       "@mei_tou_nao_collateral:" .. p:objectName() ..
+                                                                           "::" .. use.card:objectName())
+                                local _data = sgs.QVariant()
+                                _data:setValue(victim)
+                                p:setTag("collateralVictim", _data)
+                            end
+                        end
+                    end
+                    for _, p in sgs.qlist(extra_targets) do
+                        use.to:append(p)
+                    end
+                    room:sortByActionOrder(use.to)
+                    data:setValue(use)
+                end
+            end
+        end
+    end,
+}
+Luamei_tou_naoProtect = sgs.CreateProhibitSkill {
+    name = "#Luamei_tou_naoProtect",
+    is_prohibited = function(self, from, to, card)
+        return from:hasFlag("mei_tou_nao_fail" .. to:objectName())
+    end,
+}
+RikoMatsudaira_Keyakizaka:addSkill(sakamichi_mei_tou_nao)
+if not sgs.Sanguosha:getSkill("#Luamei_tou_naoProtect") then
+    SKMC.SkillList:append(Luamei_tou_naoProtect)
+end
+
+sgs.LoadTranslationTable {
+    ["RikoMatsudaira_Keyakizaka"] = "松平 璃子",
+    ["&RikoMatsudaira_Keyakizaka"] = "松平 璃子",
+    ["#RikoMatsudaira_Keyakizaka"] = "没头脑",
+    ["~RikoMatsudaira_Keyakizaka"] = "無理～サファリパーク♪",
+    ["designer:RikoMatsudaira_Keyakizaka"] = "Cassimolar",
+    ["cv:RikoMatsudaira_Keyakizaka"] = "松平 璃子",
+    ["illustrator:RikoMatsudaira_Keyakizaka"] = "Cassimolar",
+    ["sakamichi_mi_zi"] = "迷子",
+    [":sakamichi_mi_zi"] = "锁定技，摸牌阶段，你判定，若结果为：红色，你多摸一张牌；不为红色，你须弃置一张牌。",
+    ["sakamichi_mei_tou_nao"] = "没头脑",
+    [":sakamichi_mei_tou_nao"] = "出牌阶段限一次，你可以拼点：若你赢，本回合内，你使用基本牌和通常锦囊牌时，若其为此牌合法目标且不为此牌的目标，则其成为此牌的额外目标；若你没赢，本回合内你使用牌其不是合法目标。若你以此法拼点的牌的点数为K，则此技能对本回合未成为此技能目标的角色视为未曾发动。",
+    ["@mei_tou_nao_collateral"] = "请为此【%arg】的目标%src选择一个使用【杀】的目标",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

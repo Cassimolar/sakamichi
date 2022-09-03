@@ -2566,9 +2566,9 @@ sgs.LoadTranslationTable {
     ["sakamichi_gui_lian"] = "鬼脸",
     [":sakamichi_gui_lian"] = "限定技，出牌阶段，你可以令一名其他角色本回合内无法使用或打出手牌/非锁定技失效。",
     ["sakamichi_gui_lian:card_limitation"] = "令%src本回合内无法使用或打出手牌",
-    ["sakamichi_gui_lian:skill_invalidity"] = "令%src本回合内非锁定技无效",
+    ["sakamichi_gui_lian:skill_invalidity"] = "令%src本回合内非锁定技失效",
     ["#gui_lian_card"] = "%from 发动【%arg】令%to 本回合内无法使用或打出手牌",
-    ["#gui_lian_skill"] = "%from 发动【%arg】令%to 本回合内非锁定技无效",
+    ["#gui_lian_skill"] = "%from 发动【%arg】令%to 本回合内非锁定技失效",
     ["@wryface"] = "鬼脸",
     ["sakamichi_tian_shi"] = "天使",
     [":sakamichi_tian_shi"] = "觉醒技，准备阶段，若你已杀死至少一名角色或进入过濒死，你增加1点体力上限并回复1点体力，然后失去【鬼脸】获得【笑颜】。",
@@ -4142,7 +4142,7 @@ sgs.LoadTranslationTable {
     [":sakamichi_zi_q"] = "出牌阶段限一次，你可以将一张手牌交给一名未以此法翻面的其他角色令其判定，若结果为：黑桃，本回合内其非锁定技失效；红桃，其回复1点体力值并翻面，且此技能对其他角色视为未发动过；梅花，本回合内其防具失效；方块，其摸四张牌然后弃置两张牌。",
     ["#zi_q_spade"] = "本回合内%from 非锁定技失效",
     ["#zi_q_heart"] = "%from 回复1点体力并将武将牌翻面",
-    ["#zi_q_club"] = "本回合内%from 防具无效",
+    ["#zi_q_club"] = "本回合内%from 防具失效",
     ["#zi_q_diamond"] = "%from 摸四张牌然后弃置两张牌",
     ["sakamichi_xiao_ju_chang"] = "小剧场",
     ["#xiao_ju_chang_avoid"] = "%from 的【%arg】被触发，%card对其无效",
@@ -18705,6 +18705,183 @@ sgs.LoadTranslationTable {
     ["@man_re_slash2"] = "你可以对%src使用一张【杀】",
     ["sakamichi_bu_gao_xing"] = "不高兴",
     [":sakamichi_bu_gao_xing"] = "锁定技，你不是拼点的合法目标。当你受到其他角色造成的伤害后，你摸一张牌，若当前为出牌阶段，则结束此阶段。",
+}
+
+-- 増本 綺良
+KiraMasumoto = sgs.General(Sakamichi, "KiraMasumoto", "Keyakizaka46", 3, false, true)
+SKMC.NiKiSei.KiraMasumoto = true
+SKMC.SeiMeiHanDan.KiraMasumoto = {
+	name = {14, 5, 14, 7},
+	ten_kaku = {19, "xiong"},
+	jin_kaku = {19, "xiong"},
+	ji_kaku = {21, "ji"},
+	soto_kaku = {21, "ji"},
+	sou_kaku = {40, "ji_xiong_hun_he"},
+	GoGyouSanSai = {
+		ten_kaku = "shui",
+		jin_kaku = "shui",
+		ji_kaku = "mu",
+		san_sai = "da_ji",
+	},
+}
+
+sakamichi_mi_yan = sgs.CreateTriggerSkill {
+    name = "sakamichi_mi_yan",
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.CardUsed, sgs.CardResponded, sgs.CardFinished},
+    on_trigger = function(self, event, player, data, room)
+        local use = data:toCardUse()
+        if event == sgs.CardUsed or sgs.CardResponded then
+            local card
+            if event == sgs.PreCardUsed then
+                card = data:toCardUse().card
+            else
+                if data:toCardResponse().m_isUse then
+                    card = data:toCardResponse().m_card
+                end
+            end
+            if card:isKindOf("BasicCard") or card:isNDTrick() then
+                local result = SKMC.run_judge(room, player, self:objectName(), ".|spade", false)
+                if result.card:getSuit() == sgs.Card_Spade then
+                    local nullified_list = use.nullified_list
+                    table.insert(nullified_list, "_ALL_TARGETS")
+                    use.nullified_list = nullified_list
+                    data:setValue(use)
+                elseif result.card:getSuit() == sgs.Card_Heart then
+                    room:setCardFlag(use.card, "mi_yan")
+                elseif result.card:getSuit() == sgs.Card_Club then
+                    local no_respond_list = use.no_respond_list
+                    table.insert(no_respond_list, "_ALL_TARGETS")
+                    use.no_respond_list = no_respond_list
+                    data:setValue(use)
+                elseif result.card:getSuit() == sgs.Card_Diamond then
+                    room:drawCards(player, 1, self:objectName())
+                end
+            end
+        else
+            if use.card:hasFlag("mi_yan") then
+                local ids = sgs.IntList()
+                if use.card:isVirtualCard() then
+                    ids = use.card:getSubcards()
+                else
+                    ids:append(use.card:getEffectiveId())
+                end
+                if not ids:isEmpty() then
+                    local in_discard = true
+                    for _, id in sgs.qlist(ids) do
+                        if room:getCardPlace(id) ~= sgs.Player_DiscardPile then
+                            in_discard = false
+                            break
+                        end
+                    end
+                    if in_discard then
+                        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "mi_yan_invoke:::" .. use.card:objectName(), true, true)
+                        if target then
+                            room:obtainCard(target, use.card)
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+KiraMasumoto:addSkill(sakamichi_mi_yan)
+
+sakamichi_ci_bei = sgs.CreateTriggerSkill {
+    name = "sakamichi_ci_bei",
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@ci_bei",
+    events = {sgs.EnterDying},
+    on_trigger = function(self, event, player, data, room)
+        local dying = data:toDying()
+        for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+            if p:getMark("@ci_bei") ~= 0 and
+                room:askForSkillInvoke(p, self:objectName(), sgs.QVariant("to:" .. dying.who:objectName())) then
+                p:loseMark("@ci_bei")
+                room:recover(dying.who, sgs.RecoverStruct(p, nil, player:getMaxHp() - player:getHp()))
+                break
+            end
+        end
+        return false
+    end,
+    can_trigger = function(self, target)
+        return target
+    end,
+}
+KiraMasumoto:addSkill(sakamichi_ci_bei)
+
+sakamichi_hun_luanCard = sgs.CreateSkillCard {
+    name = "sakamichi_hun_luanCard",
+    skill_name = "sakamichi_hun_luan",
+    target_fixed = false,
+    filter = function(self, targets, to_select)
+        return #targets == 0 and to_select:objectName() ~= sgs.Self:objectName() and not to_select:isKongcheng()
+    end,
+    on_effect = function(self, effect)
+        local room = effect.from:getRoom()
+        local card_ids1 = effect.from:handCards()
+        local card_ids2 = effect.to:handCards()
+        if not card_ids1:isEmpty() then
+            local move = sgs.CardsMoveStruct(card_ids1, effect.from, nil, sgs.Player_PlaceHand, sgs.Player_PlaceTable,
+                                             sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT,
+                                                                effect.from:objectName(), self:getSkillName(), ""))
+            room:moveCardsAtomic(move, false)
+        end
+        if not card_ids2:isEmpty() then
+            local move = sgs.CardsMoveStruct(card_ids2, effect.to, nil, sgs.Player_PlaceHand, sgs.Player_PlaceTable,
+                                             sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_PUT, effect.to:objectName(),
+                                                                self:getSkillName(), ""))
+            room:moveCardsAtomic(move, false)
+        end
+        local card_ids = card_ids1
+        for _, id in sgs.qlist(card_ids2) do
+            card_ids:append(id)
+        end
+        local ids1 = sgs.IntList()
+        local n = math.floor(card_ids:length() / 2)
+        for i = 1, n, 1 do
+            local table = sgs.QList2Table(card_ids)
+            local n = math.random(1, #table)
+            ids1:append(table[n])
+            card_ids:removeOne(table[n])
+        end
+        local move1 = sgs.CardsMoveStruct(ids1, nil, effect.from, sgs.Player_PlaceTable, sgs.Player_PlaceHand,
+                                          sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTBACK, "",
+                                                             effect.from:objectName(), self:getSkillName(), ""))
+        room:moveCardsAtomic(move1, false)
+        local move2 = sgs.CardsMoveStruct(card_ids, nil, effect.to, sgs.Player_PlaceTable, sgs.Player_PlaceHand,
+                                          sgs.CardMoveReason(sgs.CardMoveReason_S_REASON_GOTBACK, "",
+                                                             effect.to:objectName(), self:getSkillName(), ""))
+        room:moveCardsAtomic(move2, false)
+    end,
+}
+sakamichi_hun_luan = sgs.CreateZeroCardViewAsSkill {
+    name = "sakamichi_hun_luan",
+    view_as = function(self)
+        return sakamichi_hun_luanCard:clone()
+    end,
+    enabled_at_play = function(self, player)
+        return not player:hasUsed("#sakamichi_hun_luanCard")
+    end,
+}
+KiraMasumoto:addSkill(sakamichi_hun_luan)
+
+sgs.LoadTranslationTable {
+    ["KiraMasumoto"] = "増本 綺良",
+    ["&KiraMasumoto"] = "増本 綺良",
+    ["#KiraMasumoto"] = "天馬行空",
+    ["~KiraMasumoto"] = "私、虫は触れるのにダンボール触れないんです。",
+    ["designer:KiraMasumoto"] = "Cassimolar",
+    ["cv:KiraMasumoto"] = "増本 綺良",
+    ["illustrator:KiraMasumoto"] = "Cassimolar",
+    ["sakamichi_mi_yan"] = "迷言",
+    [":sakamichi_mi_yan"] = "锁定技，当你使用基本牌或通常锦囊牌时，你须判定，若结果为：黑桃，此牌无效；红桃，此牌结算完成时你可以令一名其他角色获得之；梅花，此牌无法响应；方块，你摸一张牌。",
+    ["sakamichi_ci_bei"] = "慈悲",
+    [":sakamichi_ci_bei"] = "限定技，当一名角色进入濒死时，你可以令其回复所有体力。",
+    ["sakamichi_ci_bei:to"] = "是否令%src将体力回复至体力上限",
+    ["sakamichi_hun_luan"] = "混乱",
+    [":sakamichi_hun_luan"] = "出牌阶段限一次，你可以选择一名有手牌的其他角色，将你们的手牌混合后，你获得其中的一半（向下取整），其获得剩余的牌。",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

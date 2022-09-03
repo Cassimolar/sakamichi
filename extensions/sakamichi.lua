@@ -19383,6 +19383,437 @@ sgs.LoadTranslationTable {
     ["sakamichi_zhu_luan:draw"] = "是否发动【%arg】令当前回合角色摸一张牌",
 }
 
+-- ====================================================================================================坂道研修生====================================================================================================--
+
+--[[
+    技能名：研修
+    描述：觉醒技，准备阶段，若你为坂道研修生且上个结束阶段后未失去过体力或受到伤害，你将被分配。
+    引用：
+]]
+sakamichi_yan_xiu = sgs.CreateTriggerSkill {
+    name = "sakamichi_yan_xiu",
+    frequency = sgs.Skill_Wake,
+    events = {sgs.EventPhaseStart, sgs.EventPhaseEnd, sgs.HpLost, sgs.Damaged},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.EventPhaseStart then
+            if player:getPhase() == sgs.Player_Start and player:getMark(self:objectName()) == 0 then
+                if player:getMark("@kenshusei") ~= 0 then
+                    if string.find(player:getGeneralName(), "kenshusei") then
+                        room:changeHero(player, string.gsub(player:getGeneralName(), "_Kenshusei", ""), true, true,
+                                        false, true)
+                        room:setPlayerMark(player, self:objectName(), 1)
+                        room:setPlayerMark(player, "@kenshusei", 0)
+                    elseif string.find(player:getGeneral2Name(), "kenshusei") then
+                        room:changeHero(player, string.gsub(player:getGeneral2Name(), "_Kenshusei", ""), true, true,
+                                        true, true)
+                        room:setPlayerMark(player, self:objectName(), 1)
+                        room:setPlayerMark(player, "@kenshusei", 0)
+                    end
+                end
+            end
+        elseif event == sgs.EventPhaseEnd then
+            if player:getPhase() == sgs.Player_Finish then
+                if player:getMark(self:objectName()) == 0 then
+                    room:addPlayerMark(player, "@kenshusei", 1)
+                end
+            end
+        elseif event == sgs.HpLost or event == sgs.Damaged then
+            if player:getMark(self:objectName()) == 0 and player:getMark("@kenshusei") ~= 0 then
+                room:setPlayerMark(player, "@kenshusei", 0)
+            end
+        end
+        return false
+    end,
+}
+if not sgs.Sanguosha:getSkill("sakamichi_yan_xiu") then
+    SKMC.SkillList:append(sakamichi_yan_xiu)
+end
+
+sgs.LoadTranslationTable {
+    ["sakamichi_yan_xiu"] = "研修",
+    [":sakamichi_yan_xiu"] = "觉醒技，准备阶段，若你为坂道研修生且上个结束阶段后未失去过体力或受到伤害，你将被分配。",
+}
+
+-- 大沼 晶保
+AkihoOnuma_Kenshusei = sgs.General(Sakamichi, "AkihoOnuma_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.AkihoOnuma_Kenshusei = true
+SKMC.NiKiSei.AkihoOnuma_Kenshusei = true
+SKMC.SanKiSei.AkihoOnuma_Kenshusei = true
+SKMC.YonKiSei.AkihoOnuma_Kenshusei = true
+SKMC.SeiMeiHanDan.AkihoOnuma_Kenshusei = {
+	name = {3, 8, 12, 9},
+	ten_kaku = {11, "ji"},
+	jin_kaku = {20, "xiong"},
+	ji_kaku = {21, "ji"},
+	soto_kaku = {12, "xiong"},
+	sou_kaku = {32, "ji"},
+	GoGyouSanSai = {
+		ten_kaku = "mu",
+		jin_kaku = "shui",
+		ji_kaku = "mu",
+		san_sai = "ji",
+	},
+}
+
+AkihoOnuma_Kenshusei:addSkill("sakamichi_yan_xiu")
+AkihoOnuma_Kenshusei:addSkill("sakamichi_heng_tiao")
+
+sgs.LoadTranslationTable {
+    ["AkihoOnuma_Kenshusei"] = "大沼 晶保",
+    ["&AkihoOnuma_Kenshusei"] = "大沼 晶保",
+    ["#AkihoOnuma_Kenshusei"] = "水产偶像",
+    ["~AkihoOnuma_Kenshusei"] = "なんだと思いますか？",
+    ["designer:AkihoOnuma_Kenshusei"] = "Cassimolar",
+    ["cv:AkihoOnuma_Kenshusei"] = "大沼 晶保",
+    ["illustrator:AkihoOnuma_Kenshusei"] = "Cassimolar",
+}
+
+-- 林 瑠奈
+RunaHayashi_Kenshusei = sgs.General(Sakamichi, "RunaHayashi_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.RunaHayashi_Kenshusei = true
+SKMC.NiKiSei.RunaHayashi_Kenshusei = true
+SKMC.SanKiSei.RunaHayashi_Kenshusei = true
+SKMC.YonKiSei.RunaHayashi_Kenshusei = true
+SKMC.SeiMeiHanDan.RunaHayashi_Kenshusei = {
+    name = {8, 14, 8},
+    ten_kaku = {8, "ji"},
+    jin_kaku = {22, "xiong"},
+    ji_kaku = {22, "xiong"},
+    soto_kaku = {16, "da_ji"},
+    sou_kaku = {30, "ji_xiong_hun_he"},
+    GoGyouSanSai = {
+        ten_kaku = "jin",
+        jin_kaku = "mu",
+        ji_kaku = "mu",
+        san_sai = "ji_xiong_hun_he",
+    },
+}
+
+RunaHayashi_Kenshusei:addSkill("sakamichi_yan_xiu")
+RunaHayashi_Kenshusei:addSkill("sakamichi_fan_lai")
+
+sgs.LoadTranslationTable {
+    ["RunaHayashi_Kenshusei"] = "林 瑠奈",
+    ["&RunaHayashi_Kenshusei"] = "林 瑠奈",
+    ["#RunaHayashi_Kenshusei"] = "林皇",
+    ["~RunaHayashi_Kenshusei"] = "ライスください",
+    ["designer:RunaHayashi_Kenshusei"] = "Cassimolar",
+    ["cv:RunaHayashi_Kenshusei"] = "林 瑠奈",
+    ["illustrator:RunaHayashi_Kenshusei"] = "Cassimolar",
+}
+
+-- 黒見 明香
+HarukaKuromi_Kenshusei = sgs.General(Sakamichi, "HarukaKuromi_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.HarukaKuromi_Kenshusei = true
+SKMC.NiKiSei.HarukaKuromi_Kenshusei = true
+SKMC.SanKiSei.HarukaKuromi_Kenshusei = true
+SKMC.YonKiSei.HarukaKuromi_Kenshusei = true
+SKMC.SeiMeiHanDan.HarukaKuromi_Kenshusei = {
+    name = {11, 7, 8, 9},
+    ten_kaku = {18, "ji"},
+    jin_kaku = {15, "da_ji"},
+    ji_kaku = {17, "ji"},
+    soto_kaku = {20, "xiong"},
+    sou_kaku = {35, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "jin",
+        jin_kaku = "tu",
+        ji_kaku = "jin",
+        san_sai = "da_ji",
+    },
+}
+
+HarukaKuromi_Kenshusei:addSkill("sakamichi_yan_xiu")
+HarukaKuromi_Kenshusei:addSkill("sakamichi_san_liu_jiu")
+
+sgs.LoadTranslationTable {
+    ["HarukaKuromi_Kenshusei"] = "黒見 明香",
+    ["&HarukaKuromi_Kenshusei"] = "黒見 明香",
+    ["#HarukaKuromi_Kenshusei"] = "功夫美少女",
+    ["~HarukaKuromi_Kenshusei"] = "考えるな感じろ",
+    ["designer:HarukaKuromi_Kenshusei"] = "Cassimolar",
+    ["cv:HarukaKuromi_Kenshusei"] = "黒見 明香",
+    ["illustrator:HarukaKuromi_Kenshusei"] = "Cassimolar",
+}
+
+-- 守屋 麗奈
+RenaMoriya_Kenshusei = sgs.General(Sakamichi, "RenaMoriya_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.RenaMoriya_Kenshusei = true
+SKMC.NiKiSei.RenaMoriya_Kenshusei = true
+SKMC.SanKiSei.RenaMoriya_Kenshusei = true
+SKMC.YonKiSei.RenaMoriya_Kenshusei = true
+SKMC.SeiMeiHanDan.RenaMoriya_Kenshusei = {
+    name = {6, 9, 19, 8},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {28, "xiong"},
+    ji_kaku = {27, "ji_xiong_hun_he"},
+    soto_kaku = {14, "xiong"},
+    sou_kaku = {42, "ji_xiong_hun_he"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "jin",
+        ji_kaku = "jin",
+        san_sai = "ji",
+    },
+}
+
+RenaMoriya_Kenshusei:addSkill("sakamichi_yan_xiu")
+RenaMoriya_Kenshusei:addSkill("sakamichi_li_fa")
+
+sgs.LoadTranslationTable {
+    ["RenaMoriya_Kenshusei"] = "守屋 麗奈",
+    ["&RenaMoriya_Kenshusei"] = "守屋 麗奈",
+    ["#RenaMoriya_Kenshusei"] = "花鬘正伝",
+    ["~RenaMoriya_Kenshusei"] = "れなぁ～",
+    ["designer:RenaMoriya_Kenshusei"] = "Cassimolar",
+    ["cv:RenaMoriya_Kenshusei"] = "守屋 麗奈",
+    ["illustrator:RenaMoriya_Kenshusei"] = "Cassimolar",
+}
+
+-- 弓木 奈於
+NaoYumiki_Kenshusei = sgs.General(Sakamichi, "NaoYumiki_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.NaoYumiki_Kenshusei = true
+SKMC.NiKiSei.NaoYumiki_Kenshusei = true
+SKMC.SanKiSei.NaoYumiki_Kenshusei = true
+SKMC.YonKiSei.NaoYumiki_Kenshusei = true
+SKMC.SeiMeiHanDan.NaoYumiki_Kenshusei = {
+    name = {3, 4, 8, 8},
+    ten_kaku = {7, "ji"},
+    jin_kaku = {12, "xiong"},
+    ji_kaku = {16, "da_ji"},
+    soto_kaku = {11, "ji"},
+    sou_kaku = {23, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "jin",
+        jin_kaku = "mu",
+        ji_kaku = "tu",
+        san_sai = "ji",
+    },
+}
+
+NaoYumiki_Kenshusei:addSkill("sakamichi_yan_xiu")
+NaoYumiki_Kenshusei:addSkill("sakamichi_tong_yao")
+
+sgs.LoadTranslationTable {
+    ["NaoYumiki_Kenshusei"] = "弓木 奈於",
+    ["&NaoYumiki_Kenshusei"] = "弓木 奈於",
+    ["#NaoYumiki_Kenshusei"] = "迷言制造机",
+    ["~NaoYumiki_Kenshusei"] = "お醤油って知ってますか？",
+    ["designer:NaoYumiki_Kenshusei"] = "Cassimolar",
+    ["cv:NaoYumiki_Kenshusei"] = "弓木 奈於",
+    ["illustrator:NaoYumiki_Kenshusei"] = "Cassimolar",
+}
+
+-- 幸阪 茉里乃
+MarinoKousaka_Kenshusei = sgs.General(Sakamichi, "MarinoKousaka_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.MarinoKousaka_Kenshusei = true
+SKMC.NiKiSei.MarinoKousaka_Kenshusei = true
+SKMC.SanKiSei.MarinoKousaka_Kenshusei = true
+SKMC.YonKiSei.MarinoKousaka_Kenshusei = true
+SKMC.SeiMeiHanDan.MarinoKousaka_Kenshusei = {
+    name = {8, 7, 8, 7, 2},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {15, "da_ji"},
+    ji_kaku = {17, "ji"},
+    soto_kaku = {17, "ji"},
+    sou_kaku = {32, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "tu",
+        ji_kaku = "jin",
+        san_sai = "ji",
+    },
+}
+
+MarinoKousaka_Kenshusei:addSkill("sakamichi_yan_xiu")
+MarinoKousaka_Kenshusei:addSkill("sakamichi_hu_la")
+
+sgs.LoadTranslationTable {
+    ["MarinoKousaka_Kenshusei"] = "幸阪 茉里乃",
+    ["&MarinoKousaka_Kenshusei"] = "幸阪 茉里乃",
+    ["#MarinoKousaka_Kenshusei"] = "死亡金屬",
+    ["~MarinoKousaka_Kenshusei"] = "全然。全然ちゃうなぁ",
+    ["designer:MarinoKousaka_Kenshusei"] = "Cassimolar",
+    ["cv:MarinoKousaka_Kenshusei"] = "幸阪 茉里乃",
+    ["illustrator:MarinoKousaka_Kenshusei"] = "Cassimolar",
+}
+
+-- 大園 玲
+ReiOozono_Kenshusei = sgs.General(Sakamichi, "ReiOozono_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.ReiOozono_Kenshusei = true
+SKMC.NiKiSei.ReiOozono_Kenshusei = true
+SKMC.SanKiSei.ReiOozono_Kenshusei = true
+SKMC.YonKiSei.ReiOozono_Kenshusei = true
+
+ReiOozono_Kenshusei:addSkill("sakamichi_yan_xiu")
+ReiOozono_Kenshusei:addSkill("sakamichi_xin_li_xue")
+
+sgs.LoadTranslationTable {
+    ["ReiOozono_Kenshusei"] = "大園 玲",
+    ["&ReiOozono_Kenshusei"] = "大園 玲",
+    ["#ReiOozono_Kenshusei"] = "才色兼备",
+    ["~ReiOozono_Kenshusei"] = "選択肢にあふれている人生を楽しんでください",
+    ["designer:ReiOozono_Kenshusei"] = "Cassimolar",
+    ["cv:ReiOozono_Kenshusei"] = "大園 玲",
+    ["illustrator:ReiOozono_Kenshusei"] = "Cassimolar",
+}
+
+-- 佐藤 璃果
+RikaSato_Kenshusei = sgs.General(Sakamichi, "RikaSato_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.RikaSato_Kenshusei = true
+SKMC.NiKiSei.RikaSato_Kenshusei = true
+SKMC.SanKiSei.RikaSato_Kenshusei = true
+SKMC.YonKiSei.RikaSato_Kenshusei = true
+SKMC.SeiMeiHanDan.RikaSato = {
+    name = {7, 18, 15, 8},
+    ten_kaku = {25, "ji"},
+    jin_kaku = {33, "te_shu_ge"},
+    ji_kaku = {23, "ji"},
+    soto_kaku = {15, "da_ji"},
+    sou_kaku = {48, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "huo",
+        ji_kaku = "huo",
+        san_sai = "ji",
+    },
+}
+
+RikaSato_Kenshusei:addSkill("sakamichi_yan_xiu")
+RikaSato_Kenshusei:addSkill("sakamichi_ri_ka")
+
+sgs.LoadTranslationTable {
+    ["RikaSato_Kenshusei"] = "佐藤 璃果",
+    ["&RikaSato_Kenshusei"] = "佐藤 璃果",
+    ["#RikaSato_Kenshusei"] = "骇客少女",
+    ["~RikaSato_Kenshusei"] = "トキメキを大切に輝きたい",
+    ["designer:RikaSato_Kenshusei"] = "Cassimolar",
+    ["cv:RikaSato_Kenshusei"] = "佐藤 璃果",
+    ["illustrator:RikaSato_Kenshusei"] = "Cassimolar",
+}
+
+-- 遠藤 光莉
+HikariEndo_Kenshusei = sgs.General(Sakamichi, "HikariEndo_Kenshusei", "SakamichiKenshusei", 3, false)
+SKMC.IKiSei.HikariEndo_Kenshusei = true
+SKMC.NiKiSei.HikariEndo_Kenshusei = true
+SKMC.SanKiSei.HikariEndo_Kenshusei = true
+SKMC.YonKiSei.HikariEndo_Kenshusei = true
+SKMC.SeiMeiHanDan.HikariEndo_Kenshusei = {
+    name = {13, 18, 6, 10},
+    ten_kaku = {31, "da_ji"},
+    jin_kaku = {24, "da_ji"},
+    ji_kaku = {16, "da_ji"},
+    soto_kaku = {23, "ji"},
+    sou_kaku = {47, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "mu",
+        jin_kaku = "huo",
+        ji_kaku = "tu",
+        san_sai = "da_ji",
+    },
+}
+
+HikariEndo_Kenshusei:addSkill("sakamichi_yan_xiu")
+HikariEndo_Kenshusei:addSkill("sakamichi_jie_wu")
+
+sgs.LoadTranslationTable {
+    ["HikariEndo_Kenshusei"] = "遠藤 光莉",
+    ["&HikariEndo_Kenshusei"] = "遠藤 光莉",
+    ["#HikariEndo_Kenshusei"] = "怕生全開",
+    ["~HikariEndo_Kenshusei"] = "走り方な忘れちゃいました",
+    ["designer:HikariEndo_Kenshusei"] = "Cassimolar",
+    ["cv:HikariEndo_Kenshusei"] = "遠藤 光莉",
+    ["illustrator:HikariEndo_Kenshusei"] = "Cassimolar",
+}
+
+-- 松岡 愛美
+ManamiMatsuoka_Kenshusei = sgs.General(Sakamichi, "ManamiMatsuoka_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.ManamiMatsuoka_Kenshusei = true
+SKMC.NiKiSei.ManamiMatsuoka_Kenshusei = true
+SKMC.SanKiSei.ManamiMatsuoka_Kenshusei = true
+SKMC.YonKiSei.ManamiMatsuoka_Kenshusei = true
+SKMC.SeiMeiHanDan.ManamiMatsuoka_Kenshusei = {
+    name = {8, 8, 13, 9},
+    ten_kaku = {16, "da_ji"},
+    jin_kaku = {21, "ji"},
+    ji_kaku = {22, "xiong"},
+    soto_kaku = {17, "ji"},
+    sou_kaku = {38, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "mu",
+        ji_kaku = "mu",
+        san_sai = "ji_xiong_hun_he",
+    },
+}
+
+ManamiMatsuoka_Kenshusei:addSkill("sakamichi_yan_xiu")
+ManamiMatsuoka_Kenshusei:addSkill("sakamichi_shu_xin")
+
+sgs.LoadTranslationTable {
+    ["ManamiMatsuoka_Kenshusei"] = "松岡 愛美",
+    ["&ManamiMatsuoka_Kenshusei"] = "松岡 愛美",
+    ["#ManamiMatsuoka_Kenshusei"] = "幻之四期",
+    ["~ManamiMatsuoka_Kenshusei"] = "",
+    ["designer:ManamiMatsuoka_Kenshusei"] = "Cassimolar",
+    ["cv:ManamiMatsuoka_Kenshusei"] = "松岡 愛美",
+    ["illustrator:ManamiMatsuoka_Kenshusei"] = "Cassimolar",
+}
+
+-- 松尾 美佑
+MiyuMatsuo_Kenshusei = sgs.General(Sakamichi, "MiyuMatsuo_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.MiyuMatsuo_Kenshusei = true
+SKMC.NiKiSei.MiyuMatsuo_Kenshusei = true
+SKMC.SanKiSei.MiyuMatsuo_Kenshusei = true
+SKMC.YonKiSei.MiyuMatsuo_Kenshusei = true
+SKMC.SeiMeiHanDan.MiyuMatsuo_Kenshusei = {
+    name = {8, 7, 9, 7},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {16, "da_ji"},
+    ji_kaku = {16, "da_ji"},
+    soto_kaku = {15, "da_ji"},
+    sou_kaku = {31, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "tu",
+        ji_kaku = "tu",
+        san_sai = "ji",
+    },
+}
+
+MiyuMatsuo_Kenshusei:addSkill("sakamichi_yan_xiu")
+MiyuMatsuo_Kenshusei:addSkill("sakamichi_zhuan_zhe")
+
+sgs.LoadTranslationTable {
+    ["MiyuMatsuo_Kenshusei"] = "松尾 美佑",
+    ["&MiyuMatsuo_Kenshusei"] = "松尾 美佑",
+    ["#MiyuMatsuo_Kenshusei"] = "文武双全",
+    ["~MiyuMatsuo_Kenshusei"] = "あん？",
+    ["designer:MiyuMatsuo_Kenshusei"] = "Cassimolar",
+    ["cv:MiyuMatsuo_Kenshusei"] = "松尾 美佑",
+    ["illustrator:MiyuMatsuo_Kenshusei"] = "Cassimolar",
+}
+
+-- 増本 綺良
+KiraMasumoto_Kenshusei = sgs.General(Sakamichi, "KiraMasumoto_Kenshusei", "SakamichiKenshusei", 4, false)
+SKMC.IKiSei.KiraMasumoto_Kenshusei = true
+SKMC.NiKiSei.KiraMasumoto_Kenshusei = true
+SKMC.SanKiSei.KiraMasumoto_Kenshusei = true
+SKMC.YonKiSei.KiraMasumoto_Kenshusei = true
+
+KiraMasumoto_Kenshusei:addSkill("sakamichi_yan_xiu")
+KiraMasumoto_Kenshusei:addSkill("sakamichi_mi_yan")
+
+sgs.LoadTranslationTable {
+    ["KiraMasumoto_Kenshusei"] = "増本 綺良",
+    ["&KiraMasumoto_Kenshusei"] = "増本 綺良",
+    ["#KiraMasumoto_Kenshusei"] = "天马行空",
+    ["~KiraMasumoto_Kenshusei"] = "私、虫は触れるのにダンボール触れないんです。",
+    ["designer:KiraMasumoto_Kenshusei"] = "Cassimolar",
+    ["cv:KiraMasumoto_Kenshusei"] = "増本 綺良",
+    ["illustrator:KiraMasumoto_Kenshusei"] = "Cassimolar",
+}
+
 sgs.Sanguosha:addSkills(SKMC.SkillList)
 
 return SKMC.Packages

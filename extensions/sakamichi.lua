@@ -2930,7 +2930,7 @@ ErikaIkuta:addSkill(sakamichi_fen_lan_min_yao)
 sgs.LoadTranslationTable {
     ["ErikaIkuta"] = "生田 絵梨花",
     ["&ErikaIkuta"] = "生田 絵梨花",
-    ["#ErikaIkuta"] = "第几次蓝天",
+    ["#ErikaIkuta"] = "霸王",
     ["~ErikaIkuta"] = "人はね、限界だと思ってからもうちょっといける。",
     ["designer:ErikaIkuta"] = "Cassimolar",
     ["cv:ErikaIkuta"] = "生田 絵梨花",
@@ -14069,7 +14069,7 @@ sgs.LoadTranslationTable {
 }
 
 -- 菅原 咲月
-SatsukiSugawara = sgs.General(Sakamichi, "SatsukiSugawara", "Nogizaka46", 5, false, true)
+SatsukiSugawara = sgs.General(Sakamichi, "SatsukiSugawara", "Nogizaka46", 3, false)
 SKMC.GoKiSei.SatsukiSugawara = true
 SKMC.SeiMeiHanDan.SatsukiSugawara = {
     name = {11, 10, 9, 4},
@@ -14141,29 +14141,32 @@ sakamichi_tong_che = sgs.CreateZeroCardViewAsSkill {
         return not player:hasUsed("#sakamichi_tong_cheCard") and player:getEquips():isEmpty()
     end,
 }
+SatsukiSugawara:addSkill(sakamichi_tong_che)
 
-sakamichi_xiao_ji = sgs.CreateTriggerSkill {
-    name = "sakamichi_xiao_ji",
+sakamichi_xiao_ji_sugawara = sgs.CreateTriggerSkill {
+    name = "sakamichi_xiao_ji_sugawara",
     frequency = sgs.Skill_Compulsory,
-    events = {sgs.GameStart, sgs.EventAcquireSkill, sgs.AskForRetrial},
+    priority = {1, 1, -1},
+    events = {sgs.GameStart, sgs.EventAcquireSkill, sgs.FinishRetrial},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart or event == sgs.EventAcquireSkill then
-            room:handleAcquireDetachSkills(player, "#sakamichi_xiao_ji_revise", false)
-        elseif event == sgs.AskForRetrial and player:hasSkill(self:objectName()) then
+            room:handleAcquireDetachSkills(player, "#sakamichi_xiao_ji_sugawara_revise", false)
+        elseif event == sgs.FinishRetrial and player:hasSkill(self:objectName()) then
             local judge = data:toJudge()
-            room:setCardFlag(judge.card, "xiao_ji")
+            room:setCardFlag(judge.card, "xiao_ji_sugawara")
             local cardlists = sgs.CardList()
             cardlists:append(judge.card)
             room:filterCards(judge.who, cardlists, true)
             judge:updateResult()
+            SKMC.send_message(room, "$JudgeResult", player, nil, nil, judge.card:toString())
         end
         return false
     end,
 }
-sakamichi_xiao_ji_revise = sgs.CreateFilterSkill {
-    name = "#sakamichi_xiao_ji_revise",
+sakamichi_xiao_ji_sugawara_revise = sgs.CreateFilterSkill {
+    name = "#sakamichi_xiao_ji_sugawara_revise",
     view_filter = function(self, to_select)
-        return to_select:hasFlag("xiao_ji")
+        return to_select:hasFlag("xiao_ji_sugawara")
     end,
     view_as = function(self, card)
         local new_card = sgs.Sanguosha:getWrappedCard(card:getEffectiveId())
@@ -14174,8 +14177,9 @@ sakamichi_xiao_ji_revise = sgs.CreateFilterSkill {
         return new_card
     end,
 }
-if not sgs.Sanguosha:getSkill("#sakamichi_xiao_ji_revise") then
-    SKMC.SkillList:append(sakamichi_xiao_ji_revise)
+SatsukiSugawara:addSkill(sakamichi_xiao_ji_sugawara)
+if not sgs.Sanguosha:getSkill("#sakamichi_xiao_ji_sugawara_revise") then
+    SKMC.SkillList:append(sakamichi_xiao_ji_sugawara_revise)
 end
 
 sgs.LoadTranslationTable {
@@ -14188,8 +14192,8 @@ sgs.LoadTranslationTable {
     ["illustrator:SatsukiSugawara"] = "Cassimolar",
     ["sakamichi_tong_che"] = "童车",
     [":sakamichi_tong_che"] = "出牌阶段限一次，若你未装备防具，你可以选择一名其他角色令其判定，若结果为：黑桃，其翻面；红桃，其回复1点体力；梅花，其选择弃置所有手牌或装备；方块，其受到1点伤害。若其为男性，其无需判定并执行所有分支。",
-    ["sakamichi_xiao_ji"] = "小吉",
-    [":sakamichi_xiao_ji"] = "锁定技，你的判定结果始终为方块5。",
+    ["sakamichi_xiao_ji_sugawara"] = "小吉",
+    [":sakamichi_xiao_ji_sugawara"] = "锁定技，你的判定结果始终为方块5。",
 }
 
 
@@ -14456,7 +14460,7 @@ sgs.LoadTranslationTable {
 }
 
 -- 岡本 姫奈
-HinaOkamoto = sgs.General(Sakamichi, "HinaOkamoto", "Nogizaka46", 5, false, true)
+HinaOkamoto = sgs.General(Sakamichi, "HinaOkamoto", "Nogizaka46", 4, false)
 SKMC.GoKiSei.HinaOkamoto = true
 SKMC.SeiMeiHanDan.HinaOkamoto = {
     name = {8, 5, 10, 8},
@@ -14490,6 +14494,7 @@ sakamichi_xie_lou = sgs.CreateTriggerSkill {
         return target
     end,
 }
+HinaOkamoto:addSkill(sakamichi_xie_lou)
 
 sakamichi_ba_ling = sgs.CreateTriggerSkill {
     name = "sakamichi_ba_ling",
@@ -14505,6 +14510,7 @@ sakamichi_ba_ling = sgs.CreateTriggerSkill {
         return false
     end,
 }
+HinaOkamoto:addSkill(sakamichi_ba_ling)
 
 sakamichi_ban_you = sgs.CreateTriggerSkill {
     name = "sakamichi_ban_you",
@@ -14551,6 +14557,7 @@ sakamichi_ban_you = sgs.CreateTriggerSkill {
         return target
     end,
 }
+HinaOkamoto:addSkill(sakamichi_ban_you)
 
 sgs.LoadTranslationTable {
     ["HinaOkamoto"] = "岡本 姫奈",
@@ -20460,6 +20467,58 @@ sgs.LoadTranslationTable {
     ["sakamichi_chou_fan"] = "仇返",
     [":sakamichi_chou_fan"] = "当你获得其他角色区域内的牌时或其他角色令你回复体力值后，你可以对其造成1点伤害。",
     ["sakamichi_chou_fan:invoke"] = "是否发动【仇返】对%src造成1点伤害",
+}
+
+-- 原田 葵
+AoiHarada_Sakurazaka = sgs.General(Sakamichi, "AoiHarada_Sakurazaka", "Sakurazaka46", 4, false)
+table.insert(SKMC.IKiSei, "AoiHarada_Sakurazaka")
+
+sakamichi_que_yue = sgs.CreateTriggerSkill {
+    name = "sakamichi_que_yue",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.Damage},
+    on_trigger = function(self, event, player, data, room)
+        local damage = data:toDamage()
+        if damage.card and damage.card:isKindOf("Slash") and room:askForSkillInvoke(player, self:objectName(), data) then
+            player:gainHujia(SKMC.number_correction(player, 1))
+        end
+        return false
+    end,
+}
+AoiHarada_Sakurazaka:addSkill(sakamichi_que_yue)
+
+sakamichi_lian_sheng = sgs.CreateTriggerSkill {
+    name = "sakamichi_lian_sheng",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.Damage},
+    on_trigger = function(self, event, player, data, room)
+        local damage = data:toDamage()
+        if damage.card and damage.card:isKindOf("Slash") and room:askForSkillInvoke(player, self:objectName(), data) then
+            local result = SKMC.run_judge(room, player, self:objectName(), "BasicCard")
+            if result.isGood then
+                room:obtainCard(player, result.card, true)
+                if result.card:isKindOf("Slash") then
+                    room:askForUseCard(player, "slash", "@askforslash")
+                end
+            end
+        end
+        return false
+    end,
+}
+AoiHarada_Sakurazaka:addSkill(sakamichi_lian_sheng)
+
+sgs.LoadTranslationTable {
+    ["AoiHarada_Sakurazaka"] = "原田 葵",
+    ["&AoiHarada_Sakurazaka"] = "原田 葵",
+    ["#AoiHarada_Sakurazaka"] = "公式小学生",
+    ["~AoiHarada_Sakurazaka"] = "二十歳です！",
+    ["designer:AoiHarada_Sakurazaka"] = "Cassimolar",
+    ["cv:AoiHarada_Sakurazaka"] = "原田 葵",
+    ["illustrator:AoiHarada_Sakurazaka"] = "Cassimolar",
+    ["sakamichi_que_yue"] = "雀跃",
+    [":sakamichi_que_yue"] = "你使用【杀】造成伤害后，你可以获得1点护甲。",
+    ["sakamichi_lian_sheng"] = "连胜",
+    [":sakamichi_lian_sheng"] = "你使用【杀】造成伤害后，你可以判定，若结果为基本牌，你获得之，若结果为【杀】，你可以使用一张【杀】。",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

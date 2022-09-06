@@ -2083,7 +2083,7 @@ sakamichi_shao_nian = sgs.CreateTriggerSkill {
         elseif event == sgs.CardUsed then
             local use = data:toCardUse()
             if use.card and use.card:isKindOf("Duel") and use.card:getSkillName() == self:objectName() and
-                use.from:objectName() == player:objectName() and player:hasSkill(self:objectName()) then
+                use.from:objectName() == player:objectName() and player:hasSkill(self) then
                 room:setCardFlag(use.card, "shao_nian_from" .. player:objectName())
                 local no_respond_list = use.no_respond_list
                 for _, p in sgs.qlist(use.to) do
@@ -2232,7 +2232,7 @@ sakamichi_guo_biao_wu = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.SlashProceed then
             local effect = data:toSlashEffect()
-            if effect.from:hasSkill(self:objectName()) and effect.from:hasFlag("guo_biao_wu_number") then
+            if effect.from:hasSkill(self) and effect.from:hasFlag("guo_biao_wu_number") then
                 room:slashResult(effect, nil)
                 return true
             end
@@ -2657,12 +2657,12 @@ sakamichi_bao_zhong = sgs.CreateTriggerSkill {
     frequency = sgs.Skill_Frequent,
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseChanging then
-            if data:toPhaseChange().to == sgs.Player_NotActive and player:hasSkill(self:objectName()) then
+            if data:toPhaseChange().to == sgs.Player_NotActive and player:hasSkill(self) then
                 player:setMark(self:objectName(), 0)
                 room:setPlayerMark(player, "&bao_zhong+red", 0)
                 room:setPlayerMark(player, "&bao_zhong+black", 0)
             end
-        elseif (event == sgs.CardUsed or event == sgs.CardResponded) and player:hasSkill(self:objectName()) then
+        elseif (event == sgs.CardUsed or event == sgs.CardResponded) and player:hasSkill(self) then
             local card = nil
             if event == sgs.CardUsed then
                 local use = data:toCardUse()
@@ -2712,7 +2712,7 @@ sakamichi_bao_zhong = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.PreHpRecover then
             local recover = data:toRecover()
-            if recover.who and recover.who:isFemale() and player:hasSkill(self:objectName()) and
+            if recover.who and recover.who:isFemale() and player:hasSkill(self) and
                 room:askForSkillInvoke(player, self:objectName(), data) then
                 recover.recover = recover.recover + SKMC.number_correction(player, 1)
                 SKMC.send_message(room, "#bao_zhong_recover", recover.who, player, nil, nil, self:objectName(),
@@ -2811,7 +2811,7 @@ sakamichi_xia_chu = sgs.CreateTriggerSkill {
         if event == sgs.AskForPeaches then
             if player:objectName() == room:getAllPlayers():first():objectName() then
                 local current = room:getCurrent()
-                if current and current:getPhase() ~= sgs.Player_NotActive and current:hasSkill(self:objectName()) then
+                if current and current:getPhase() ~= sgs.Player_NotActive and current:hasSkill(self) then
                     room:notifySkillInvoked(current, self:objectName())
                     if current:objectName() ~= dying.who:objectName() then
                         SKMC.send_message(room, "#xia_chu_2", current, dying.who, nil, nil, self:objectName())
@@ -2822,8 +2822,7 @@ sakamichi_xia_chu = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.PreventPeach then
             local current = room:getCurrent()
-            if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive and
-                current:hasSkill(self:objectName()) then
+            if current and current:isAlive() and current:getPhase() ~= sgs.Player_NotActive and current:hasSkill(self) then
                 if player:objectName() ~= current:objectName() and player:objectName() ~= dying.who:objectName() then
                     room:setPlayerFlag(player, "xia_chu")
                     room:addPlayerMark(player, "Global_PreventPeach")
@@ -3106,7 +3105,7 @@ sakamichi_yuan_zhen = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.CardUsed then
             local use = data:toCardUse()
-            if player:hasSkill(self:objectName()) and
+            if player:hasSkill(self) and
                 (use.card:isKindOf("SavageAssault") or use.card:isKindOf("ArcheryAttack") or
                     use.card:isKindOf("GodSalvation") or use.card:isKindOf("AmazingGrace")) then
                 room:setCardFlag(use.card, "yuan_zhen")
@@ -3711,7 +3710,7 @@ sakamichi_guan_jiu = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         local use = data:toCardUse()
         if event == sgs.CardUsed then
-            if use.card:isKindOf("Slash") and not use.card:hasFlag("drank") and use.from:hasSkill(self:objectName()) then
+            if use.card:isKindOf("Slash") and not use.card:hasFlag("drank") and use.from:hasSkill(self) then
                 SKMC.send_message(room, "#guan_jiu_from", player, nil, nil, use.card:toString(), self:objectName())
                 room:setCardFlag(use.card, "drank")
                 use.card:setTag("drank", sgs.QVariant(use.card:getTag("drank"):toInt() + 1))
@@ -4202,7 +4201,7 @@ sakamichi_gai_ming_kazumi = sgs.CreateTriggerSkill {
         if event == sgs.AskForRetrial then
             local judge = data:toJudge()
             local can_invoke = false
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 if player:isKongcheng() then
                     for _, equip in sgs.qlist(player:getEquips()) do
                         if equip:isBlack() then
@@ -4495,7 +4494,7 @@ sakamichi_nv_shen = sgs.CreateTriggerSkill {
     events = {sgs.TurnOver, sgs.ChainStateChange},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TurnOver and player:faceUp() then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 SKMC.send_message(room, "#nv_shen_turn_over", player, player, nil, nil, self:objectName())
                 room:setEmotion(player, "skill_nullify")
                 return true
@@ -4522,7 +4521,7 @@ sakamichi_nv_shen = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.ChainStateChange and (not player:isChained()) then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 SKMC.send_message(room, "#nv_shen_chain_state_change", player, player, nil, nil, self:objectName())
                 room:setEmotion(player, "skill_nullify")
                 return true
@@ -4572,7 +4571,7 @@ sakamichi_hei_shi = sgs.CreateTriggerSkill {
     events = {sgs.PreHpRecover},
     on_trigger = function(self, event, player, data, room)
         local recover = data:toRecover()
-        if recover.who and recover.who:objectName() ~= player:objectName() and recover.who:hasSkill(self:objectName()) and
+        if recover.who and recover.who:objectName() ~= player:objectName() and recover.who:hasSkill(self) and
             room:askForSkillInvoke(recover.who, self:objectName(),
                                    sgs.QVariant("invoke:" .. player:objectName() .. "::" .. self:objectName())) then
             local choice = room:askForChoice(recover.who, self:objectName(), "plus=" .. player:objectName() ..
@@ -4786,7 +4785,7 @@ sakamichi_gai_ming_nanamihashimoto = sgs.CreateTriggerSkill {
         return false
     end,
     can_trigger = function(self, target)
-        if not (target and target:isAlive() and target:hasSkill(self:objectName())) then
+        if not (target and target:isAlive() and target:hasSkill(self)) then
             return false
         end
         if target:isNude() then
@@ -4999,7 +4998,7 @@ sakamichi_sheng_mu = sgs.CreateTriggerSkill {
         if event == sgs.CardUsed then
             local use = data:toCardUse()
             if use.card:isKindOf("Peach") then
-                if use.from:hasSkill(self:objectName()) then
+                if use.from:hasSkill(self) then
                     room:setCardFlag(use.card, "sheng_mu")
                 end
             end
@@ -5015,8 +5014,7 @@ sakamichi_sheng_mu = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.EnterDying then
             local dying = data:toDying()
-            if dying.who:hasSkill(self:objectName()) and dying.damage and dying.damage.from and
-                not dying.damage.from:isKongcheng() then
+            if dying.who:hasSkill(self) and dying.damage and dying.damage.from and not dying.damage.from:isKongcheng() then
                 dying.damage.from:throwAllCards()
             end
         end
@@ -5229,7 +5227,7 @@ sakamichi_qian_shui = sgs.CreateTriggerSkill {
             if target and target:isAlive() then
                 target:gainAnExtraTurn()
             end
-        elseif event == sgs.EventPhaseChanging and player:hasSkill(self:objectName()) then
+        elseif event == sgs.EventPhaseChanging and player:hasSkill(self) then
             local change = data:toPhaseChange()
             if change.to == sgs.Player_NotActive then
                 if room:askForSkillInvoke(player, self:objectName(), data) then
@@ -5253,7 +5251,7 @@ NanaseNishino:addSkill(sakamichi_qian_shui)
 sakamichi_yuan_lu = sgs.CreateDistanceSkill {
     name = "sakamichi_yuan_lu",
     correct_func = function(self, from, to)
-        if to:hasSkill(self:objectName()) then
+        if to:hasSkill(self) then
             local m = from:getSeat()
             local n = to:getSeat()
             local l = 1
@@ -5343,7 +5341,7 @@ sakamichi_chi_huo = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.AskForRetrial then
             local judge = data:toJudge()
-            if judge.who:objectName() == player:objectName() and player:hasSkill(self:objectName()) and judge.reason ==
+            if judge.who:objectName() == player:objectName() and player:hasSkill(self) and judge.reason ==
                 "supply_shortage" and room:askForSkillInvoke(player, self:objectName(), data) then
                 local id = room:drawCard()
                 room:getThread():delay()
@@ -5474,7 +5472,7 @@ sakamichi_sheng_qi = sgs.CreateTriggerSkill {
     events = {sgs.GameStart, sgs.HpRecover, sgs.EventPhaseStart},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 local target = room:askForPlayerChosen(player, room:getAlivePlayers(), self:objectName(),
                                                        "@sheng_qi_invoke:::sheng_guang_dao_biao", true)
                 if target then
@@ -5485,7 +5483,7 @@ sakamichi_sheng_qi = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.HpRecover then
             local recover = data:toRecover()
-            if recover.who and recover.who:hasSkill(self:objectName()) and not recover.who:hasFlag("sheng_qi") then
+            if recover.who and recover.who:hasSkill(self) and not recover.who:hasFlag("sheng_qi") then
                 room:setPlayerFlag(recover.who, "sheng_qi")
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
                     if p:getMark(recover.who:objectName() .. "_sheng_guang_dao_biao") ~= 0 or
@@ -5495,8 +5493,8 @@ sakamichi_sheng_qi = sgs.CreateTriggerSkill {
                 end
                 room:setPlayerFlag(recover.who, "-sheng_qi")
             end
-        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and
-            player:hasSkill(self:objectName()) and player:getMark("@shengqi") ~= 0 then
+        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self) and
+            player:getMark("@shengqi") ~= 0 then
             if room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("invoke:::" .. self:objectName())) then
                 local targets = sgs.SPlayerList()
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
@@ -5724,7 +5722,7 @@ sakamichi_yuan_c = sgs.CreateTriggerSkill {
         return false
     end,
     can_trigger = function(self, target)
-        return target and target:hasSkill(self:objectName())
+        return target and target:hasSkill(self)
     end,
 }
 AyakaYoshimoto:addSkill(sakamichi_yuan_c)
@@ -5829,14 +5827,14 @@ sakamichi_yin_jiu = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.SlashProceed then
             local effect = data:toSlashEffect()
-            if effect.slash:hasFlag("drank") and effect.to:hasSkill(self:objectName()) then
+            if effect.slash:hasFlag("drank") and effect.to:hasSkill(self) then
                 room:slashResult(effect, nil)
                 return true
             end
         elseif event == sgs.Damaged then
             local damage = data:toDamage()
             if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("drank") and
-                damage.to:hasSkill(self:objectName()) then
+                damage.to:hasSkill(self) then
                 room:drawCards(player, damage.damage, self:objectName())
             end
         end
@@ -6754,7 +6752,7 @@ HimekaNakamoto:addSkill(sakamichi_beam)
 sakamichi_ku_bi = sgs.CreateMaxCardsSkill {
     name = "sakamichi_ku_bi",
     extra_func = function(self, target)
-        if target:hasSkill(self:objectName()) then
+        if target:hasSkill(self) then
             return -1
         end
     end,
@@ -6768,11 +6766,11 @@ sakamichi_wang_dao = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Death then
             local death = data:toDeath()
-            if death.damage and death.damage.from and death.damage.from:hasSkill(self:objectName()) then
+            if death.damage and death.damage.from and death.damage.from:hasSkill(self) then
                 room:setPlayerMark(player, "wang_dao", 1)
             end
         elseif event == sgs.DrawNCards then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 local count = data:toInt()
                 data:setValue(count + (player:getMark("wang_dao") * SKMC.number_correction(player, 1)))
             end
@@ -7039,12 +7037,12 @@ sakamichi_bu_liang = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Death then
             local death = data:toDeath()
-            if death.who:hasSkill(self:objectName()) and death.damage and death.damage.from and
+            if death.who:hasSkill(self) and death.damage and death.damage.from and
                 room:askForSkillInvoke(death.who, self:objectName(), data) then
                 room:drawCards(death.damage.from, 3, self:objectName())
             end
         elseif event == sgs.Damage then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 local damage = data:toDamage()
                 if damage.to:objectName() ~= player:objectName() and not damage.to:isAllNude() then
                     local card = room:askForCardChosen(player, damage.to, "hej", self:objectName())
@@ -7813,8 +7811,8 @@ sakamichi_fa_jia = sgs.CreateTriggerSkill {
     name = "sakamichi_fa_jia$",
     events = {sgs.EventPhaseStart, sgs.CardsMoveOneTime, sgs.Death},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish and
-            player:hasSkill(self:objectName()) and SKMC.has_specific_kingdom_player(player) then
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish and player:hasSkill(self) and
+            SKMC.has_specific_kingdom_player(player) then
             local list = sgs.SPlayerList()
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if p:getKingdom() == player:getKingdom() then
@@ -7878,7 +7876,7 @@ sakamichi_fa_jia = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Death then
             local death = data:toDeath()
-            if death.who:hasSkill(self:objectName()) or death.who:getMark("@fa_jia_target") ~= 0 then
+            if death.who:hasSkill(self) or death.who:getMark("@fa_jia_target") ~= 0 then
                 for _, p in sgs.qlist(room:getAllPlayers()) do
                     if p:getMark("fa_jia" .. death.who:objectName()) ~= 0 or
                         death.who:getMark("fa_jia" .. p:objectName()) ~= 0 then
@@ -8016,7 +8014,7 @@ sakamichi_jiang_qi = sgs.CreateTriggerSkill {
     events = {sgs.Damage, sgs.EventPhaseChanging},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damage then
-            if player:hasSkill(self:objectName()) and room:askForSkillInvoke(player, self:objectName()) then
+            if player:hasSkill(self) and room:askForSkillInvoke(player, self:objectName()) then
                 room:drawCards(player, 1, self:objectName())
                 player:turnOver()
             end
@@ -8194,7 +8192,7 @@ sakamichi_bai_tou_xie_lao = sgs.CreateTriggerSkill {
     events = {sgs.EventPhaseStart, sgs.DamageInflicted, sgs.DamageComplete, sgs.EnterDying},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseStart then
-            if player:getPhase() == sgs.Player_Start and player:hasSkill(self:objectName()) then
+            if player:getPhase() == sgs.Player_Start and player:hasSkill(self) then
                 if player:getMark("bai_tou_xie_lao_invoke") == 0 then
                     if player:getCards("he"):length() > 2 and room:askForSkillInvoke(player, self:objectName(), data) then
                         player:loseMark("@baitou", 1)
@@ -8476,7 +8474,7 @@ sakamichi_jin_dan = sgs.CreateTriggerSkill {
     end,
     can_trigger = function(self, target)
         if target then
-            return target:hasSkill(self:objectName())
+            return target:hasSkill(self)
         end
         return false
     end,
@@ -8531,12 +8529,11 @@ sakamichi_bing_yan = sgs.CreateTriggerSkill {
         if event == sgs.Predamage then
             local damage = data:toDamage()
             local current = room:getCurrent()
-            if current:hasSkill(self:objectName()) or player:hasSkill(self:objectName()) or
-                damage.to:hasSkill(self:objectName()) then
+            if current:hasSkill(self) or player:hasSkill(self) or damage.to:hasSkill(self) then
                 local from
-                if current:hasSkill(self:objectName()) then
+                if current:hasSkill(self) then
                     from = current
-                elseif player:hasSkill(self:objectName()) then
+                elseif player:hasSkill(self) then
                     from = player
                 else
                     from = damage.to
@@ -8549,14 +8546,14 @@ sakamichi_bing_yan = sgs.CreateTriggerSkill {
             local damage = data:toDamage()
             if not damage.from then
                 local current = room:getCurrent()
-                if current:hasSkill(self:objectName()) then
+                if current:hasSkill(self) then
                     SKMC.send_message(room, "#bing_yan", current, nil, nil, nil, self:objectName(), damage.damage)
                     room:loseHp(damage.to, damage.damage)
                     return true
                 end
             end
         elseif event == sgs.PreHpLost then
-            if player:hasSkill(self:objectName()) and player:getPhase() ~= sgs.Player_NotActive then
+            if player:hasSkill(self) and player:getPhase() ~= sgs.Player_NotActive then
                 SKMC.send_message(room, "#bing_yan_protect", player, nil, nil, nil, self:objectName())
                 room:setEmotion(player, "skill_nullify")
                 return true
@@ -8621,7 +8618,7 @@ sakamichi_sheng_you = sgs.CreateTriggerSkill {
     events = {sgs.GameStart, sgs.EventAcquireSkill, sgs.EventLoseSkill, sgs.CardAsked},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart or (event == sgs.EventAcquireSkill and data:toString() == self:objectName()) then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                     if not p:hasSkill("sakamichi_sheng_you_view_as") then
                         room:attachSkillToPlayer(p, "sakamichi_sheng_you_view_as")
@@ -8631,7 +8628,7 @@ sakamichi_sheng_you = sgs.CreateTriggerSkill {
         elseif event == sgs.EventLoseSkill and data:toString() == self:objectName() then
             local no_one_has_this_skill = true
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                if p:hasSkill(self:objectName()) then
+                if p:hasSkill(self) then
                     no_one_has_this_skill = false
                     break
                 end
@@ -8808,7 +8805,7 @@ sakamichi_ba_qi = sgs.CreateTriggerSkill {
         if event == sgs.Death then
             local death = data:toDeath()
             local alives = room:getAlivePlayers()
-            if player:objectName() == death.who:objectName() and player:hasSkill(self:objectName()) then
+            if player:objectName() == death.who:objectName() and player:hasSkill(self) then
                 if not alives:isEmpty() then
                     local target = room:askForPlayerChosen(player, alives, self:objectName(), "@ba_qi_invoke", true,
                                                            true)
@@ -8828,7 +8825,7 @@ sakamichi_ba_qi = sgs.CreateTriggerSkill {
             return
         else
             local dying = data:toDying()
-            if player:getHp() <= 0 and dying.damage and dying.damage.from and player:hasSkill(self:objectName()) then
+            if player:getHp() <= 0 and dying.damage and dying.damage.from and player:hasSkill(self) then
                 dying.damage.from = player
                 room:killPlayer(player, dying.damage)
                 room:setTag("SkipGameRule", sgs.QVariant(true))
@@ -8949,7 +8946,7 @@ sakamichi_bao_yu = sgs.CreateTriggerSkill {
         if judge.reason == "indulgence" or judge.reason == "lightning" or judge.reason == "supply_shortage" or
             judge.reason == "WasabiOnigiri" then
             for _, p in sgs.qlist(room:getAlivePlayers()) do
-                if p:hasSkill(self:objectName()) then
+                if p:hasSkill(self) then
                     local card = room:askForCard(p, ".", "@bao_yu_discard:::" .. judge.reason, data, self:objectName())
                     if card then
                         judge.good = not judge.good
@@ -9170,7 +9167,7 @@ sakamichi_dan_shi = sgs.CreateTriggerSkill {
     limit_mark = "@danshi",
     events = {sgs.EventPhaseStart, sgs.Death},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self:objectName()) and
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self) and
             player:getMark("@danshi") ~= 0 and room:askForSkillInvoke(player, self:objectName(), data) then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                    "@danshi_invoke:::" .. self:objectName())
@@ -9185,8 +9182,8 @@ sakamichi_dan_shi = sgs.CreateTriggerSkill {
                 if death.who:getMark("&" .. self:objectName() .. "+" .. p:getGeneralName()) ~= 0 then
                     room:removeFixedDistance(death.who, p, 1)
                     room:setPlayerMark(death.who, "&" .. self:objectName() .. "+" .. p:getGeneralName(), 0)
-                    if p:hasSkill(self:objectName()) and death.damage and death.damage.from and
-                        death.damage.from:objectName() == p:objectName() then
+                    if p:hasSkill(self) and death.damage and death.damage.from and death.damage.from:objectName() ==
+                        p:objectName() then
                         room:setPlayerMark(p, "@danshi", 1)
                     end
                 end
@@ -9240,7 +9237,7 @@ sakamichi_fei_ji = sgs.CreateTargetModSkill {
     pattern = "Slash, TrickCard",
     frequency = sgs.Skill_Compulsory,
     distance_limit_func = function(self, from, card, to)
-        if from:hasSkill(self:objectName()) then
+        if from:hasSkill(self) then
             return 1000
         else
             return 0
@@ -9791,7 +9788,7 @@ sakamichi_jing_ye = sgs.CreateTriggerSkill {
     events = {sgs.EventPhaseStart, sgs.Damaged},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
-            if player:hasSkill(self:objectName()) and player:getMark("@jingye") ~= 0 then
+            if player:hasSkill(self) and player:getMark("@jingye") ~= 0 then
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                        "@jing_ye_invoke:::" .. self:objectName(), true)
                 if target then
@@ -10029,7 +10026,7 @@ sakamichi_jia_lao_wai = sgs.CreateTriggerSkill {
     events = {sgs.GameStart, sgs.Damaged},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 local kingdom = room:askForKingdom(player)
                 player:setTag(self:objectName(), sgs.QVariant(kingdom))
                 room:setPlayerMark(player, "&" .. self:objectName() .. "+ +" .. kingdom, 1)
@@ -10453,14 +10450,14 @@ sakamichi_nv_di = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Damage then
             local damage = data:toDamage()
-            if damage.card and damage.card:getSkillName() == self:objectName() and player:hasSkill(self:objectName()) then
+            if damage.card and damage.card:getSkillName() == self:objectName() and player:hasSkill(self) then
                 if player:getMark("nv_di_damage") == 0 then
                     room:addPlayerMark(player, "nv_di_damage")
                 end
             end
         elseif event == sgs.CardFinished then
             local use = data:toCardUse()
-            if use.card and use.card:getSkillName() == self:objectName() and player:hasSkill(self:objectName()) then
+            if use.card and use.card:getSkillName() == self:objectName() and player:hasSkill(self) then
                 if player:getMark("nv_di_damage") == 0 then
                     room:drawCards(player, player:getMark("nv_di"), self:objectName())
                     room:setPlayerMark(player, "nv_di", 0)
@@ -10559,13 +10556,13 @@ sakamichi_bu_she_yuki_yoda = sgs.CreateTriggerSkill {
         if event == sgs.SlashMissed then
             local effect = data:toSlashEffect()
             if effect.slash:isBlack() and effect.from and effect.from:isAlive() and effect.to and
-                effect.to:hasSkill(self:objectName()) and effect.to:getMark(self:objectName()) == 0 then
+                effect.to:hasSkill(self) and effect.to:getMark(self:objectName()) == 0 then
                 room:askForUseSlashTo(effect.to, effect.from, "@bu_she_yuki_yoda_invoke:" .. effect.from:objectName(),
                                       false, false, true, nil, nil, "bu_she_yuki_yoda")
             end
         elseif event == sgs.SlashHit then
             local effect = data:toSlashEffect()
-            if effect.slash:hasFlag("bu_she_yuki_yoda") and effect.from and effect.from:hasSkill(self:objectName()) and
+            if effect.slash:hasFlag("bu_she_yuki_yoda") and effect.from and effect.from:hasSkill(self) and
                 effect.from:getMark(self:objectName()) == 0 then
                 room:sendShimingLog(effect.from, self)
                 room:gainMaxHp(effect.from, SKMC.number_correction(effect.from, 1))
@@ -10574,8 +10571,8 @@ sakamichi_bu_she_yuki_yoda = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Damaged then
             local damage = data:toDamage()
-            if damage.card and damage.card:isKindOf("Slash") and damage.card:isBlack() and
-                player:hasSkill(self:objectName()) and player:getMark(self:objectName()) == 0 then
+            if damage.card and damage.card:isKindOf("Slash") and damage.card:isBlack() and player:hasSkill(self) and
+                player:getMark(self:objectName()) == 0 then
                 room:sendShimingLog(player, self, false)
                 room:loseHp(player, player:getHp())
             end
@@ -11010,7 +11007,7 @@ sakamichi_shen_chang = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.SlashProceed then
             local effect = data:toSlashEffect()
-            if effect.from:hasSkill(self:objectName()) and effect.from:distanceTo(effect.to) ==
+            if effect.from:hasSkill(self) and effect.from:distanceTo(effect.to) ==
                 SKMC.number_correction(effect.from, 1) then
                 room:slashResult(effect, nil)
                 return true
@@ -11118,12 +11115,12 @@ sakamichi_bang_du = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.EventPhaseEnd then
-            if player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Play then
+            if player:hasSkill(self) and player:getPhase() == sgs.Player_Play then
                 if player:getMark("&" .. self:objectName()) ~= 0 then
                     room:setPlayerMark(player, "&" .. self:objectName(), 0)
                 end
             end
-        elseif player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Play then
+        elseif player:hasSkill(self) and player:getPhase() == sgs.Player_Play then
             local card
             if event == sgs.PreCardUsed then
                 card = data:toCardUse().card
@@ -11230,7 +11227,7 @@ sakamichi_kou_sha = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         local dying = data:toDying()
         if dying.damage and dying.damage.card and dying.damage.card:isKindOf("Slash") and dying.damage.from and
-            dying.damage.from:hasSkill(self:objectName()) and dying.damage.from:hasEquipArea() and
+            dying.damage.from:hasSkill(self) and dying.damage.from:hasEquipArea() and
             room:askForSkillInvoke(dying.damage.from, self:objectName(),
                                    sgs.QVariant(
                                        "invoke:" .. dying.who:objectName() .. "::" .. self:objectName() .. ":" ..
@@ -11618,7 +11615,7 @@ sakamichi_san_liu_jiu = sgs.CreateTriggerSkill {
         if mark.name == "@clock_time" then
             local n = player:getMark("@clock_time")
             for _, p in sgs.qlist(room:getAllPlayers(true)) do
-                if p:hasSkill(self:objectName()) and p:isDead() then
+                if p:hasSkill(self) and p:isDead() then
                     if n == SKMC.number_correction(p, 3) or n == SKMC.number_correction(p, 6) or n ==
                         SKMC.number_correction(p, 9) then
                         room:revivePlayer(p)
@@ -11733,7 +11730,7 @@ sakamichi_ti_cao = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.SlashHit then
             local effect = data:toSlashEffect()
-            if effect.from and effect.from:objectName() == player:objectName() and player:hasSkill(self:objectName()) and
+            if effect.from and effect.from:objectName() == player:objectName() and player:hasSkill(self) and
                 room:getChangeSkillState(player, self:objectName()) == 1 and
                 room:askForSkillInvoke(player, self:objectName(), data) then
                 room:setPlayerMark(player, "ti_cao_" .. effect.to:objectName(), 1)
@@ -11743,7 +11740,7 @@ sakamichi_ti_cao = sgs.CreateTriggerSkill {
         elseif event == sgs.PreCardUsed then
             local use = data:toCardUse()
             if use.card:isKindOf("Slash") then
-                if player:hasSkill(self:objectName()) then
+                if player:hasSkill(self) then
                     for _, p in sgs.qlist(room:getAlivePlayers()) do
                         if player:getMark("ti_cao_" .. p:objectName()) ~= 0 then
                             room:setPlayerMark(player, "ti_cao_" .. p:objectName(), 0)
@@ -11765,7 +11762,7 @@ sakamichi_ti_cao = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.SlashMissed then
             local effect = data:toSlashEffect()
-            if effect.from and effect.from:objectName() == player:objectName() and effect.to:hasSkill(self:objectName()) and
+            if effect.from and effect.from:objectName() == player:objectName() and effect.to:hasSkill(self) and
                 room:getChangeSkillState(effect.to, self:objectName()) == 2 and
                 room:askForSkillInvoke(effect.to, self:objectName(), data) then
                 room:setPlayerMark(player, effect.to:objectName() .. "_ti_cao", 1)
@@ -11822,8 +11819,7 @@ sakamichi_ni_ai = sgs.CreateTriggerSkill {
     events = {sgs.EventPhaseProceeding, sgs.DamageCaused},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseProceeding then
-            if player:getPhase() == sgs.Player_Finish and player:hasSkill(self:objectName()) and
-                player:getMark("@ni_ai") ~= 0 then
+            if player:getPhase() == sgs.Player_Finish and player:hasSkill(self) and player:getMark("@ni_ai") ~= 0 then
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                        "@ni_ai_invoke:::" .. self:objectName(), true, true)
                 if target then
@@ -12087,8 +12083,7 @@ sakamichi_chi_ze = sgs.CreateTriggerSkill {
     events = {sgs.EventPhaseProceeding, sgs.DamageInflicted},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseProceeding then
-            if player:getPhase() == sgs.Player_Finish and player:hasSkill(self:objectName()) and
-                player:getMark("@chi_ze") ~= 0 then
+            if player:getPhase() == sgs.Player_Finish and player:hasSkill(self) and player:getMark("@chi_ze") ~= 0 then
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                        "@chi_ze_invoke:::" .. self:objectName(), true)
                 if target then
@@ -12303,7 +12298,7 @@ sakamichi_gong_yan = sgs.CreateTriggerSkill {
                             end
                         end
                         if all_place_discard then
-                            if player:hasSkill(self:objectName()) then
+                            if player:hasSkill(self) then
                                 local not_has = true
                                 for _, id in sgs.qlist(player:getPile("gong_yan")) do
                                     if SKMC.true_name(sgs.Sanguosha:getCard(id)) == SKMC.true_name(use.card) then
@@ -12387,9 +12382,8 @@ sakamichi_da_zhi = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.CardsMoveOneTime then
             local move = data:toMoveOneTime()
-            if move.to and move.to:objectName() == player:objectName() and player:hasSkill(self:objectName()) and
-                move.to_place and move.to_place == sgs.Player_PlaceSpecial and move.to_pile_name and move.to_pile_name ==
-                "gong_yan" then
+            if move.to and move.to:objectName() == player:objectName() and player:hasSkill(self) and move.to_place and
+                move.to_place == sgs.Player_PlaceSpecial and move.to_pile_name and move.to_pile_name == "gong_yan" then
                 local legal_card_name = {}
                 for _, id in sgs.qlist(sgs.Sanguosha:getRandomCards()) do
                     local card = sgs.Sanguosha:getCard(id)
@@ -12410,7 +12404,7 @@ sakamichi_da_zhi = sgs.CreateTriggerSkill {
             end
         else
             local effect = data:toCardEffect()
-            if effect.from and effect.from:hasSkill(self:objectName()) and effect.card:isNDTrick() then
+            if effect.from and effect.from:hasSkill(self) and effect.card:isNDTrick() then
                 return true
             end
         end
@@ -12650,8 +12644,7 @@ sakamichi_chen_wen = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TargetConfirming then
             local use = data:toCardUse()
-            if player:hasSkill(self:objectName()) and
-                (use.card:isKindOf("SavageAssault") or use.card:isKindOf("ArcheryAttack")) then
+            if player:hasSkill(self) and (use.card:isKindOf("SavageAssault") or use.card:isKindOf("ArcheryAttack")) then
                 local nullified_list = use.nullified_list
                 table.insert(nullified_list, player:objectName())
                 use.nullified_list = nullified_list
@@ -12659,7 +12652,7 @@ sakamichi_chen_wen = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.EventPhaseStart then
             if player:getPhase() == sgs.Player_Start then
-                if player:hasSkill(self:objectName()) then
+                if player:hasSkill(self) then
                     room:setPlayerFlag(player, "chen_wen")
                 end
                 local last_turn_handcards_num = player:getTag(self:objectName()):toInt()
@@ -12881,7 +12874,7 @@ sakamichi_chuan_cheng = sgs.CreateTriggerSkill {
     events = {sgs.EventPhaseProceeding, sgs.EnterDying},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.EventPhaseProceeding then
-            if player:hasSkill(self:objectName()) and player:getMark(self:objectName()) == 0 and player:getPhase() ==
+            if player:hasSkill(self) and player:getMark(self:objectName()) == 0 and player:getPhase() ==
                 sgs.Player_Finish then
                 local target_list = sgs.SPlayerList()
                 for _, p in sgs.qlist(room:getAlivePlayers()) do
@@ -12908,7 +12901,7 @@ sakamichi_chuan_cheng = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.EnterDying then
             local dying = data:toDying()
-            if dying.who and dying.who:objectName() == player:objectName() and player:hasSkill(self:objectName()) and
+            if dying.who and dying.who:objectName() == player:objectName() and player:hasSkill(self) and
                 player:getMark(self:objectName()) == 0 and dying.damage and dying.damage.from and dying.damage.from and
                 dying.damage.from:objectName() ~= player:objectName() and dying.damage.from:getKingdom() == "Nogizaka46" then
                 local detachList = {}
@@ -13237,7 +13230,7 @@ sakamichi_sheng_ye = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.AskForRetrial then
-            if player:hasSkill(self:objectName()) and not player:getPile("qi_ji"):isEmpty() then
+            if player:hasSkill(self) and not player:getPile("qi_ji"):isEmpty() then
                 room:setPlayerFlag(player, "sheng_ye_retrial")
                 local card = room:askForCard(player, ".|.|.|qi_ji",
                                              "@sheng_ye_card:" .. judge.who:objectName() .. "::" .. judge.reason .. ":" ..
@@ -13249,14 +13242,13 @@ sakamichi_sheng_ye = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.CardsMoveOneTime then
             local move = data:toMoveOneTime()
-            if move.to and move.to:objectName() == player:objectName() and player:hasSkill(self:objectName()) and
-                move.to_place and move.to_place == sgs.Player_PlaceSpecial and move.to_pile_name and move.to_pile_name ==
-                "qi_ji" then
+            if move.to and move.to:objectName() == player:objectName() and player:hasSkill(self) and move.to_place and
+                move.to_place == sgs.Player_PlaceSpecial and move.to_pile_name and move.to_pile_name == "qi_ji" then
                 room:addPlayerMark(player, "&" .. self:objectName(), move.card_ids:length())
             end
         elseif event == sgs.EventPhaseProceeding then
-            if player:hasSkill(self:objectName()) and player:getPhase() == sgs.Player_Start and
-                player:getMark(self:objectName()) == 0 and player:getMark("&" .. self:objectName()) >= 20 then
+            if player:hasSkill(self) and player:getPhase() == sgs.Player_Start and player:getMark(self:objectName()) ==
+                0 and player:getMark("&" .. self:objectName()) >= 20 then
                 room:sendShimingLog(player, self:objectName())
                 while player:getMark("sheng_ye_used") <= player:getMark("&" .. self:objectName()) do
                     local basic_pattern = {}
@@ -13321,7 +13313,7 @@ sakamichi_sheng_ye = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Death then
             local death = data:toDeath()
-            if death.who:objectName() == player:objectName() and player:hasSkill(self:objectName()) and
+            if death.who:objectName() == player:objectName() and player:hasSkill(self) and
                 player:getMark(self:objectName()) == 0 then
                 room:sendShimingLog(player, self:objectName(), false)
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
@@ -13522,10 +13514,8 @@ sakamichi_xie_zui = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damage or event == sgs.Damaged then
             local damage = data:toDamage()
-            if (event == sgs.Damage and damage.from:objectName() == player:objectName() and
-                player:hasSkill(self:objectName())) or
-                (event == sgs.Damaged and damage.to:objectName() == player:objectName() and
-                    player:hasSkill(self:objectName())) then
+            if (event == sgs.Damage and damage.from:objectName() == player:objectName() and player:hasSkill(self)) or
+                (event == sgs.Damaged and damage.to:objectName() == player:objectName() and player:hasSkill(self)) then
                 if not damage.from:isKongcheng() then
                     if damage.from:getHandcardNum() == 1 then
                         damage.from:throwAllHandCards()
@@ -13537,7 +13527,7 @@ sakamichi_xie_zui = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Death then
             local death = data:toDeath()
-            if death.who:objectName() == player:objectName() and player:hasSkill(self:objectName()) and death.damage and
+            if death.who:objectName() == player:objectName() and player:hasSkill(self) and death.damage and
                 death.damage.from then
                 local skill_list = {}
                 for _, skill in sgs.qlist(death.damage.from:getVisibleSkillList()) do
@@ -13822,8 +13812,7 @@ sakamichi_guan_xing = sgs.CreateTriggerSkill {
     shiming_skill = true,
     events = {sgs.AfterDrawInitialCards, sgs.Death, sgs.Damaged, sgs.EventPhaseProceeding},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.AfterDrawInitialCards and player:hasSkill(self:objectName()) and
-            player:getMark(self:objectName()) == 0 then
+        if event == sgs.AfterDrawInitialCards and player:hasSkill(self) and player:getMark(self:objectName()) == 0 then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                    "@sakamichi_guan_xing_choice", false, true)
             local _data = sgs.QVariant()
@@ -13872,8 +13861,8 @@ sakamichi_guan_xing = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.EventPhaseProceeding then
-            if player:getPhase() == sgs.Player_Start and player:hasSkill(self:objectName()) and
-                player:getMark(self:objectName()) ~= 0 and player:getMark(self:objectName() .. "_can_trigger") ~= 0 then
+            if player:getPhase() == sgs.Player_Start and player:hasSkill(self) and player:getMark(self:objectName()) ~=
+                0 and player:getMark(self:objectName() .. "_can_trigger") ~= 0 then
                 local target = player:getTag(self:objectName() .. "_target"):toPlayer()
                 if target and target:isAlive() then
                     room:askForGuanxing(target, room:getNCards(
@@ -13964,7 +13953,7 @@ sakamichi_hao_shi = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         local use = data:toCardUse()
         if use.card:isKindOf("Peach") then
-            if player:hasSkill(self:objectName()) then
+            if player:hasSkill(self) then
                 if player:faceUp() then
                     player:turnOver()
                 end
@@ -14151,7 +14140,7 @@ sakamichi_xiao_ji_sugawara = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart or event == sgs.EventAcquireSkill then
             room:handleAcquireDetachSkills(player, "#sakamichi_xiao_ji_sugawara_revise", false)
-        elseif event == sgs.FinishRetrial and player:hasSkill(self:objectName()) then
+        elseif event == sgs.FinishRetrial and player:hasSkill(self) then
             local judge = data:toJudge()
             room:setCardFlag(judge.card, "xiao_ji_sugawara")
             local cardlists = sgs.CardList()
@@ -14195,7 +14184,6 @@ sgs.LoadTranslationTable {
     ["sakamichi_xiao_ji_sugawara"] = "小吉",
     [":sakamichi_xiao_ji_sugawara"] = "锁定技，你的判定结果始终为方块5。",
 }
-
 
 -- 中西 アルノ
 ArunoNakanishi = sgs.General(Sakamichi, "ArunoNakanishi$", "Nogizaka46", 4, false, false, false, 2)
@@ -14332,7 +14320,7 @@ sakamichi_si_mo = sgs.CreateTriggerSkill {
     name = "sakamichi_si_mo",
     events = {sgs.GameStart, sgs.EventAcquireSkill, sgs.EventLoseSkill, sgs.EventPhaseProceeding},
     on_trigger = function(self, event, player, data, room)
-        if (event == sgs.GameStart and player:hasSkill(self:objectName())) or
+        if (event == sgs.GameStart and player:hasSkill(self)) or
             (event == sgs.EventAcquireSkill and data:toString() == self:objectName()) then
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if not p:hasSkill("sakamichi_si_mo_give") then
@@ -14342,7 +14330,7 @@ sakamichi_si_mo = sgs.CreateTriggerSkill {
         elseif event == sgs.EventLoseSkill and data:toString() == self:objectName() then
             local no_one_has_this_skill = true
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                if p:hasSkill(self:objectName()) then
+                if p:hasSkill(self) then
                     no_one_has_this_skill = false
                     break
                 end
@@ -14518,7 +14506,7 @@ sakamichi_ban_you = sgs.CreateTriggerSkill {
     events = {sgs.TurnedOver, sgs.EventPhaseChanging},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TurnedOver then
-            if player:hasSkill(self:objectName()) and not player:faceUp() then
+            if player:hasSkill(self) and not player:faceUp() then
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                        "@ban_you_invoke", true, true)
                 if target then
@@ -14625,7 +14613,7 @@ sakamichi_mi_xuan = sgs.CreateTriggerSkill {
     events = {sgs.DamageCaused},
     on_trigger = function(self, event, player, data, room)
         local damage = data:toDamage()
-        if damage.to:hasSkill(self:objectName()) then
+        if damage.to:hasSkill(self) then
             if player:getGeneral():getKingdom() ~= player:getKingdom() or
                 (player:getGeneral2() and player:getGeneral2():getKingdom() ~= player:getKingdom()) then
                 room:loseMaxHp(damage.to, SKMC.number_correction(damage.to, 1))
@@ -15513,7 +15501,7 @@ sakamichi_bo_xue = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Damaged then
             local damage = data:toDamage()
-            if player:hasSkill(self:objectName()) and damage.card and damage.card:hasFlag("bo_xue") and
+            if player:hasSkill(self) and damage.card and damage.card:hasFlag("bo_xue") and
                 player:getMark("bo_xue" .. damage.card:getEffectiveId()) ~= 0 then
                 player:obtainCard(damage.card)
             end
@@ -15542,7 +15530,7 @@ sakamichi_wu_ju = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TargetConfirming then
             local use = data:toCardUse()
-            if not use.card:isKindOf("SkillCard") and player:hasSkill(self:objectName()) and use.to:length() > 1 then
+            if not use.card:isKindOf("SkillCard") and player:hasSkill(self) and use.to:length() > 1 then
                 if room:askForSkillInvoke(player, self:objectName(), sgs.QVariant(
                                               "@wu_ju_invoke:" .. use.from:objectName() .. "::" .. use.card:objectName())) then
                     room:drawCards(player, 1, self:objectName())
@@ -15631,8 +15619,8 @@ sakamichi_wu_mei = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TargetConfirming then
             local use = data:toCardUse()
-            if not use.card:isKindOf("SkillCard") and use.from and use.from:hasSkill(self:objectName()) and
-                use.to:contains(player) and use.from:objectName() ~= player:objectName() then
+            if not use.card:isKindOf("SkillCard") and use.from and use.from:hasSkill(self) and use.to:contains(player) and
+                use.from:objectName() ~= player:objectName() then
                 room:setCardFlag(use.card, "wu_mei")
             end
         elseif event == sgs.Damage then
@@ -15752,7 +15740,7 @@ sakamichi_pan_ni = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.TargetConfirming then
             local use = data:toCardUse()
-            if use.card:isKindOf("Slash") and player:hasSkill(self:objectName()) then
+            if use.card:isKindOf("Slash") and player:hasSkill(self) then
                 player:setTag(self:objectName(), sgs.QVariant(use.card:getEffectiveId()))
                 room:askForUseSlashTo(player, use.from, "@pan_ni_slash:" .. use.from:objectName(), false, false, true,
                                       nil, nil, "pan_ni_use")
@@ -15801,16 +15789,14 @@ sakamichi_kuang_qi = sgs.CreateTriggerSkill {
     name = "sakamichi_kuang_qi",
     events = {sgs.EventPhaseProceeding, sgs.EventPhaseStart, sgs.CardUsed, sgs.Damage, sgs.CardFinished},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.EventPhaseProceeding and player:getPhase() == sgs.Player_Finish and
-            player:hasSkill(self:objectName()) then
+        if event == sgs.EventPhaseProceeding and player:getPhase() == sgs.Player_Finish and player:hasSkill(self) then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                    "@kuang_qi_choice", true, true)
             if target then
                 room:setPlayerMark(player, "kuang_qi_target" .. target:objectName(), 1)
                 room:setPlayerMark(player, "&" .. self:objectName() .. "+ +" .. target:getGeneralName(), 1)
             end
-        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and
-            player:hasSkill(self:objectName()) then
+        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start and player:hasSkill(self) then
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if player:getMark("kuang_qi_target" .. p:objectName()) ~= 0 then
                     room:setPlayerMark(player, "kuang_qi_target" .. p:objectName(), 0)
@@ -16081,8 +16067,7 @@ sakamichi_sa_jiao = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damaged then
             local damage = data:toDamage()
-            if damage.from and player:hasSkill(self:objectName()) and
-                room:askForSkillInvoke(player, self:objectName(), data) then
+            if damage.from and player:hasSkill(self) and room:askForSkillInvoke(player, self:objectName(), data) then
                 local choice = room:askForChoice(player, self:objectName(), "BasicCard+TrickCard+EquipCard")
                 local card = room:askForCard(damage.from, choice,
                                              "@sa_jiao_give_2:" .. player:objectName() .. "::" .. choice,
@@ -16275,14 +16260,14 @@ sakamichi_shi_sheng = sgs.CreateTriggerSkill {
     view_as_skill = sakamichi_shi_sheng_view_as,
     events = {sgs.GameStart, sgs.CardAsked},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.GameStart and player:hasSkill(self:objectName()) then
+        if event == sgs.GameStart and player:hasSkill(self) then
             local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                    "@shi_sheng_choice", false, false)
             room:setPlayerMark(player, "shi_sheng_" .. target:objectName() .. player:objectName(), 1)
             room:setPlayerMark(player, "&" .. self:objectName() .. "+ +" .. target:getGeneralName(), 1)
         elseif event == sgs.CardAsked then
             local pattern = data:toStringList()[1]
-            if (string.find(pattern, "slash") or string.find(pattern, "Slash")) and player:hasSkill(self:objectName()) then
+            if (string.find(pattern, "slash") or string.find(pattern, "Slash")) and player:hasSkill(self) then
                 for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                     if player:getMark("shi_sheng_" .. p:objectName() .. player:objectName()) ~= 0 then
                         if room:askForSkillInvoke(player, self:objectName(),
@@ -16328,10 +16313,8 @@ sakamichi_bu_ya = sgs.CreateTriggerSkill {
         local death = data:toDeath()
         if death.who:objectName() == player:objectName() then
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                if (player:getMark("shi_sheng_" .. p:objectName() .. player:objectName()) ~= 0 and
-                    player:hasSkill(self:objectName())) or
-                    (p:getMark("shi_sheng_" .. player:objectName() .. p:objectName()) ~= 0 and
-                        p:hasSkill(self:objectName())) then
+                if (player:getMark("shi_sheng_" .. p:objectName() .. player:objectName()) ~= 0 and player:hasSkill(self)) or
+                    (p:getMark("shi_sheng_" .. player:objectName() .. p:objectName()) ~= 0 and p:hasSkill(self)) then
                     p:throwAllHandCardsAndEquips()
                     p:turnOver()
                 end
@@ -16394,7 +16377,7 @@ sakamichi_tuan_ai = sgs.CreateTriggerSkill {
                 end
             end
         end
-        if player:hasSkill(self:objectName()) then
+        if player:hasSkill(self) then
             local targets = sgs.SPlayerList()
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
                 if p:getKingdom() == "Keyakizaka46" then
@@ -16744,7 +16727,7 @@ sakamichi_yan_li = sgs.CreateTriggerSkill {
                         end
                     end
                 end
-                if player:hasSkill(self:objectName()) and room:askForSkillInvoke(player, self:objectName(), data) then
+                if player:hasSkill(self) and room:askForSkillInvoke(player, self:objectName(), data) then
                     local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                            "@yan_li_choice", true, false)
                     if target then
@@ -16784,10 +16767,10 @@ sakamichi_bu_fu = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.PindianVerifying then
             local pindian = data:toPindian()
-            if pindian.from:hasSkill(self:objectName()) then
+            if pindian.from:hasSkill(self) then
                 pindian.from_number = 13
             end
-            if pindian.to:hasSkill(self:objectName()) then
+            if pindian.to:hasSkill(self) then
                 pindian.to_number = 13
             end
         else
@@ -16983,7 +16966,7 @@ sakamichi_li_zi = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.CardUsed then
             local use = data:toCardUse()
-            if player:hasSkill(self:objectName()) and not use.card:isKindOf("SkillCard") then
+            if player:hasSkill(self) and not use.card:isKindOf("SkillCard") then
                 room:addPlayerMark(player, "@li_zi")
             end
         else
@@ -17379,8 +17362,7 @@ sakamichi_hou_gong = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damage then
             local damage = data:toDamage()
-            if player:hasSkill(self:objectName()) and damage.to:isFemale() and damage.to:objectName() ==
-                player:objectName() then
+            if player:hasSkill(self) and damage.to:isFemale() and damage.to:objectName() == player:objectName() then
                 room:askForUseSlashTo(damage.to, player, "@hou_gong_slash:" .. player:objectName(), false)
             end
         else
@@ -17600,7 +17582,7 @@ sakamichi_mi_lian = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.Damage then
-            if player:hasSkill(self:objectName()) and player:hasFlag("mi_lian") then
+            if player:hasSkill(self) and player:hasFlag("mi_lian") then
                 room:setPlayerFlag(player, "mi_lian_damage")
             end
         else
@@ -17834,7 +17816,7 @@ sakamichi_pei_yin = sgs.CreateTriggerSkill {
                 end
             end
         elseif event == sgs.PreCardUsed then
-            if data:toCardUse().card:getId() == player:getMark("pei_yin") and player:hasSkill(self:objectName()) then
+            if data:toCardUse().card:getId() == player:getMark("pei_yin") and player:hasSkill(self) then
                 room:broadcastSkillInvoke(self:objectName())
                 room:notifySkillInvoked(player, self:objectName())
             end
@@ -18254,7 +18236,7 @@ sakamichi_hui_zhang = sgs.CreateTriggerSkill {
     frequency = sgs.Skill_Frequent,
     events = {sgs.DrawNCards, sgs.BeforeCardsMove, sgs.CardsMoveOneTime, sgs.EventPhaseChanging},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.DrawNCards and player:hasSkill(self:objectName()) then
+        if event == sgs.DrawNCards and player:hasSkill(self) then
             local count = data:toInt() + SKMC.number_correction(player, 1)
             data:setValue(count)
         elseif event == sgs.BeforeCardsMove or event == sgs.CardsMoveOneTime then
@@ -18881,18 +18863,18 @@ sgs.LoadTranslationTable {
 RikoMatsudaira_Keyakizaka = sgs.General(Sakamichi, "RikoMatsudaira_Keyakizaka", "Keyakizaka46", 4, false)
 SKMC.NiKiSei.RikoMatsudaira_Keyakizaka = true
 SKMC.SeiMeiHanDan.RikoMatsudaira_Keyakizaka = {
-	name = {8, 5, 15, 3},
-	ten_kaku = {13, "da_ji"},
-	jin_kaku = {20, "xiong"},
-	ji_kaku = {18, "ji"},
-	soto_kaku = {11, "ji"},
-	sou_kaku = {31, "da_ji"},
-	GoGyouSanSai = {
-		ten_kaku = "huo",
-		jin_kaku = "shui",
-		ji_kaku = "jin",
-		san_sai = "ji_xiong_hun_he",
-	},
+    name = {8, 5, 15, 3},
+    ten_kaku = {13, "da_ji"},
+    jin_kaku = {20, "xiong"},
+    ji_kaku = {18, "ji"},
+    soto_kaku = {11, "ji"},
+    sou_kaku = {31, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "huo",
+        jin_kaku = "shui",
+        ji_kaku = "jin",
+        san_sai = "ji_xiong_hun_he",
+    },
 }
 
 sakamichi_mi_zi = sgs.CreateTriggerSkill {
@@ -19081,7 +19063,7 @@ sakamichi_leng_yan = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.BeforeCardsMove then
             local move = data:toMoveOneTime()
-            if move.from and move.from:getPhase() == sgs.Player_NotActive and move.from:hasSkill(self:objectName()) and
+            if move.from and move.from:getPhase() == sgs.Player_NotActive and move.from:hasSkill(self) and
                 move.from_places:contains(sgs.Player_PlaceHand) then
                 for _, id in sgs.qlist(move.card_ids) do
                     if room:getCardPlace(id) == sgs.Player_PlaceHand then
@@ -19128,18 +19110,18 @@ sgs.LoadTranslationTable {
 KarinFujiyoshi_Keyakizaka = sgs.General(Sakamichi, "KarinFujiyoshi_Keyakizaka", "Keyakizaka46", 4, false)
 SKMC.NiKiSei.KarinFujiyoshi_Keyakizaka = true
 SKMC.SeiMeiHanDan.KarinFujiyoshi_Keyakizaka = {
-	name = {18, 6, 10, 13},
-	ten_kaku = {24, "da_ji"},
-	jin_kaku = {16, "da_ji"},
-	ji_kaku = {23, "ji"},
-	soto_kaku = {31, "da_ji"},
-	sou_kaku = {47, "da_ji"},
-	GoGyouSanSai = {
-		ten_kaku = "huo",
-		jin_kaku = "tu",
-		ji_kaku = "huo",
-		san_sai = "da_ji",
-	},
+    name = {18, 6, 10, 13},
+    ten_kaku = {24, "da_ji"},
+    jin_kaku = {16, "da_ji"},
+    ji_kaku = {23, "ji"},
+    soto_kaku = {31, "da_ji"},
+    sou_kaku = {47, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "huo",
+        jin_kaku = "tu",
+        ji_kaku = "huo",
+        san_sai = "da_ji",
+    },
 }
 
 sakamichi_man_re = sgs.CreateTriggerSkill {
@@ -19216,18 +19198,18 @@ sgs.LoadTranslationTable {
 KiraMasumoto = sgs.General(Sakamichi, "KiraMasumoto", "Keyakizaka46", 3, false, true)
 SKMC.NiKiSei.KiraMasumoto = true
 SKMC.SeiMeiHanDan.KiraMasumoto = {
-	name = {14, 5, 14, 7},
-	ten_kaku = {19, "xiong"},
-	jin_kaku = {19, "xiong"},
-	ji_kaku = {21, "ji"},
-	soto_kaku = {21, "ji"},
-	sou_kaku = {40, "ji_xiong_hun_he"},
-	GoGyouSanSai = {
-		ten_kaku = "shui",
-		jin_kaku = "shui",
-		ji_kaku = "mu",
-		san_sai = "da_ji",
-	},
+    name = {14, 5, 14, 7},
+    ten_kaku = {19, "xiong"},
+    jin_kaku = {19, "xiong"},
+    ji_kaku = {21, "ji"},
+    soto_kaku = {21, "ji"},
+    sou_kaku = {40, "ji_xiong_hun_he"},
+    GoGyouSanSai = {
+        ten_kaku = "shui",
+        jin_kaku = "shui",
+        ji_kaku = "mu",
+        san_sai = "da_ji",
+    },
 }
 
 sakamichi_mi_yan = sgs.CreateTriggerSkill {
@@ -19280,7 +19262,8 @@ sakamichi_mi_yan = sgs.CreateTriggerSkill {
                         end
                     end
                     if in_discard then
-                        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(), "mi_yan_invoke:::" .. use.card:objectName(), true, true)
+                        local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
+                                                               "mi_yan_invoke:::" .. use.card:objectName(), true, true)
                         if target then
                             room:obtainCard(target, use.card)
                         end
@@ -19483,18 +19466,18 @@ sgs.LoadTranslationTable {
 RiraInoue_Keyakizaka = sgs.General(Sakamichi, "RiraInoue_Keyakizaka", "Keyakizaka46", 4, false)
 SKMC.NiKiSei.RiraInoue_Keyakizaka = true
 SKMC.SeiMeiHanDan.RiraInoue_Keyakizaka = {
-	name = {4, 3, 11, 6},
-	ten_kaku = {7, "ji"},
-	jin_kaku = {14, "xiong"},
-	ji_kaku = {17, "ji"},
-	soto_kaku = {10, "xiong"},
-	sou_kaku = {24, "da_ji"},
-	GoGyouSanSai = {
-		ten_kaku = "jin",
-		jin_kaku = "huo",
-		ji_kaku = "jin",
-		san_sai = "xiong",
-	},
+    name = {4, 3, 11, 6},
+    ten_kaku = {7, "ji"},
+    jin_kaku = {14, "xiong"},
+    ji_kaku = {17, "ji"},
+    soto_kaku = {10, "xiong"},
+    sou_kaku = {24, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "jin",
+        jin_kaku = "huo",
+        ji_kaku = "jin",
+        san_sai = "xiong",
+    },
 }
 
 sakamichi_hua_she_view_as = sgs.CreateOneCardViewAsSkill {
@@ -19644,18 +19627,18 @@ sgs.LoadTranslationTable {
 HonoTamura_Keyakizaka = sgs.General(Sakamichi, "HonoTamura_Keyakizaka", "Keyakizaka46", 3, false)
 SKMC.NiKiSei.HonoTamura_Keyakizaka = true
 SKMC.SeiMeiHanDan.HonoTamura_Keyakizaka = {
-	name = {5, 7, 9, 2},
-	ten_kaku = {12, "xiong"},
-	jin_kaku = {16, "da_ji"},
-	ji_kaku = {11, "ji"},
-	soto_kaku = {7, "ji"},
-	sou_kaku = {23, "ji"},
-	GoGyouSanSai = {
-		ten_kaku = "mu",
-		jin_kaku = "tu",
-		ji_kaku = "mu",
-		san_sai = "xiong",
-	},
+    name = {5, 7, 9, 2},
+    ten_kaku = {12, "xiong"},
+    jin_kaku = {16, "da_ji"},
+    ji_kaku = {11, "ji"},
+    soto_kaku = {7, "ji"},
+    sou_kaku = {23, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "mu",
+        jin_kaku = "tu",
+        ji_kaku = "mu",
+        san_sai = "xiong",
+    },
 }
 
 sakamichi_jian_dan = sgs.CreateTriggerSkill {
@@ -19766,18 +19749,18 @@ sgs.LoadTranslationTable {
 AkihoOnuma = sgs.General(Sakamichi, "AkihoOnuma", "Keyakizaka46", 3, false, true)
 SKMC.NiKiSei.AkihoOnuma = true
 SKMC.SeiMeiHanDan.AkihoOnuma = {
-	name = {3, 8, 12, 9},
-	ten_kaku = {11, "ji"},
-	jin_kaku = {20, "xiong"},
-	ji_kaku = {21, "ji"},
-	soto_kaku = {12, "xiong"},
-	sou_kaku = {32, "ji"},
-	GoGyouSanSai = {
-		ten_kaku = "mu",
-		jin_kaku = "shui",
-		ji_kaku = "mu",
-		san_sai = "ji",
-	},
+    name = {3, 8, 12, 9},
+    ten_kaku = {11, "ji"},
+    jin_kaku = {20, "xiong"},
+    ji_kaku = {21, "ji"},
+    soto_kaku = {12, "xiong"},
+    sou_kaku = {32, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "mu",
+        jin_kaku = "shui",
+        ji_kaku = "mu",
+        san_sai = "ji",
+    },
 }
 
 sakamichi_heng_tiao = sgs.CreateTriggerSkill {
@@ -19828,9 +19811,11 @@ sakamichi_jing_moCard = sgs.CreateSkillCard {
             end
         end
         if not targets:isEmpty() then
-            local target = room:askForPlayerChosen(effect.from, targets, self:getSkillName(), "@jing_mo_invoke", true, true)
+            local target = room:askForPlayerChosen(effect.from, targets, self:getSkillName(), "@jing_mo_invoke", true,
+                                                   true)
             if target then
-                room:damage(sgs.DamageStruct(self:getSkillName(), effect.from, target, SKMC.number_correction(effect.from, 1)))
+                room:damage(sgs.DamageStruct(self:getSkillName(), effect.from, target,
+                                             SKMC.number_correction(effect.from, 1)))
             end
         end
     end,
@@ -19863,7 +19848,7 @@ sakamichi_zhu_luan = sgs.CreateTriggerSkill {
             player:objectName() and move.to_place == sgs.Player_PlaceHand then
             local current = room:getCurrent()
             if current:objectName() == player:objectName() or
-                room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("draw:::".. self:objectName())) then
+                room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("draw:::" .. self:objectName())) then
                 room:drawCards(current, 1, self:objectName())
             end
         end
@@ -19951,18 +19936,18 @@ SKMC.NiKiSei.AkihoOnuma_Kenshusei = true
 SKMC.SanKiSei.AkihoOnuma_Kenshusei = true
 SKMC.YonKiSei.AkihoOnuma_Kenshusei = true
 SKMC.SeiMeiHanDan.AkihoOnuma_Kenshusei = {
-	name = {3, 8, 12, 9},
-	ten_kaku = {11, "ji"},
-	jin_kaku = {20, "xiong"},
-	ji_kaku = {21, "ji"},
-	soto_kaku = {12, "xiong"},
-	sou_kaku = {32, "ji"},
-	GoGyouSanSai = {
-		ten_kaku = "mu",
-		jin_kaku = "shui",
-		ji_kaku = "mu",
-		san_sai = "ji",
-	},
+    name = {3, 8, 12, 9},
+    ten_kaku = {11, "ji"},
+    jin_kaku = {20, "xiong"},
+    ji_kaku = {21, "ji"},
+    soto_kaku = {12, "xiong"},
+    sou_kaku = {32, "ji"},
+    GoGyouSanSai = {
+        ten_kaku = "mu",
+        jin_kaku = "shui",
+        ji_kaku = "mu",
+        san_sai = "ji",
+    },
 }
 
 AkihoOnuma_Kenshusei:addSkill("sakamichi_yan_xiu")
@@ -20381,8 +20366,8 @@ sakamichi_rou_ti = sgs.CreateTriggerSkill {
     events = {sgs.Damage},
     on_trigger = function(self, event, player, data, room)
         local damage = data:toDamage()
-        if damage.to:objectName() ~= player:objectName() and player:distanceTo(damage.to) == SKMC.number_correction(player, 1) and
-            damage.to:hasSkill(self:objectName()) then
+        if damage.to:objectName() ~= player:objectName() and player:distanceTo(damage.to) ==
+            SKMC.number_correction(player, 1) and damage.to:hasSkill(self) then
             if not player:isAllNude() and room:askForSkillInvoke(damage.to, self:objectName(), data) then
                 local id = room:askForCardChosen(damage.to, player, "hej", self:objectName(), false,
                                                  sgs.Card_MethodNone, sgs.IntList())
@@ -20436,14 +20421,16 @@ sakamichi_chou_fan = sgs.CreateTriggerSkill {
                 player:objectName() then
                 if room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("invoke:" .. move.from:objectName())) then
                     room:damage(sgs.DamageStruct(self:objectName(), player,
-                                                 room:findPlayerByObjectName(move.from:objectName()), SKMC.number_correction(player, 1)))
+                                                 room:findPlayerByObjectName(move.from:objectName()),
+                                                 SKMC.number_correction(player, 1)))
                 end
             end
         else
             local recover = data:toRecover()
             if recover.who and recover.who:objectName() ~= player:objectName() then
                 if room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("invoke:" .. recover.who:objectName())) then
-                    room:damage(sgs.DamageStruct(self:objectName(), player, recover.who, SKMC.number_correction(player, 1)))
+                    room:damage(sgs.DamageStruct(self:objectName(), player, recover.who,
+                                                 SKMC.number_correction(player, 1)))
                 end
             end
         end
@@ -20546,7 +20533,7 @@ sakamichi_tian_ka = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damage then
             local damage = data:toDamage()
-            if damage.to:hasSkill(self:objectName()) and player:getPhase() ~= sgs.Player_NotActive and
+            if damage.to:hasSkill(self) and player:getPhase() ~= sgs.Player_NotActive and
                 room:askForSkillInvoke(damage.to, self:objectName(), data) then
                 local result = SKMC.run_judge(room, damage.to, self:objectName(), ".")
                 if result.card:isBlack() then
@@ -21014,7 +21001,7 @@ sakamichi_san_jiao = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         if event == sgs.Damage then
             local damage = data:toDamage()
-            if damage.to:hasSkill(self:objectName()) then
+            if damage.to:hasSkill(self) then
                 local targets = sgs.SPlayerList()
                 for _, p in sgs.qlist(room:getOtherPlayers(damage.to)) do
                     if p:objectName() ~= player:objectName() then
@@ -21031,7 +21018,7 @@ sakamichi_san_jiao = sgs.CreateTriggerSkill {
             end
         else
             local recover = data:toRecover()
-            if player:hasSkill(self:objectName()) and recover.who and recover.who:objectName() ~= player:objectName() then
+            if player:hasSkill(self) and recover.who and recover.who:objectName() ~= player:objectName() then
                 local targets = sgs.SPlayerList()
                 for _, p in sgs.qlist(room:getOtherPlayers(recover.who)) do
                     if p:objectName() ~= player:objectName() and not p:isNude() then
@@ -21076,6 +21063,163 @@ sgs.LoadTranslationTable {
     [":sakamichi_san_jiao"] = "当一名其他角色对你造成伤害后/令你回复体力时，你可以令另一名其他角色摸一张牌/弃置另一名其他角色一张牌。",
     ["san_jiao_invoke_1"] = "你可以令除%src以外的一名其他角色摸一张牌",
     ["san_jiao_invoke_2"] = "你可以弃置除%src以外的一名其他角色一张牌",
+}
+
+-- 守屋 茜
+AkaneMoriya_Sakurazaka = sgs.General(Sakamichi, "AkaneMoriya_Sakurazaka", "Sakurazaka46", 4, false)
+SKMC.IKiSei.AkaneMoriya_Sakurazaka = true
+SKMC.SeiMeiHanDan.AkaneMoriya_Sakurazaka = {
+    name = {6, 9, 9},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {18, "ji"},
+    ji_kaku = {9, "xiong"},
+    soto_kaku = {15, "da_ji"},
+    sou_kaku = {24, "da_ji"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "jin",
+        ji_kaku = "shui",
+        san_sai = "ji",
+    },
+}
+
+sakamichi_ren_nai = sgs.CreateTriggerSkill {
+    name = "sakamichi_ren_nai",
+    events = {sgs.Damaged, sgs.DamageInflicted},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.Damaged then
+            local damage = data:toDamage()
+            if damage.nature == sgs.DamageStruct_Fire and
+                room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("draw:::" .. damage.damage)) then
+                room:drawCards(player, damage.damage, self:objectName())
+            end
+        else
+            local damage = data:toDamage()
+            if damage.nature == sgs.DamageStruct_Normal and
+                room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("fire")) then
+                damage.nature = sgs.DamageStruct_Fire
+                data:setValue(damage)
+            end
+        end
+        return false
+    end,
+}
+AkaneMoriya_Sakurazaka:addSkill(sakamichi_ren_nai)
+
+sakamichi_ying_dun = sgs.CreateTriggerSkill {
+    name = "sakamichi_ying_dun",
+    frequency = sgs.Skill_Limited,
+    limit_mark = "@ying_dun",
+    events = {sgs.TargetConfirming, sgs.CardUsed, sgs.DamageCaused, sgs.EventPhaseStart},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.TargetConfirming then
+            local use = data:toCardUse()
+            if (use.card:isKindOf("Slash") or use.card:isNDTrick()) and use.to:length() == 1 and use.to:contains(player) and
+                use.from:objectName() ~= player:objectName() then
+                if player:getMark("@ying_dun") ~= 0 then
+                    if room:askForSkillInvoke(player, self:objectName(), data) then
+                        room:removePlayerMark(player, "@ying_dun")
+                        room:setPlayerMark(player, "ying_dun_slash", 1)
+                        room:setPlayerMark(player, "ying_dun_damagetrick", 1)
+                        room:setPlayerMark(player, "@ying_dun_on", 1)
+                        local nullified_list = use.nullified_list
+                        table.insert(nullified_list, player:objectName())
+                        use.nullified_list = nullified_list
+                        data:setValue(use)
+                    end
+                end
+            end
+        elseif event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card:isKindOf("Slash") and player:getMark("ying_dun_slash") ~= 0 then
+                room:setPlayerMark(player, "ying_dun_slash", 0)
+                room:setPlayerMark(player, "ying_dun_damagetrick", 0)
+                room:setCardFlag(use.card, "ying_dun")
+                room:setPlayerMark(player, "@ying_dun_on", 0)
+            end
+            if use.card:isNDTrick() and use.card:isDamageCard() and player:getMark("ying_dun_damagetrick") ~= 0 then
+                room:setPlayerMark(player, "ying_dun_damagetrick", 0)
+                room:setPlayerMark(player, "ying_dun_slash", 0)
+                local no_respond_list = use.no_respond_list
+                for _, p in sgs.qlist(room:getAllPlayers()) do
+                    table.insert(no_respond_list, "_ALL_TARGETS")
+                end
+                use.no_respond_list = no_respond_list
+                data:setValue(use)
+                room:setPlayerMark(player, "@ying_dun_on", 0)
+            end
+        elseif event == sgs.DamageCaused then
+            local damage = data:toDamage()
+            if damage.card and damage.card:isKindOf("Slash") and damage.card:hasFlag("ying_dun") then
+                damage.damage = damage.damage + SKMC.number_correction(player, 1)
+                room:setCardFlag(damage.card, "-ying_dun")
+                data:setValue(damage)
+            end
+        elseif event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Start then
+            if player:getMark("@ying_dun_on") ~= 0 then
+                if player:isWounded() then
+                    room:recover(player, sgs.RecoverStruct(player, nil, SKMC.number_correction(player, 1)))
+                end
+            end
+        end
+        return false
+    end,
+}
+sakamichi_ying_dun_protect = sgs.CreateProhibitSkill {
+    name = "#sakamichi_ying_dun_protect",
+    is_prohibited = function(self, from, to, card)
+        return
+            to:hasSkill("sakamichi_ying_dun") and from:objectName() ~= to:objectName() and to:getMark("ying_dun_on") ~=
+                0 and (card:isKindOf("Slash") or card:isNDTrick())
+    end,
+}
+AkaneMoriya_Sakurazaka:addSkill(sakamichi_ying_dun)
+if not sgs.Sanguosha:getSkill("#sakamichi_ying_dun_protect") then
+    SKMC.SkillList:append(sakamichi_ying_dun_protect)
+end
+
+sakamichi_yang_sheng = sgs.CreateTriggerSkill {
+    name = "sakamichi_yang_sheng",
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.DrawNCards},
+    on_trigger = function(self, event, player, data, room)
+        local n = data:toInt()
+        n = n + math.floor(player:getEquips():length() / SKMC.number_correction(player, 2))
+        data:setValue(n)
+        return false
+    end,
+}
+sakamichi_yang_sheng_max = sgs.CreateMaxCardsSkill {
+    name = "#sakamichi_yang_sheng_max",
+    extra_func = function(self, target)
+        if target:hasSkill("sakamichi_yang_sheng") then
+            return target:getEquips():length()
+        end
+    end,
+}
+AkaneMoriya_Sakurazaka:addSkill(sakamichi_yang_sheng)
+if not sgs.Sanguosha:getSkill("#sakamichi_yang_sheng_max") then
+    SKMC.SkillList:append(sakamichi_yang_sheng_max)
+end
+
+sgs.LoadTranslationTable {
+    ["AkaneMoriya_Sakurazaka"] = "守屋 茜",
+    ["&AkaneMoriya_Sakurazaka"] = "守屋 茜",
+    ["#AkaneMoriya_Sakurazaka"] = "暗影疾行",
+    ["~AkaneMoriya_Sakurazaka"] = "これマラソンなんで",
+    ["designer:AkaneMoriya_Sakurazaka"] = "Cassimolar",
+    ["cv:AkaneMoriya_Sakurazaka"] = "守屋 茜",
+    ["illustrator:AkaneMoriya_Sakurazaka"] = "Cassimolar",
+    ["sakamichi_ren_nai"] = "忍耐",
+    [":sakamichi_ren_nai"] = "当你受到1点火焰伤害后，你可以摸一张牌；你受到无属性伤害时，你可以令此伤害为火焰伤害。",
+    ["sakamichi_ren_nai:draw"] = "是否发动【忍耐】摸%arg张牌",
+    ["sakamichi_ren_nai:fire"] = "是否发动【忍耐】令此次伤害为火焰伤害",
+    ["sakamichi_ying_dun"] = "影遁",
+    [":sakamichi_ying_dun"] = "限定技，当你成为其他角色使用的【杀】或通常锦囊牌的唯一目标时，你可以令此牌对你无效，若如此做，直到你下次使用【杀或伤害类锦囊时：你不是其他角色使用基本牌或通常锦囊牌的合法；你使用的下一张【杀】／伤害类锦囊伤害＋１／无法响应；准备阶段，你回复１点体力。",
+    ["@ying_dun"] = "影遁",
+    ["@ying_dun_on"] = "影遁",
+    ["sakamichi_yang_sheng"] = "养生",
+    [":sakamichi_yang_sheng"] = "锁定技，你的手牌上限+X；摸牌阶段，你额外摸X/2张牌（向下取整，X为你装备区的装备牌数）。",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

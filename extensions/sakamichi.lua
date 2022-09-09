@@ -19227,7 +19227,7 @@ sakamichi_mi_yan = sgs.CreateTriggerSkill {
                     card = data:toCardResponse().m_card
                 end
             end
-            if card:isKindOf("BasicCard") or card:isNDTrick() then
+            if card and card:isKindOf("BasicCard") or card:isNDTrick() then
                 local result = SKMC.run_judge(room, player, self:objectName(), ".|spade", false)
                 if result.card:getSuit() == sgs.Card_Spade then
                     local nullified_list = use.nullified_list
@@ -22024,19 +22024,22 @@ sakamichi_qin_ding = sgs.CreateTriggerSkill {
                 local target = room:askForPlayerChosen(player, room:getOtherPlayers(player), self:objectName(),
                                                        "@qin_ding_choice")
                 room:addPlayerMark(target, "qing_ding")
+                room:addMaxCards(target, SKMC.number_correction(player, 1), false)
                 room:setPlayerMark(player, self:objectName() .. target:objectName(), 1)
                 room:setPlayerMark(player, "&" .. self:objectName() .. "+ +" .. target:getGeneralName(), 1)
             end
         elseif event == sgs.DrawNCards then
-            local n = data:toInt()
-            for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:getMark(self:objectName() .. player:objectName()) ~= 0 then
-                    n = n + 1
+            if player:getMark("qing_ding") ~= 0 then
+                local n = data:toInt()
+                for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+                    if p:getMark(self:objectName() .. player:objectName()) ~= 0 then
+                        n = n + 1
+                    end
                 end
+                data:setValue(n)
             end
-            data:setValue(n)
         elseif event == sgs.CardsMoveOneTime then
-            if player:getPhase() == sgs.Player_Discard then
+            if player:getPhase() == sgs.Player_Discard and player:getMark("qing_ding") ~= 0 then
                 local move = data:toMoveOneTime()
                 if move.from and move.from:objectName() == player:objectName() and
                     bit32.band(move.reason.m_reason, sgs.CardMoveReason_S_MASK_BASIC_REASON) ==
@@ -22044,8 +22047,8 @@ sakamichi_qin_ding = sgs.CreateTriggerSkill {
                     room:setPlayerFlag(player, "qin_ding_discard")
                 end
             end
-        elseif event == sgs.EventPhaseProceeding then
-            if player:getMark("qin_ding") and not player:hasFlag("qin_ding_disCard") then
+        elseif event == sgs.EventPhaseProceeding and player:getPhase() == sgs.Player_Finish then
+            if player:getMark("qin_ding") and not player:hasFlag("qin_ding_discard") then
                 for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
                     if p:getMark(self:objectName() .. player:objectName()) ~= 0 then
                         room:drawCards(p, 1, self:objectName())
@@ -22059,16 +22062,7 @@ sakamichi_qin_ding = sgs.CreateTriggerSkill {
         return target
     end,
 }
-sakamichi_qin_ding_max = sgs.CreateMaxCardsSkill {
-    name = "#sakamichi_qin_ding_max",
-    extra_func = function(self, target)
-        return target:getMark("qin_ding")
-    end,
-}
 MarinoKousaka_Sakurazaka:addSkill(sakamichi_qin_ding)
-if not sgs.Sanguosha:getSkill("#sakamichi_qin_ding_max") then
-    SKMC.SkillList:append(sakamichi_qin_ding_max)
-end
 
 sakamichi_zhen_yan = sgs.CreateTriggerSkill {
     name = "sakamichi_zhen_yan",
@@ -23220,7 +23214,7 @@ sakamichi_zeng_li = sgs.CreateTriggerSkill {
     end,
 }
 
-sakamihi_feng_chi = sgs.CreateTriggerSkill {
+sakamichi_feng_chi = sgs.CreateTriggerSkill {
     name = "sakamichi_feng_chi",
     events = {sgs.EventPhaseProceeding},
     on_trigger = function(self, event, player, data, room)
@@ -23345,6 +23339,146 @@ sgs.LoadTranslationTable {
     ["@you_yue_invoke"] = "你可以将一张手牌交给一名手牌数小于你的角色",
     ["sakamichi_qu_yue"] = "取悦",
     [":sakamichi_qu_yue"] = "出牌阶段限一次，你可以选择一名角色令其翻开牌堆顶的三张牌，若其中有【杀】则视为你对其使用之，然后其失去1点体力获得剩余的牌，若该角色为你，你直接获得这三张牌且不失去体力。",
+}
+
+-- 山﨑 天
+TenYamasaki_Sakurazaka = sgs.General(Sakamichi, "TenYamasaki_Sakurazaka$", "Sakurazaka46", 4, false)
+SKMC.NiKiSei.TenYamasaki_Sakurazaka = true
+SKMC.SeiMeiHanDan.TenYamasaki_Sakurazaka = {
+    name = {3, 12, 4},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {16, "da_ji"},
+    ji_kaku = {4, "xiong"},
+    soto_kaku = {7, "ji"},
+    sou_kaku = {19, "xiong"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "tu",
+        ji_kaku = "huo",
+        san_sai = "da_ji",
+    },
+}
+
+sakamichi_mei_yu = sgs.CreateTriggerSkill {
+    name = "sakamichi_mei_yu$",
+    frequency = sgs.Skill_Compulsory,
+    events = {sgs.EventPhaseProceeding},
+    on_trigger = function(self, event, player, data, room)
+        if player:getPhase() == sgs.Player_Start then
+            if player:getMark("mei_yu") == 0 then
+                local global = {}
+                for _, id in sgs.qlist(sgs.Sanguosha:getRandomCards(false)) do
+                    local card = sgs.Sanguosha:getEngineCard(id)
+                    if card:isKindOf("GlobalEffect") or card:isKindOf("AOE") then
+                        if not table.contains(global, card:objectName()) then
+                            table.insert(global, card:objectName())
+                        end
+                    end
+                end
+                if #global ~= 0 then
+                    local choice = room:askForChoice(player, self:objectName(), table.concat(global, "+"))
+                    room:setPlayerMark(player, "&" .. self:objectName() .. "+ +" .. choice, 1)
+                    room:setPlayerMark(player, "mei_yu_" .. choice, 1)
+                end
+                room:setPlayerMark(player, "mei_yu", 1)
+            end
+        elseif player:getPhase() == sgs.Player_Finish then
+            local pattern
+            for _, mark in sgs.list(player:getMarkNames()) do
+                if string.find(mark, "mei_yu_") and player:getMark(mark) ~= 0 then
+                    SKMC.choice_log(player, mark)
+                    pattern = string.gsub(mark, "mei_yu_", "")
+                    SKMC.choice_log(player, pattern)
+                end
+            end
+            if pattern then
+                local card = sgs.Sanguosha:cloneCard(pattern, sgs.Card_NoSuit, -1)
+                card:deleteLater()
+                card:setSkillName(self:objectName())
+                room:useCard(sgs.CardUseStruct(card, player, sgs.SPlayerList()))
+            end
+        end
+        return false
+    end,
+}
+TenYamasaki_Sakurazaka:addSkill(sakamichi_mei_yu)
+
+sakamichi_hui_mu = sgs.CreateTriggerSkill {
+    name = "sakamichi_hui_mu",
+    hide_skill = true,
+    events = {sgs.Appear},
+    on_trigger = function(self, event, player, data, room)
+        local current = room:getCurrent()
+        if current:objectName() ~= player:objectName() and room:askForSkillInvoke(player, self:objectName(), data) then
+            room:setPlayerCardLimitation(current, "use,response", "BasicCard", true)
+        end
+        return false
+    end,
+}
+TenYamasaki_Sakurazaka:addSkill(sakamichi_hui_mu)
+
+sakamichi_teng_ai = sgs.CreateTriggerSkill {
+    name = "sakamichi_teng_ai",
+    events = {sgs.Damaged, sgs.SlashHit, sgs.CardFinished},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.Damaged then
+            local damage = data:toDamage()
+            if damage.from and damage.to:objectName() == player:objectName() then
+                for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+                    if damage.from:objectName() ~= p:objectName() then
+                        room:askForUseSlashTo(p, damage.from, "teng_ai_invoke:" .. damage.from:objectName(), false,
+                                              false, false, nil, nil, "teng_ai_to" .. player:objectName())
+                    end
+                end
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            if use.card:isKindOf("Slash") then
+                for _, p in sgs.qlist(room:getAlivePlayers()) do
+                    if use.card:hasFlag("teng_ai_to" .. p:objectName()) then
+                        room:setCardFlag(use.card, "-teng_ai_to" .. p:objectName())
+                    end
+                end
+            end
+        elseif event == sgs.SlashHit then
+            local effect = data:toSlashEffect()
+            local target
+            for _, p in sgs.qlist(room:getAlivePlayers()) do
+                if effect.slash:hasFlag("teng_ai_to" .. p:objectName()) then
+                    target = p
+                end
+            end
+            if target then
+                room:drawCards(target, 1, self:objectName())
+                if target:isWounded() then
+                    room:recover(target,
+                                 sgs.RecoverStruct(effect.from, effect.slash, SKMC.number_correction(effect.from, 1)))
+                end
+            end
+        end
+        return false
+    end,
+    can_trigger = function(self, target)
+        return target
+    end,
+}
+TenYamasaki_Sakurazaka:addSkill(sakamichi_teng_ai)
+
+sgs.LoadTranslationTable {
+    ["TenYamasaki_Sakurazaka"] = "山﨑 天",
+    ["&TenYamasaki_Sakurazaka"] = "山﨑 天",
+    ["#TenYamasaki_Sakurazaka"] = "蜘蛛侠",
+    ["~TenYamasaki_Sakurazaka"] = "諦あないことは大事ですよね",
+    ["designer:TenYamasaki_Sakurazaka"] = "Cassimolar",
+    ["cv:TenYamasaki_Sakurazaka"] = "山﨑 天",
+    ["illustrator:TenYamasaki_Sakurazaka"] = "Cassimolar",
+    ["sakamichi_mei_yu"] = "梅雨",
+    [":sakamichi_mei_yu"] = "主公技，锁定技，你的第一个准备阶段，你选择一种全局锦囊牌。结束阶段，你视为使用一张该锦囊牌。",
+    ["sakamichi_hui_mu"] = "绘目",
+    [":sakamichi_hui_mu"] = "隐匿技，你于其他角色是的回合登场后，你可以令其无法使用或打出基本牌直到回合结束。",
+    ["sakamichi_teng_ai"] = "疼愛",
+    [":sakamichi_teng_ai"] = "体力值不大于你的角色受到伤害后，若伤害来源不是你，你可以对伤害来源使用一张【杀】，若此【杀】命中，你可以摸一张牌并令其回复1点体力。",
+    ["teng_ai_invoke"] = "你可以对%src使用一张【杀】",
 }
 
 sgs.Sanguosha:addSkills(SKMC.SkillList)

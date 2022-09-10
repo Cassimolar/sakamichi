@@ -1967,7 +1967,7 @@ sakamichi_xi_wang = sgs.CreateTriggerSkill {
         local dying = data:toDying()
         if dying.who and dying.who:getKingdom() == "Nogizaka46" and dying.who:getMark("xi_wang_used") == 0 then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:hasLordSkill(self:objectName()) and room:askForSkillInvoke(dying.who, self:objectName(),
+                if p:hasLordSkill(self) and room:askForSkillInvoke(dying.who, self:objectName(),
                                                                                 sgs.QVariant(
                                                                                     "invoke:" .. p:objectName() .. "::" ..
                                                                                         self:objectName())) then
@@ -4459,7 +4459,7 @@ sakamichi_gong_shi = sgs.CreateTriggerSkill {
         if use.card and not use.card:isKindOf("SkillCard") and player:getKingdom() == "Nogizaka46" and player:getPhase() ==
             sgs.Player_Play and not player:hasFlag("gong_shi_used") then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:hasLordSkill(self:objectName()) and
+                if p:hasLordSkill(self) and
                     room:askForSkillInvoke(p, self:objectName(),
                                            sgs.QVariant("invoke:" .. p:objectName() .. "::" .. self:objectName())) then
                     room:setPlayerFlag(player, "gong_shi_used")
@@ -4948,7 +4948,7 @@ sakamichi_zi_yuan = sgs.CreateTriggerSkill {
         local dying = data:toDying()
         if dying.who and dying.who:getKingdom() == "Nogizaka46" and dying.who:isWounded() then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if dying.who:objectName() ~= p:objectName() and p:hasLordSkill(self:objectName()) and
+                if dying.who:objectName() ~= p:objectName() and p:hasLordSkill(self) and
                     room:askForSkillInvoke(p, self:objectName(), data) then
                     local n = SKMC.number_correction(p, 1)
                     room:loseHp(p, n)
@@ -5199,7 +5199,7 @@ sakamichi_ming_mei = sgs.CreateTriggerSkill {
         local dying = data:toDying()
         if dying.who and dying.who:objectName() == player:objectName() and player:getKingdom() == "Nogizaka46" then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:getMark("ming_mei_used" .. player:objectName()) == 0 and p:hasLordSkill(self:objectName()) and
+                if p:getMark("ming_mei_used" .. player:objectName()) == 0 and p:hasLordSkill(self) and
                     room:askForSkillInvoke(p, self:objectName(),
                                            sgs.QVariant("invoke:" .. player:objectName() .. "::" .. self:objectName())) then
                     room:addPlayerMark(p, "ming_mei_used" .. player:objectName(), 1)
@@ -6166,14 +6166,14 @@ sakamichi_luo_zu = sgs.CreateDistanceSkill {
     correct_func = function(self, from, to)
         if from:getKingdom() == "Nogizaka46" then
             for _, p in sgs.qlist(from:getSiblings()) do
-                if p:hasLordSkill(self:objectName()) and not p:getOffensiveHorse() then
+                if p:hasLordSkill(self) and not p:getOffensiveHorse() then
                     return -1
                 end
             end
         end
         if to:getKingdom() == "Nogizaka46" then
             for _, p in sgs.qlist(to:getSiblings()) do
-                if p:hasLordSkill(self:objectName()) and not p:getDefensiveHorse() then
+                if p:hasLordSkill(self) and not p:getDefensiveHorse() then
                     return 1
                 end
             end
@@ -9609,7 +9609,7 @@ sakamichi_shen_jing = sgs.CreateTriggerSkill {
         if player:getKingdom() == "Nogizaka46" and not use.card:isKindOf("SkillCard") and use.card:isVirtualCard() and
             use.card:subcardsLength() == 0 then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:hasLordSkill(self:objectName()) and
+                if p:hasLordSkill(self) and
                     room:askForSkillInvoke(p, self:objectName(),
                                            sgs.QVariant("invoke:" .. player:objectName() .. "::" .. self:objectName())) then
                     room:drawCards(player, 2, self:objectName())
@@ -9764,7 +9764,7 @@ sakamichi_lian_ji = sgs.CreateTriggerSkill {
         if (use.card:isNDTrick() or use.card:isKindOf("BasicCard")) and use.to:length() == 1 and use.to:contains(player) and
             player:getKingdom() == "Nogizaka46" then
             for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                if p:hasLordSkill(self:objectName()) and not use.card:hasFlag("lian_ji" .. p:objectName()) and
+                if p:hasLordSkill(self) and not use.card:hasFlag("lian_ji" .. p:objectName()) and
                     room:askForSkillInvoke(p, self:objectName(), sgs.QVariant(
                                                "invoke:" .. player:objectName() .. "::" .. use.card:objectName())) then
                     room:drawCards(p, 1, self:objectName())
@@ -14892,7 +14892,7 @@ sakamichi_hei_yang = sgs.CreateTriggerSkill {
                         (use.from:getKingdom() == "Keyakizaka46" or use.from:getKingdom() == "HiraganaKeyakizaka46") and
                         use.to:length() > 1 then
                         for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
-                            if p:hasLordSkill(self:objectName()) and room:askForSKillInvoke(p, self:objectName(), data) then
+                            if p:hasLordSkill(self) and room:askForSKillInvoke(p, self:objectName(), data) then
                                 for _, pl in sgs.qlist(use.to) do
                                     if pl:objectName() ~= use.card:getTag("hei_yang"):toString() then
                                         room:damage(sgs.DamageStruct(self:objectName(), p, pl,

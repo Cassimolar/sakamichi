@@ -38,6 +38,6 @@
 
 ## 现阶段重制进度
 
-![进度](https://cdn.jsdelivr.net/gh/Cassimolar/sakamichi@pic/图床/进度.svg)
+![进度](https://cdn.jsdelivr.net/gh/Cassimolar/sakamichi@pic/图床/进度.png)
 
 [详细进度](https://github.com/Cassimolar/sakamichi/tree/img/README.md)

@@ -39,20 +39,17 @@
 ## 现阶段重制进度
 
 <style>
-
 .container {
   width: 100%;
   height: 40px;
   background-color: #DDDDDD;
 }
-
 .skills {
   text-align: right;
   padding-right: 20px;
   line-height: 40px;
   color: white;
 }
-
 .Nogizaka {width: 91.2%; background-color: #7D2982;}
 .Keyakizaka {width: 100%; background-color: #5EB054;}
 .HiraganaKeyakizaka46 {width: 0%; background-color: #5EB054;}
@@ -66,7 +63,6 @@
 .NotEqualMe {width: 0%; background-color: #79CCBD;}
 .NearlyEqualJoy {width: 0%; background-color: #FFDF6A;}
 .Zambi {width: 0%; background-color: #412BB6;}
-
 </style>
 
 <p>乃木坂46</p>

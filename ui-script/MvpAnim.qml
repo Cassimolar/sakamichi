@@ -24,7 +24,7 @@ Item {
         y: sceneHeight / 2 - 160
 		z: 992
 	}
-	
+
 	Image {
 		id: heroCardBg
         property int currentImage: 0
@@ -48,7 +48,7 @@ Item {
         id: hiraginogyods
         source: "../font/HiraginoGyoDS.ttf"
     }
-	
+
     Text {
         id: text
         color: "white"
@@ -61,7 +61,7 @@ Item {
         x: sceneWidth / 2 + 75
         y: sceneHeight / 2 + 45
     }
-	
+
     Image {
 		id: mvpText
         source: "../image/animate/util/mvp/mvp.png"
@@ -71,7 +71,7 @@ Item {
         y: sceneHeight / 2 - 260
 		z: 1000
 	}
-	
+
     ParallelAnimation {
         id: mvpstep1
         running: false
@@ -115,7 +115,7 @@ Item {
         }
 
         ParallelAnimation {
-			
+
             PropertyAnimation {
                 target: text
                 property: "opacity"

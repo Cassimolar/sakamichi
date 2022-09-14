@@ -4,7 +4,7 @@ SKMC.SkillList = sgs.SkillList()
 local Sakamichi = sgs.Package("Sakamichi", sgs.Package_GeneralPack)
 local STU48 = sgs.Package("STU", sgs.Package_GeneralPack)
 local SakamichiGod = sgs.Package("SakamichiGod", sgs.Package_GeneralPack)
-local Zambi = sgs.Package("Zambi", sgs.Package_GeneralPack)
+local Zambi = sgs.Package("ZambiPack", sgs.Package_GeneralPack)
 local SakamichiCard = sgs.Package("SakamichiCard", sgs.Package_CardPack)
 local SakamichiExclusiveCard = sgs.Package("SakamichiExclusiveCard", sgs.Package_CardPack)
 
@@ -20,7 +20,7 @@ sgs.LoadTranslationTable {
     ["Sakamichi"] = "坂道杀·坂道",
     ["STU"] = "坂道杀·STU48",
     ["SakamichiGod"] = "坂道杀·神",
-    ["Zambi"] = "坂道杀·ザンビ",
+    ["ZambiPack"] = "坂道杀·ザンビ",
     ["SakamichiCard"] = "坂道杀·卡牌",
     ["SakamichiExclusiveCard"] = "坂道杀·专属卡牌",
 }
@@ -57,9 +57,9 @@ do
     config.kingdom_colors.SakamichiKenshusei = "#738B95"
     config.kingdom_colors.AutisticGroup = "#8A807A"
     config.kingdom_colors.STU48 = "#CCEBFF"
-    config.kingdom_colors.EqualLove = "#EA6C81"
-    config.kingdom_colors.NotEqualMe = "#79CCBD"
-    config.kingdom_colors.NearlyEqualJoy = "#FFDF6A"
+    config.kingdom_colors.EqualLove = "#FCDBE3"
+    config.kingdom_colors.NotEqualMe = "#7CCCC4"
+    config.kingdom_colors.NearlyEqualJoy = "#FCE46C"
     config.kingdom_colors.Zambi = "#412BB6"
 end
 
@@ -1559,7 +1559,7 @@ trig = sgs.CreateTriggerSkill {
         if event == sgs.FinishJudge then
             local judge = data:toJudge()
             if judge:isGood() then
-                return
+                return false
             end
             if judge.reason == "indulgence" then
                 room:setEmotion(judge.who, "indulgence")
@@ -1706,10 +1706,10 @@ mvp_experience = sgs.CreateTriggerSkill {
     on_trigger = function(self, event, player, data, room)
         local room = player:getRoom()
         if not string.find(room:getMode(), "p") then
-            return
+            return false
         end
         if room:getTag("DisableMVP"):toBool() then
-            return
+            return false
         end
         local x = 1
         local conv = false
@@ -7117,7 +7117,7 @@ sakamichi_shuo_chang = sgs.CreateTriggerSkill {
             local use = data:toCardUse()
             if use.card:isNDTrick() then
                 if player:hasFlag("shuo_chang_trick") then
-                    room:setPlayerMark(player, "&shuo_chang_trick_finish_end_claer", 0)
+                    room:setPlayerMark(player, "&shuo_chang_trick_finish_end_clear", 0)
                     room:setPlayerFlag(player, "-shuo_chang_trick")
                     room:drawCards(player, 1, self:objectName())
                     local no_respond_list = use.no_respond_list
@@ -7129,7 +7129,7 @@ sakamichi_shuo_chang = sgs.CreateTriggerSkill {
                     room:setChangeSkillState(player, self:objectName(), 2)
                     room:setPlayerFlag(player, "shuo_chang_basic")
                     room:addPlayerMark(player, "shuo_chang_count_finish_end_clear")
-                    room:setPlayerMark(player, "&shuo_chang_basic_finish_end_claer", 1)
+                    room:setPlayerMark(player, "&shuo_chang_basic_finish_end_clear", 1)
                     if player:hasFlag("fa_ze_used") then
                         room:setPlayerFlag(player, "-fa_ze_used")
                     end
@@ -7140,7 +7140,7 @@ sakamichi_shuo_chang = sgs.CreateTriggerSkill {
                     room:setChangeSkillState(player, self:objectName(), 1)
                     room:setPlayerFlag(player, "shuo_chang_trick")
                     room:addPlayerMark(player, "shuo_chang_count_finish_end_clear")
-                    room:setPlayerMark(player, "&shuo_chang_trick_finish_end_claer", 1)
+                    room:setPlayerMark(player, "&shuo_chang_trick_finish_end_clear", 1)
                     if player:hasFlag("fa_ze_used") then
                         room:setPlayerFlag(player, "-fa_ze_used")
                     end
@@ -7149,7 +7149,7 @@ sakamichi_shuo_chang = sgs.CreateTriggerSkill {
         elseif event == sgs.PreCardUsed then
             local use = data:toCardUse()
             if player:hasFlag("shuo_chang_basic") then
-                room:setPlayerMark(player, "&shuo_chang_basic_finish_end_claer", 0)
+                room:setPlayerMark(player, "&shuo_chang_basic_finish_end_clear", 0)
                 room:setPlayerFlag(player, "-shuo_chang_basic")
                 room:setCardFlag(use.card, "RemoveFromHistory")
             end
@@ -7237,8 +7237,8 @@ sgs.LoadTranslationTable {
     ["illustrator:AmiNoujo"] = "Cassimolar",
     ["sakamichi_shuo_chang"] = "说唱",
     [":sakamichi_shuo_chang"] = "锁定技，准备阶段，本技能重置为①。转换技，出牌阶段，①你使用通常锦囊牌时，本回合你使用的下一张基本牌无距离限制且不计入次数限制；②你使用基本牌时，本回合内你使用的下一张通常锦囊牌无法响应且摸一张牌。",
-    ['shuo_chang_basic_finish_end_claer'] = "基本牌不计入次数",
-    ['shuo_chang_trick_finish_end_claer'] = "通常锦囊牌无法响应",
+    ['shuo_chang_basic_finish_end_clear'] = "基本牌不计入次数",
+    ['shuo_chang_trick_finish_end_clear'] = "通常锦囊牌无法响应",
     ["sakamichi_jiao_sang"] = "脚桑",
     [":sakamichi_jiao_sang"] = "觉醒技，结束阶段，若你回合内发动【说唱】至少五次，你增加1点体力上限并获得【法则】。",
     ["sakamichi_fa_ze"] = "法则",
@@ -7809,7 +7809,7 @@ sakamichi_fa_jia = sgs.CreateTriggerSkill {
     name = "sakamichi_fa_jia$",
     events = {sgs.EventPhaseStart, sgs.CardsMoveOneTime, sgs.Death},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish and player:hasSkill(self) and
+        if event == sgs.EventPhaseStart and player:getPhase() == sgs.Player_Finish and player:hasLordSkill(self) and
             SKMC.has_specific_kingdom_player(player) then
             local list = sgs.SPlayerList()
             for _, p in sgs.qlist(room:getOtherPlayers(player)) do
@@ -7874,7 +7874,7 @@ sakamichi_fa_jia = sgs.CreateTriggerSkill {
             end
         elseif event == sgs.Death then
             local death = data:toDeath()
-            if death.who:hasSkill(self) or death.who:getMark("@fa_jia_target") ~= 0 then
+            if death.who:hasLordSkill(self) or death.who:getMark("@fa_jia_target") ~= 0 then
                 for _, p in sgs.qlist(room:getAllPlayers()) do
                     if p:getMark("fa_jia" .. death.who:objectName()) ~= 0 or
                         death.who:getMark("fa_jia" .. p:objectName()) ~= 0 then
@@ -19504,7 +19504,7 @@ sakamichi_hua_she = sgs.CreateTriggerSkill {
                 card = data:toCardResponse().m_card
             end
         end
-        if card:getSkillName() == self:objectName() then
+        if card and card:getSkillName() == self:objectName() then
             room:setPlayerFlag(player, "hua_she_used")
         end
         return false
@@ -20250,6 +20250,120 @@ sgs.LoadTranslationTable {
     ["&sakamichi_mi_yu"] = "密语",
     ["sakamichi_hui_shi"] = "毁食",
     [":sakamichi_hui_shi"] = "锁定技，当你使用的有对应实体牌且非转换【桃】结算完成时，若你未以此法记录此牌，则记录此牌，其他角色于其回合内使用你以此法记录的【桃】结算完成时，其翻面。",
+}
+
+-- 高本 彩花
+AyakaTakamoto_HiraganaKeyakizaka = sgs.General(Sakamichi, "AyakaTakamoto_HiraganaKeyakizaka", "HiraganaKeyakizaka46", 3,
+                                               false)
+SKMC.IKiSei.AyakaTakamoto_HiraganaKeyakizaka = true
+SKMC.SeiMeiHanDan.AyakaTakamoto_HiraganaKeyakizaka = {
+    name = {10, 5, 11, 7},
+    ten_kaku = {15, "da_ji"},
+    jin_kaku = {16, "da_ji"},
+    ji_kaku = {18, "ji"},
+    soto_kaku = {17, "ji"},
+    sou_kaku = {33, "te_shu_ge"},
+    GoGyouSanSai = {
+        ten_kaku = "tu",
+        jin_kaku = "tu",
+        ji_kaku = "jin",
+        san_sai = "ji",
+    },
+}
+
+sakamichi_gong_dao = sgs.CreateOneCardViewAsSkill {
+    name = "sakamichi_gong_dao",
+    filter_pattern = "Slash",
+    view_as = function(self, card)
+        local archery_attack = sgs.Sanguosha:cloneCard("archery_attack", card:getSuit(), card:getNumber())
+        archery_attack:addSubcard(card)
+        archery_attack:setSkillName(self:objectName())
+        return archery_attack
+    end,
+    enabled_at_play = function(self, player)
+        return true
+    end,
+    enabled_at_response = function(self, player, pattern)
+        return pattern == "archery_attack"
+    end,
+}
+sakamichi_gong_dao_attack_range = sgs.CreateAttackRangeSkill {
+    name = "#sakamichi_gong_dao_attack_range",
+    extra_func = function(self, player, include_weapon)
+        if player:hasSkill("sakamichi_gong_dao") then
+            return player:getHp()
+        end
+    end,
+}
+AyakaTakamoto_HiraganaKeyakizaka:addSkill(sakamichi_gong_dao)
+if not sgs.Sanguosha:getSkill("#sakamichi_gong_dao_attack_range") then
+    SKMC.SkillList:append(sakamichi_gong_dao_attack_range)
+end
+
+sakamichi_wen_bian = sgs.CreateTriggerSkill {
+    name = "sakamichi_wen_bian",
+    events = {sgs.TargetSpecified, sgs.Damage, sgs.CardFinished},
+    on_trigger = function(self, event, player, data, room)
+        if event == sgs.TargetSpecified then
+            local use = data:toCardUse()
+            if use.card:isDamageCard() and use.card:isNDTrick() then
+                local target = room:askForPlayerChosen(player, use.to, self:objectName(), "@wen_bian_invoke:::" ..
+                                                           use.card:objectName() .. ":" .. self:objectName(), true, true)
+                if target then
+                    local choice_1 = "damage=" .. target:objectName() .. "=" .. use.card:objectName()
+                    local choice_2 = "no_damage=" .. target:objectName() .. "=" .. use.card:objectName()
+                    if room:askForChoice(player, self:objectName(), choice_1 .. "+" .. choice_2) == choice_1 then
+                        room:setCardFlag(use.card, "wen_bian_damage_" .. target:objectName())
+                    else
+                        room:setCardFlag(use.card, "wen_bian_no_damage_" .. target:objectName())
+                    end
+                end
+            end
+        elseif event == sgs.Damage then
+            local damage = data:toDamage()
+            if damage.card then
+                if damage.card:hasFlag("wen_bian_damage_" .. damage.to:objectName()) then
+                    room:setCardFlag(damage.card, "-" .. "wen_bian_damage_" .. damage.to:objectName())
+                    room:drawCards(player, 1, self:objectName())
+                    room:drawCards(damage.to, 1, self:objectName())
+                elseif damage.card:hasFlag("wen_bian_no_damage_" .. damage.to:objectName()) then
+                    room:setCardFlag(damage.card, "-" .. "wen_bian_no_damage_" .. damage.to:objectName())
+                    room:loseHp(player, SKMC.number_correction(player, 1))
+                    room:loseHp(damage.to, SKMC.number_correction(player, 1))
+                end
+            end
+        elseif event == sgs.CardFinished then
+            local use = data:toCardUse()
+            for _, p in sgs.qlist(use.to) do
+                if use.card:hasFlag("wen_bian_damage_" .. p:objectName()) then
+                    room:loseHp(player, SKMC.number_correction(player, 1))
+                    room:loseHp(p, SKMC.number_correction(player, 1))
+                elseif use.card:hasFlag("wen_bian_no_damage_" .. p:objectName()) then
+                    room:drawCards(player, 1, self:objectName())
+                    room:drawCards(p, 1, self:objectName())
+                end
+            end
+        end
+        return false
+    end,
+}
+AyakaTakamoto_HiraganaKeyakizaka:addSkill(sakamichi_wen_bian)
+
+sgs.LoadTranslationTable {
+    ["AyakaTakamoto_HiraganaKeyakizaka"] = "高本 彩花",
+    ["&AyakaTakamoto_HiraganaKeyakizaka"] = "高本 彩花",
+    ["#AyakaTakamoto_HiraganaKeyakizaka"] = "马尾女王",
+    ["~AyakaTakamoto_HiraganaKeyakizaka"] = "問題が悪いんじゃないですかね？",
+    ["designer:AyakaTakamoto_HiraganaKeyakizaka"] = "Cassimolar",
+    ["cv:AyakaTakamoto_HiraganaKeyakizaka"] = "高本 彩花",
+    ["illustrator:AyakaTakamoto_HiraganaKeyakizaka"] = "Cassimolar",
+    ["sakamichi_gong_dao"] = "弓道",
+    [":sakamichi_gong_dao"] = "锁定技，你的攻击范围+X（X为你的体力值）。出牌阶段，你可以将一张【杀】当万箭齐发使用或打出。",
+    ["sakamichi_wen_bian"] = "闻辨",
+    [":sakamichi_wen_bian"] = "当你使用伤害类锦囊指定目标后，你可以选择其中一个目标，猜测其是否会受到此牌造成的伤害，若猜测：正确，你与其各摸一张牌；错误，你与其各失去1点体力。",
+    ["@wen_bian_invoke"] = "你可以选择此【%arg】的一个目标发动【%arg2】",
+    ["sakamichi_wen_bian:damage"] = "此【%arg】对%src造成伤害",
+    ["sakamichi_wen_bian:no_damage"] = "此【%arg】不对%src造成伤害",
 }
 
 -- ====================================================================================================櫻坂46====================================================================================================--

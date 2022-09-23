@@ -1,0 +1,8 @@
+require "extensions.sakamichi.STU48.IKiSei.NanaOkada"
+require "extensions.sakamichi.STU48.IKiSei.MitsukiImamura"
+require "extensions.sakamichi.STU48.IKiSei.ArisaMineyoshi"
+require "extensions.sakamichi.STU48.IKiSei.YumikoTakino"
+require "extensions.sakamichi.STU48.IKiSei.ChihoIshida"
+require "extensions.sakamichi.STU48.IKiSei.KokoaKai"
+require "extensions.sakamichi.STU48.IKiSei.MiyuSakaki"
+require "extensions.sakamichi.STU48.IKiSei.AkariFukuda"

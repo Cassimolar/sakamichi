@@ -1,6 +1,5 @@
 do
     require("lua.config")
-    local config = config
     table.removeOne(config.kingdoms, "wei")
     table.removeOne(config.kingdoms, "shu")
     table.removeOne(config.kingdoms, "wu")

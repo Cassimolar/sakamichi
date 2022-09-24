@@ -1,3 +1,4 @@
+-- 一期生
 require "extensions.sakamichi.Keyakizaka46.IKiSei.MizuhoSuzuki"
 require "extensions.sakamichi.Keyakizaka46.IKiSei.YurinaHirate"
 require "extensions.sakamichi.Keyakizaka46.IKiSei.YuiKobayashi"
@@ -21,7 +22,7 @@ require "extensions.sakamichi.Keyakizaka46.IKiSei.NanakoNagasawa"
 require "extensions.sakamichi.Keyakizaka46.IKiSei.YukaSugai"
 require "extensions.sakamichi.Keyakizaka46.IKiSei.RikaWatanabe"
 require "extensions.sakamichi.Keyakizaka46.IKiSei.NijikaIshimori"
-
+-- 二期生
 require "extensions.sakamichi.Keyakizaka46.NiKiSei.RenaMoriya"
 require "extensions.sakamichi.Keyakizaka46.NiKiSei.MarinoKousaka"
 require "extensions.sakamichi.Keyakizaka46.NiKiSei.YumikoSeki"

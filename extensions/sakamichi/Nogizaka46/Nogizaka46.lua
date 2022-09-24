@@ -1,4 +1,6 @@
+-- 交换生
 require "extensions.sakamichi.Nogizaka46.IKiSei.RenaMatsui"
+-- 一期生
 require "extensions.sakamichi.Nogizaka46.IKiSei.RinaIkoma"
 require "extensions.sakamichi.Nogizaka46.IKiSei.RenaIchiki"
 require "extensions.sakamichi.Nogizaka46.IKiSei.YukinaKashiwa"
@@ -35,7 +37,7 @@ require "extensions.sakamichi.Nogizaka46.IKiSei.MaayaWada"
 require "extensions.sakamichi.Nogizaka46.IKiSei.SeiraHatanaka"
 require "extensions.sakamichi.Nogizaka46.IKiSei.AmiNoujo"
 require "extensions.sakamichi.Nogizaka46.IKiSei.HonokaYamamoto"
-
+-- 二期生
 require "extensions.sakamichi.Nogizaka46.NiKiSei.MiriaWatanabe"
 require "extensions.sakamichi.Nogizaka46.NiKiSei.MaiShinnuchi"
 require "extensions.sakamichi.Nogizaka46.NiKiSei.HinakoKitano"
@@ -50,7 +52,7 @@ require "extensions.sakamichi.Nogizaka46.NiKiSei.RenaYamazaki"
 require "extensions.sakamichi.Nogizaka46.NiKiSei.JunnaIto"
 require "extensions.sakamichi.Nogizaka46.NiKiSei.AyaneSuzuki"
 require "extensions.sakamichi.Nogizaka46.NiKiSei.IoriSagara"
-
+-- 三期生
 require "extensions.sakamichi.Nogizaka46.SanKiSei.RenoNakamura"
 require "extensions.sakamichi.Nogizaka46.SanKiSei.MomokoOozono"
 require "extensions.sakamichi.Nogizaka46.SanKiSei.MizukiYamashita"
@@ -63,7 +65,7 @@ require "extensions.sakamichi.Nogizaka46.SanKiSei.ShioriKubo"
 require "extensions.sakamichi.Nogizaka46.SanKiSei.RiriaIto"
 require "extensions.sakamichi.Nogizaka46.SanKiSei.MinamiUmezawa"
 require "extensions.sakamichi.Nogizaka46.SanKiSei.KaedeSato"
-
+-- 四期生
 require "extensions.sakamichi.Nogizaka46.YonKiSei.MayuTamura"
 require "extensions.sakamichi.Nogizaka46.YonKiSei.RunaHayashi"
 require "extensions.sakamichi.Nogizaka46.YonKiSei.HarukaKuromi"
@@ -81,15 +83,15 @@ require "extensions.sakamichi.Nogizaka46.YonKiSei.MioYakubo"
 require "extensions.sakamichi.Nogizaka46.YonKiSei.MiyuMatsuo"
 require "extensions.sakamichi.Nogizaka46.YonKiSei.SayaKanagawa"
 require "extensions.sakamichi.Nogizaka46.YonKiSei.SayakaKakehashi"
-
-require "extensions.sakamichi.Nogizaka46.GoKiSei.NagiInoue"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.MikuIchinose"
+-- 五期生
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.NagiInoue"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.MikuIchinose"
 require "extensions.sakamichi.Nogizaka46.GoKiSei.SatsukiSugawara"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.AyaOgawa"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.NaoTomisato"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.IrohaOkuda"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.AyaOgawa"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.NaoTomisato"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.IrohaOkuda"
 require "extensions.sakamichi.Nogizaka46.GoKiSei.ArunoNakanishi"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.MaoIoki"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.TeresaIkeda"
-require "extensions.sakamichi.Nogizaka46.GoKiSei.SakuraKawasaki"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.MaoIoki"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.TeresaIkeda"
+-- require "extensions.sakamichi.Nogizaka46.GoKiSei.SakuraKawasaki"
 require "extensions.sakamichi.Nogizaka46.GoKiSei.HinaOkamoto"

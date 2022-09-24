@@ -31,6 +31,7 @@ sakamichi_san_liu_jiu = sgs.CreateTriggerSkill {
                     if n == SKMC.number_correction(p, 3) or n == SKMC.number_correction(p, 6) or n
                         == SKMC.number_correction(p, 9) then
                         room:revivePlayer(p)
+                        room:recover(p, sgs.RecoverStruct(p, nil, p:getMaxHp() - p:getHp()))
                         room:drawCards(p, n, self:objectName())
                     end
                 end

@@ -5,153 +5,178 @@ MemiKakizaki_HiraganaKeyakizaka = sgs.General(Sakamichi, "MemiKakizaki_HiraganaK
     false)
 table.insert(SKMC.IKiSei, "MemiKakizaki_HiraganaKeyakizaka")
 
---[[
-    技能名：猫语
-    描述：出牌阶段限一次，你可以进行一次判定，若结果为红桃，你可以选择一项：1.获得此牌；2.将此牌视为【乐不思蜀】使用。
-]]
-LuamaoyuCard = sgs.CreateSkillCard {
-    name = "LuamaoyuCard",
-    skill_name = "Luamaoyu",
-    target_fixed = true,
-    on_use = function(self, room, source, targets)
-        local judge = sgs.JudgeStruct()
-        judge.pattern = ".|heart"
-        judge.good = true
-        judge.who = source
-        judge.reason = "Luamaoyu"
-        room:judge(judge)
-        local suit = judge.card:getSuit()
-        if suit == sgs.Card_Heart then
-            local choices = {"maoyu_get"}
-            local targets_list = sgs.SPlayerList()
-            local card = sgs.Sanguosha:cloneCard("indulgence", suit, judge.card:getNumber())
-            card:addSubcard(judge.card:getEffectiveId())
-            card:setSkillName("Luamaoyu")
-            for _, p in sgs.qlist(room:getOtherPlayers(source)) do
-                if not p:containsTrick("indulgence") and not p:isProhibited(source, card) then
-                    targets_list:append(p)
-                end
-            end
-            if not targets_list:isEmpty() then
-                table.insert(choices, "maoyu_use")
-            end
-            if room:askForChoice(source, "Luamaoyu", table.concat(choices, "+")) == "maoyu_get" then
-                source:obtainCard(judge.card)
-            else
-                local target = room:askForPlayerChosen(source, targets_list, "Luamaoyu", "@maoyu_choice", false, true)
-                room:useCard(sgs.CardUseStruct(card, source, target, true), true)
-            end
-        end
-    end,
-}
-Luamaoyu = sgs.CreateZeroCardViewAsSkill {
-    name = "Luamaoyu",
-    view_as = function()
-        return LuamaoyuCard:clone()
+sakamichi_mao_yu_view_as = sgs.CreateOneCardViewAsSkill {
+    name = "sakamichi_mao_yu",
+    filter_pattern = ".|heart",
+    response_pattern = "peach,analeptic",
+    response_or_use = true,
+    view_as = function(self, card)
+        local peach = sgs.Sanguosha:cloneCard("peach", card:getSuit(), card:getNumber())
+        peach:addSubcard(card)
+        peach:setSkillName(self:objectName())
+        return peach
     end,
     enabled_at_play = function(self, player)
-        return not player:hasUsed("#LuamaoyuCard")
+        return player:getMark("mao_yu_lun_clear") == 0
+    end,
+    enabled_at_response = function(self, player, pattern)
+        return player:getMark("mao_yu_lun_clear") == 0
     end,
 }
-MemiKakizaki_HiraganaKeyakizaka:addSkill(Luamaoyu)
-
---[[
-    技能名：萌王
-    描述：锁定技，红桃【杀】对你无效；你使用红桃【杀】造成伤害时，此伤害+1；你使用红桃基本牌和通常锦囊牌时须额外选择一个合法目标。
-]]
-Luamengwang = sgs.CreateTriggerSkill {
-    name = "Luamengwang",
-    frequency = sgs.Skill_Compulsory,
-    events = {sgs.SlashEffected, sgs.DamageCaused, sgs.PreCardUsed},
+sakamichi_mao_yu = sgs.CreateTriggerSkill {
+    name = "sakamichi_mao_yu",
+    view_as_skill = sakamichi_mao_yu_view_as,
+    events = {sgs.CardUsed, sgs.DamageCaused, sgs.TargetConfirmed},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.SlashEffected then
-            local effect = data:toSlashEffect()
-            return effect.slash:getSuit() == sgs.Card_Heart
+        if event == sgs.CardUsed then
+            local use = data:toCardUse()
+            if use.card:getSuit() == sgs.Card_Heart and use.card:isDamageCard()
+                and room:askForSkillInvoke(player, self:objectName(), data) then
+                local choice_1 = "no_response==" .. use.card:objectName()
+                local choice_2 = "damage==" .. use.card:objectName()
+                if room:askForChoice(player, self:objectName(), choice_1 .. "+" .. choice_2) == choice_2 then
+                    room:setCardFlag(use.card, "mao_yu_damage")
+                else
+                    local no_respond_list = use.no_respond_list
+                    table.insert(no_respond_list, "_ALL_TARGETS")
+                    use.no_respond_list = no_respond_list
+                    data:setValue(use)
+                end
+            end
+            if use.card:isKindOf("Peach") and use.card:getSkillName() == self:objectName() then
+                room:setPlayerMark(player, "mao_yu_lun_clear", 1)
+            end
         elseif event == sgs.DamageCaused then
             local damage = data:toDamage()
-            if damage.card and damage.card:isKindOf("Slash") and damage.card:getSuit() == sgs.Card_Heart then
-                damage.damage = damage.damage + 1
+            if damage.card and damage.card:hasFlag("mao_yu_damage") then
+                damage.damage = damage.damage + SKMC.number_correction(player, 1)
                 data:setValue(damage)
             end
         else
             local use = data:toCardUse()
-            if (use.card:isNDTrick() or use.card:isKindOf("BasicCard")) and use.card:getSuit() == sgs.Card_Heart then
-                if (sgs.Sanguosha:getCurrentCardUseReason() ~= sgs.CardUseStruct_CARD_USE_REASON_PLAY) then
-                    return false
-                end
-                local available_targets = sgs.SPlayerList()
-                if not use.card:isKindOf("AOE") and not use.card:isKindOf("GlobalEffect") then
-                    room:setPlayerFlag(player, "wa_ga_michi_extra_target")
-                    for _, p in sgs.qlist(room:getAlivePlayers()) do
-                        if not (use.to:contains(p) or room:isProhibited(player, p, use.card)) then
-                            if (use.card:targetFixed()) then
-                                if (not use.card:isKindOf("Peach")) or (p:isWounded()) then
-                                    available_targets:append(p)
-                                end
-                            else
-                                if (use.card:targetFilter(sgs.PlayerList(), p, player)) then
-                                    available_targets:append(p)
-                                end
-                            end
-                        end
-                    end
-                    room:setPlayerFlag(player, "-wa_ga_michi_extra_target")
-                end
-                if not available_targets:isEmpty() then
-                    local extra = nil
-                    if not use.card:isKindOf("Collateral") then
-                        extra = room:askForPlayerChosen(player, available_targets, self:objectName(),
-                            "@wa_ga_michi_add:::" .. use.card:objectName())
-                        local msg = sgs.LogMessage()
-                        msg.type = "#wa_ga_michi_Add"
-                        msg.from = player
-                        msg.to:append(extra)
-                        msg.card_str = use.card:toString()
-                        msg.arg = self:objectName()
-                        room:sendLog(msg)
-                    else
-                        local tos = {}
-                        for _, t in sgs.qlist(use.to) do
-                            table.insert(tos, t:objectName())
-                        end
-                        room:setPlayerProperty(player, "extra_collateral", sgs.QVariant(use.card:toString()))
-                        room:setPlayerProperty(player, "extra_collateral_current_targets",
-                            sgs.QVariant(table.concat(tos, "+")))
-                        room:askForUseCard(player, "@@ExtraCollateral", "@wa_ga_michi_add:::collateral")
-                        room:setPlayerProperty(player, "extra_collateral", sgs.QVariant(""))
-                        room:setPlayerProperty(player, "extra_collateral_current_targets", sgs.QVariant("+"))
-                        for _, p in sgs.qlist(room:getOtherPlayers(player)) do
-                            if p:hasFlag("ExtraCollateralTarget") then
-                                p:setFlags("-ExtraCollateralTarget")
-                                extra = p
-                                break
-                            end
-                        end
-                    end
-                    use.to:append(extra)
-                    room:sortByActionOrder(use.to)
-                    data:setValue(use)
-                end
+            if use.card:getSuit() == sgs.Card_Heart and (use.card:isKindOf(Slash) or use.card:isNDTrick())
+                and use.to:contains(player) and room:askForSkillInvoke(player, self:objectName(), data) then
+                local nullified_list = use.nullified_list
+                table.insert(nullified_list, player:objectName())
+                room:setEmotion(player, "skill_nullify")
+                use.nullified_list = nullified_list
+                data:setValue(use)
             end
-            data:setValue(use)
         end
         return false
     end,
 }
-MemiKakizaki_HiraganaKeyakizaka:addSkill(Luamengwang)
+MemiKakizaki_HiraganaKeyakizaka:addSkill(sakamichi_mao_yu)
+
+sakamichi_meng_ya = sgs.CreateTriggerSkill {
+    name = "sakamichi_meng_ya",
+    freueny = sgs.Skill_Compulsory,
+    events = {},
+    on_trigger = function()
+    end,
+}
+sakamichi_meng_ya_1 = sgs.CreateFilterSkill {
+    name = "sakamichi_meng_ya_1",
+    view_filter = function(self, to_select)
+        return to_select:getSuit() == sgs.Card_Diamond
+    end,
+    view_as = function(self, card)
+        local new_card = sgs.Sanguosha:getWrappedCard(card:getEffectiveId())
+        new_card:setSkillName(self:objectName())
+        new_card:setSuit(sgs.Card_Heart)
+        new_card:setModified(true)
+        return new_card
+    end,
+}
+sakamichi_meng_ya_2 = sgs.CreateFilterSkill {
+    name = "sakamichi_meng_ya_2",
+    view_filter = function(self, to_select)
+        return to_select:getSuit() == sgs.Card_Diamond or to_select:getSuit() == sgs.Card_Club
+    end,
+    view_as = function(self, card)
+        local new_card = sgs.Sanguosha:getWrappedCard(card:getEffectiveId())
+        new_card:setSkillName(self:objectName())
+        new_card:setSuit(sgs.Card_Heart)
+        new_card:setModified(true)
+        return new_card
+    end,
+}
+sakamichi_meng_ya_3 = sgs.CreateFilterSkill {
+    name = "sakamichi_meng_ya_3",
+    view_filter = function(self, to_select)
+        return to_select:getSuit() == sgs.Card_Diamond or to_select:getSuit() == sgs.Card_Club or to_select:getSuit()
+                   == sgs.Card_Spade
+    end,
+    view_as = function(self, card)
+        local new_card = sgs.Sanguosha:getWrappedCard(card:getEffectiveId())
+        new_card:setSkillName(self:objectName())
+        new_card:setSuit(sgs.Card_Heart)
+        new_card:setModified(true)
+        return new_card
+    end,
+}
+sakamichi_meng_ya_trigger = sgs.CreateTriggerSkill {
+    name = "#sakamichi_meng_ya_trigger",
+    events = {sgs.HpChanged, sgs.MaxHpChanged},
+    global = true,
+    on_trigger = function(self, event, player, data, room)
+        local lost_hp = player:getLostHp()
+        if lost_hp >= SKMC.number_correction(player, 1) then
+            room:handleAcquireDetachSkills(player, "-sakamichi_meng_ya", false, true, false)
+            if lost_hp >= SKMC.number_correction(player, 2) then
+                room:handleAcquireDetachSkills(player, "-sakamichi_meng_ya_1", false, true)
+                if lost_hp >= SKMC.number_correction(player, 3) then
+                    room:handleAcquireDetachSkills(player, "sakamichi_meng_ya_3", false, true)
+                else
+                    room:handleAcquireDetachSkills(player, "-sakamichi_meng_ya_3", false, true)
+                    room:handleAcquireDetachSkills(player, "sakamichi_meng_ya_2", false, true)
+                end
+            else
+                room:handleAcquireDetachSkills(player, "-sakamichi_meng_ya_2", false, true)
+                room:handleAcquireDetachSkills(player, "sakamichi_meng_ya_1", false, true)
+            end
+        else
+            room:handleAcquireDetachSkills(player, "sakamichi_meng_ya", false, true, false)
+        end
+        return false
+    end,
+    can_trigger = function(self, target)
+        return target and (target:hasSkill("sakamichi_meng_ya") or target:hasSkill("sakamichi_meng_ya_1")
+                   or target:hasSkill("sakamichi_meng_ya_2") or target:hasSkill("sakamichi_meng_ya_3"))
+    end,
+}
+MemiKakizaki_HiraganaKeyakizaka:addSkill(sakamichi_meng_ya)
+if not sgs.Sanguosha:getSkill("sakamichi_meng_ya_1") then
+    SKMC.SkillList:append(sakamichi_meng_ya_1)
+end
+if not sgs.Sanguosha:getSkill("sakamichi_meng_ya_2") then
+    SKMC.SkillList:append(sakamichi_meng_ya_2)
+end
+if not sgs.Sanguosha:getSkill("sakamichi_meng_ya_3") then
+    SKMC.SkillList:append(sakamichi_meng_ya_3)
+end
+if not sgs.Sanguosha:getSkill("#sakamichi_meng_ya_trigger") then
+    SKMC.SkillList:append(sakamichi_meng_ya_trigger)
+end
 
 sgs.LoadTranslationTable {
     ["MemiKakizaki_HiraganaKeyakizaka"] = "柿崎 芽実",
     ["&MemiKakizaki_HiraganaKeyakizaka"] = "柿崎 芽実",
-    ["#MemiKakizaki_HiraganaKeyakizaka"] = "高跳的人偶",
+    ["#MemiKakizaki_HiraganaKeyakizaka"] = "法国人偶",
+    ["~MemiKakizaki_HiraganaKeyakizaka"] = "お小遣いちょうだい",
     ["designer:MemiKakizaki_HiraganaKeyakizaka"] = "Cassimolar",
     ["cv:MemiKakizaki_HiraganaKeyakizaka"] = "柿崎 芽実",
     ["illustrator:MemiKakizaki_HiraganaKeyakizaka"] = "Cassimolar",
-    ["Luamaoyu"] = "猫语",
-    [":Luamaoyu"] = "出牌阶段限一次，你可以进行一次判定，若结果为红桃，你可以选择一项：1.获得此牌；2.将此牌视为【乐不思蜀】使用。",
-    ["maoyu_use"] = "将此牌视为【乐不思蜀】使用",
-    ["@maoyu_choice"] = "请选择一名角色成为此【乐不思蜀】的目标",
-    ["maoyu_get"] = "获得此牌",
-    ["Luamengwang"] = "萌王",
-    [":Luamengwang"] = "锁定技，红桃【杀】对你无效；你使用红桃【杀】造成伤害时，此伤害+1；你使用红桃基本牌和通常锦囊牌时须额外选择一个合法目标。",
+    ["sakamichi_mao_yu"] = "猫语",
+    [":sakamichi_mao_yu"] = "轮次技，你可以将一张红桃牌当【桃】使用或打出。你使用红桃伤害牌时，你可以选择令此牌无法响应或造成的伤害+1。当你成为其他角色使用的红桃基本牌或通常锦囊牌的目标时，你可以令此牌对你无效。",
+    ["sakamichi_mao_yu:no_response"] = "令此【%arg】无法响应",
+    ["sakamichi_mao_yu:damage"] = "令此【%arg】造成的伤害+1",
+    ["sakamichi_meng_ya"] = "萌芽",
+    [":sakamichi_meng_ya"] = "锁定技，若你已损失的体力值：不小于1，你的方块牌均视为红桃牌；不小于2，你的梅花牌均视为红桃牌；不小于3，你的黑桃牌均视为红桃牌。",
+    ["sakamichi_meng_ya_1"] = "萌芽",
+    [":sakamichi_meng_ya_1"] = "锁定技，若你已损失的体力值：不小于1，你的方块牌均视为红桃牌；不小于2，你的梅花牌均视为红桃牌；不小于3，你的黑桃牌均视为红桃牌。",
+    ["sakamichi_meng_ya_2"] = "萌芽",
+    [":sakamichi_meng_ya_2"] = "锁定技，若你已损失的体力值：不小于1，你的方块牌均视为红桃牌；不小于2，你的梅花牌均视为红桃牌；不小于3，你的黑桃牌均视为红桃牌。",
+    ["sakamichi_meng_ya_3"] = "萌芽",
+    [":sakamichi_meng_ya_3"] = "锁定技，若你已损失的体力值：不小于1，你的方块牌均视为红桃牌；不小于2，你的梅花牌均视为红桃牌；不小于3，你的黑桃牌均视为红桃牌。",
 }

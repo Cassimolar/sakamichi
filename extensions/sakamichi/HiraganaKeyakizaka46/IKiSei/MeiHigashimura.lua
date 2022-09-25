@@ -3,7 +3,21 @@ require "extensions.sakamichi.SKMC"
 
 MeiHigashimura_HiraganaKeyakizaka = sgs.General(Sakamichi, "MeiHigashimura_HiraganaKeyakizaka", "HiraganaKeyakizaka46",
     4, false)
-table.insert(SKMC.IKiSei, "MeiHigashimura_HiraganaKeyakizaka")
+SKMC.IKiSei.MeiHigashimura_HiraganaKeyakizaka = true
+SKMC.SeiMeiHanDan.MeiHigashimura_HiraganaKeyakizaka = {
+	name = {8, 7, 8, 8},
+	ten_kaku = {15, "da_ji"},
+	jin_kaku = {15, "da_ji"},
+	ji_kaku = {16, "da_ji"},
+	soto_kaku = {16, "da_ji"},
+	sou_kaku = {31, "da_ji"},
+	GoGyouSanSai = {
+		ten_kaku = "tu",
+		jin_kaku = "tu",
+		ji_kaku = "tu",
+		san_sai = "ji",
+	},
+}
 
 sakamichi_wu_qiang_view_as = sgs.CreateOneCardViewAsSkill {
     name = "sakamichi_wu_qiang",

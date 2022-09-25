@@ -5,78 +5,83 @@ ManaTakase_HiraganaKeyakizaka =
     sgs.General(Sakamichi, "ManaTakase_HiraganaKeyakizaka", "HiraganaKeyakizaka46", 4, false)
 table.insert(SKMC.IKiSei, "ManaTakase_HiraganaKeyakizaka")
 
---[[
-    技能名：语窗
-    描述：当你成为黑桃牌的目标时，你可以摸一张牌；当你成为梅花牌的目标时，你可以弃置此牌使用者一张牌；当你成为红桃牌的目标时，你可以与此牌使用者各摸一张牌；当你一回合内以此法获得牌不少于两张时，此技能失效直到当前回合结束。
-]]
-Luayuchuang = sgs.CreateTriggerSkill {
-    name = "Luayuchuang",
-    --	frequency = sgs.Skill_Frequent,
-    events = {sgs.TargetConfirming, sgs.EventPhaseEnd},
+sakamichi_zhuan_yiCard = sgs.CreateSkillCard {
+    name = "sakamichi_zhuan_yiCard",
+    skill_name = "sakamichi_zhuan_yi",
+    filter = function(self, targets, to_select)
+        return #targets == 0 and to_select:getKingdom() ~= sgs.Self:getKingdom() and not to_select:isKongcheng()
+    end,
+    on_effect = function(self, effect)
+        local room = effect.from:getRoom()
+        local card = room:askForCardChosen(effect.from, effect.to, "h", self:getSkillName())
+        room:obtainCard(effect.from, card)
+        local targets = room:getOtherPlayers(effect.from)
+        targets:removeOne(effect.to)
+        local target = room:askForYiji(effect.from, effect.from:handCards(), self:getSkillName(), false, false, false,
+            1, targets)
+        if effect.from:getKingdom() == effect.to:getKingdom() or effect.from:getKingdom() == target:getKingdom()
+            or effect.to:getKingdom() == target:getKingdom() then
+            room:drawCards(effect.from, 1, self:getSkillName())
+        end
+    end,
+}
+sakamichi_zhuan_yi = sgs.CreateZeroCardViewAsSkill {
+    name = "sakamichi_zhuan_yi",
+    view_as = function(self)
+        return sakamichi_zhuan_yiCard:clone()
+    end,
+    enabled_at_play = function(self, player)
+        return not player:hasUsed("#sakamichi_zhuan_yiCard")
+    end,
+}
+ManaTakase_HiraganaKeyakizaka:addSkill(sakamichi_zhuan_yi)
+
+sakamichi_xu_yan = sgs.CreateTriggerSkill {
+    name = "sakamichi_xu_yan",
+    frequency = sgs.Skill_Frequent,
+    events = {sgs.CardFinished},
     on_trigger = function(self, event, player, data, room)
-        if event == sgs.TargetConfirming then
-            local use = data:toCardUse()
-            if use.card and not use.card:isKindOf("SkillCard") and player:hasSkill(self) then
-                if use.card:getSuit() == sgs.Card_Spade
-                    and room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("spade")) then
-                    room:drawCards(player, 1, self:objectName())
-                    room:addPlayerMark(player, "yuchuang", 1)
-                end
-                if use.card:getSuit() == sgs.Card_Club
-                    and room:askForSkillInvoke(player, self:objectName(), sgs.QVariant("club:" .. use.from:objectName())) then
-                    if not use.from:isNude() then
-                        local card = room:askForCardChosen(player, use.from, "he", self:objectName(), false,
-                            sgs.Card_MethodDiscard)
-                        room:throwCard(card, use.from, player)
+        local use = data:toCardUse()
+        local can_trigger = false
+        if use.card:isVirtualCard() then
+            if use.card:getSubcards():isEmpty() then
+                can_trigger = true
+            else
+                for _, id in sgs.qlist(use.card:getSubcards()) do
+                    if sgs.Sanguosha:getCard(id):objectName() ~= use.card:objectName() then
+                        can_trigger = true
+                        break
                     end
                 end
-                if use.card:getSuit() == sgs.Card_Heart
-                    and room:askForSkillInvoke(player, self:objectName(),
-                        sgs.QVariant("heart:" .. use.from:objectName())) then
-                    room:drawCards(player, 1, self:objectName())
-                    room:addPlayerMark(player, "yuchuang", 1)
-                    room:drawCards(use.from, 1, self:objectName())
-                    room:addPlayerMark(use.from, "yuchuang", 1)
-                end
             end
-        elseif player:getPhase() == sgs.Player_Finish then
-            for _, p in sgs.qlist(room:getAllPlayers(true)) do
-                if p:getMark("yuchuang") ~= 0 then
-                    room:setPlayerMark(p, "yuchuang", 0)
-                end
+        else
+            if use.card:objectName() ~= sgs.Sanguosha:getCard(use.card:getEffectiveId()):objectName() then
+                can_trigger = true
+            end
+        end
+        if can_trigger then
+            local target = room:askForPlayerChosen(player, room:getAlivePlayers(), self:objectName(), "xu_yan_invoke",
+                true, true)
+            if target then
+                target:turnOver()
             end
         end
         return false
     end,
-    can_trigger = function(self, target)
-        return target
-    end,
 }
-LuayuchuangInvalidity = sgs.CreateInvaliditySkill {
-    name = "#LuayuchuangInvalidity",
-    skill_valid = function(self, player, skill)
-        if player:getMark("yuchuang") >= 2 and skill:objectName() == "Luayuchuang" then
-            return false
-        else
-            return true
-        end
-    end,
-}
-ManaTakase_HiraganaKeyakizaka:addSkill(Luayuchuang)
-if not sgs.Sanguosha:getSkill("#LuayuchuangInvalidity") then
-    SKMC.SkillList:append(LuayuchuangInvalidity)
-end
+ManaTakase_HiraganaKeyakizaka:addSkill(sakamichi_xu_yan)
 
 sgs.LoadTranslationTable {
     ["ManaTakase_HiraganaKeyakizaka"] = "高瀬 愛奈",
     ["&ManaTakase_HiraganaKeyakizaka"] = "高瀬 愛奈",
-    ["#ManaTakase_HiraganaKeyakizaka"] = "假名之窗",
+    ["#ManaTakase_HiraganaKeyakizaka"] = "练习笑容",
+    ["~ManaTakase_HiraganaKeyakizaka"] = "I am a duck.",
     ["designer:ManaTakase_HiraganaKeyakizaka"] = "Cassimolar",
     ["cv:ManaTakase_HiraganaKeyakizaka"] = "高瀬 愛奈",
     ["illustrator:ManaTakase_HiraganaKeyakizaka"] = "Cassimolar",
-    ["Luayuchuang"] = "语窗",
-    [":Luayuchuang"] = "当你成为黑桃牌的目标时，你可以摸一张牌；当你成为梅花牌的目标时，你可以弃置此牌使用者一张牌；当你成为红桃牌的目标时，你可以与此牌使用者各摸一张牌；当你一回合内以此法获得牌不少于两张时，此技能失效直到当前回合结束。",
-    ["Luayuchuang:spade"] = "是否摸一张牌",
-    ["Luayuchuang:club"] = "是否弃置%src一张牌",
-    ["Luayuchuang:heart"] = "是否和%src各摸一张牌",
+    ["sakamichi_zhuan_yi"] = "转译",
+    [":sakamichi_zhuan_yi"] = "出牌阶段限一次，你可以获得一名势力与你不同的角色的一张手牌，然后你将一张手牌交给令一名其他角色，若你们三人的势力均不相同，你摸一张牌。",
+    ["sakamichi_xu_yan"] = "虚言",
+    [":sakamichi_xu_yan"] = "当你使用牌结算完成时，若此牌无对应的实体牌或对应的实体牌中有与此牌牌名不同牌，你可以令一名角色翻面。",
+    ["xu_yan_invoke"] = "你可以令一名角色翻面",
 }

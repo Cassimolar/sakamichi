@@ -10,7 +10,7 @@ require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.MemiKakizaki"
 require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.ManaTakase"
 require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.MeiHigashimura"
 require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.NeruNagahama"
--- require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.YuukaKageyama"
+require "extensions.sakamichi.HiraganaKeyakizaka46.IKiSei.YuukaKageyama"
 -- 二期生
 -- require "extensions.sakamichi.HiraganaKeyakizaka46.NiKiSei.HinaKawata"
 -- require "extensions.sakamichi.HiraganaKeyakizaka46.NiKiSei.HiyoriHamagishi"

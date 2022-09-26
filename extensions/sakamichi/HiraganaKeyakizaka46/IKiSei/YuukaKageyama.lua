@@ -5,78 +5,83 @@ YuukaKageyama_HiraganaKeyakizaka = sgs.General(Sakamichi, "YuukaKageyama_Hiragan
     false)
 table.insert(SKMC.IKiSei, "YuukaKageyama_HiraganaKeyakizaka")
 
---[[
-    技能名：德才
-    描述：你可以将任意锦囊视为【无懈可以击】使用；当你使用一张锦囊牌后，本回合内你的手牌上限+1。
-]]
-LuadecaiVS = sgs.CreateOneCardViewAsSkill {
-    name = "Luadecai",
-    response_pattern = "nullification",
-    filter_pattern = "TrickCard",
-    view_as = function(self, card)
-        local cd = sgs.Sanguosha:cloneCard("nullification", card:getSuit(), card:getNumber())
-        cd:addSubcard(card)
-        cd:setSkillName(self:objectName())
-        return cd
-    end,
-    enabled_at_play = function(self, player)
-        return false
-    end,
-    enabled_at_nullification = function(self, player)
-        for _, card in sgs.qlist(player:getHandcards()) do
-            if card:isKindOf("TrickCard") then
-                return true
+sakamichi_dao_shi = sgs.CreateTriggerSkill {
+    name = "sakamichi_dao_shi",
+    events = {sgs.CardUsed},
+    on_trigger = function(self, event, player, data, room)
+        local use = data:toCardUse()
+        if use.card:isKindOf("Peach") then
+            if not room:getCurrentDyingPlayer()
+                or (room:getCurrentDyingPlayer() and room:getCurrentDyingPlayer():objectName() ~= player:objectName()) then
+                for _, p in sgs.qlist(room:findPlayersBySkillName(self:objectName())) do
+                    if p:objectName() ~= player:objectName()
+                        and room:askForSkillInvoke(p, self:objectName(), sgs.QVariant(
+                            "invoke:" .. player:objectName() .. "::" .. self:objectName() .. ":" .. use.card:objectName())) then
+                        room:loseHp(p, SKMC.number_correction(p, 1))
+                        local nullified_list = use.nullified_list
+                        table.insert(nullified_list, "_ALL_TARGETS")
+                        use.nullified_list = nullified_list
+                        data:setValue(use)
+                        break
+                    end
+                end
             end
         end
         return false
     end,
-}
-Luadecai = sgs.CreateTriggerSkill {
-    name = "Luadecai",
-    view_as_skill = LuadecaiVS,
-    events = {sgs.CardFinished},
-    on_trigger = function(self, event, player, data, room)
-        local use = data:toCardUse()
-        if use.card and use.card:isKindOf("TrickCard") then
-            room:addMaxCards(player, 1, true)
-        end
-        return false
+    can_trigger = function(self, target)
+        return target
     end,
 }
-YuukaKageyama_HiraganaKeyakizaka:addSkill(Luadecai)
+YuukaKageyama_HiraganaKeyakizaka:addSkill(sakamichi_dao_shi)
 
---[[
-    技能名：兼学
-    描述：摸牌阶段，你可以额外摸至多两张牌，若如此做，本回合内你减少等量的手牌上限。
-]]
-Luajianxue = sgs.CreateTriggerSkill {
-    name = "Luajianxue",
-    events = {sgs.DrawNCards},
-    on_trigger = function(self, event, player, data, room)
-        local choice = room:askForChoice(player, self:objectName(), "jianxue_draw1+jianxue_draw2+cancel")
-        if choice == "jianxue_draw1" then
-            data:setValue(data:toInt() + 1)
-            room:addMaxCards(player, -1, true)
-        elseif choice == "jianxue_draw2" then
-            data:setValue(data:toInt() + 2)
-            room:addMaxCards(player, -2, true)
+sakamichi_bo_shi = sgs.CreateViewAsSkill {
+    name = "sakamichi_bo_shi",
+    n = 999,
+    response_pattern = "nullification",
+    response_or_use = true,
+    view_filter = function(self, selected, to_select)
+        return #selected < sgs.Self:getHp() and not to_select:isEquipped()
+    end,
+    view_as = function(self, cards)
+        local cd
+        if #cards == sgs.Self:getHp() then
+            cd = sgs.Sanguosha:cloneCard("nullification", sgs.Card_SuitToBeDecided, -1)
+            cd:setSkillName(self:objectName())
+            for _, c in ipairs(cards) do
+                cd:addSubcard(c)
+            end
         end
-        return false
+        return cd
+    end,
+    enabled_at_response = function(self, player, pattern)
+        return pattern == "nullification" and player:getHandcardNum() >= player:getHp()
     end,
 }
-YuukaKageyama_HiraganaKeyakizaka:addSkill(Luajianxue)
+sakamichi_bo_shi_max = sgs.CreateMaxCardsSkill {
+    name = "#sakamichi_bo_shi_max",
+    extra_func = function(self, target)
+        if target:hasSkill("sakamichi_bo_shi") then
+            return target:getHp()
+        end
+    end,
+}
+YuukaKageyama_HiraganaKeyakizaka:addSkill(sakamichi_bo_shi)
+if not sgs.Sanguosha:getSkill("#sakamichi_bo_shi_max") then
+    SKMC.SkillList:append(sakamichi_bo_shi_max)
+end
 
 sgs.LoadTranslationTable {
     ["YuukaKageyama_HiraganaKeyakizaka"] = "影山 優佳",
     ["&YuukaKageyama_HiraganaKeyakizaka"] = "影山 優佳",
-    ["#YuukaKageyama_HiraganaKeyakizaka"] = "德才兼備",
+    ["#YuukaKageyama_HiraganaKeyakizaka"] = "品学兼优",
+    ["~YuukaKageyama_HiraganaKeyakizaka"] = "それは個人の見解では？",
     ["designer:YuukaKageyama_HiraganaKeyakizaka"] = "Cassimolar",
     ["cv:YuukaKageyama_HiraganaKeyakizaka"] = "影山 優佳",
     ["illustrator:YuukaKageyama_HiraganaKeyakizaka"] = "Cassimolar",
-    ["Luadecai"] = "德才",
-    [":Luadecai"] = "你可以将任意锦囊视为【无懈可以击】使用；当你使用一张锦囊牌后，本回合内你的手牌上限+1。",
-    ["Luajianxue"] = "兼学",
-    [":Luajianxue"] = "摸牌阶段，你可以额外摸至多两张牌，若如此做，本回合内你减少等量的手牌上限。",
-    ["jianxue_draw1"] = "额外摸一张牌，本回合内手牌上限-1",
-    ["jianxue_draw2"] = "额外摸两张牌，本回合内手牌上限-2",
+    ["sakamichi_dao_shi"] = "盗食",
+    [":sakamichi_dao_shi"] = "其他角色使用【桃】时，若其未处于濒死，你可以失去1点体力令此【桃】无效。",
+    ["sakamichi_dao_shi:invoke"] = "是否发动【%arg】令%src使用的此【%arg2】无效",
+    ["sakamichi_bo_shi"] = "博识",
+    [":sakamichi_bo_sh"] = "你可以将X张手牌当【无懈可击】使用。你的手牌上限+X（X为你的体力值）。",
 }

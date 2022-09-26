@@ -50,7 +50,7 @@ end
 
 sakamichi_mi_yu = sgs.CreateTriggerSkill {
     name = "sakamichi_mi_yu",
-    events = {sgs.GameStart, sgs.CardsMoveOneTime},
+    events = {sgs.GameStart, sgs.CardsMoveOneTime, sgs.Death},
     on_trigger = function(self, event, player, data, room)
         if event == sgs.GameStart then
             if player:hasSkill(self) then
@@ -107,6 +107,34 @@ sakamichi_mi_yu = sgs.CreateTriggerSkill {
                                 players:append(room:findPlayerByObjectName(target_name))
                                 SKMC.fake_move(room, target, "&" .. self:objectName(), move.card_ids, true,
                                     self:objectName(), players)
+                            end
+                        end
+                    end
+                end
+            end
+        elseif event == sgs.Death then
+            local death = data:toDeath()
+            if death.who:objectName() == player:objectName() then
+                for _, mark in sgs.list(player:getMarkNames()) do
+                    if mark:startsWith("mi_yu_") then
+                        local target_name = mark:split("_")[3]
+                        if target_name then
+                            local target = room:findPlayerByObjectName(target_name)
+                            if target then
+                                room:setPlayerMark(target, mark, 0)
+                                room:setPlayerMark(player, "mi_yu_" .. target:objectName(), 0)
+                                if not target:handCards():isEmpty() then
+                                    local players = sgs.SPlayerList()
+                                    players:append(target)
+                                    SKMC.fake_move(room, target, "&" .. self:objectName(), target:handCards(), false,
+                                        self:objectName(), players)
+                                end
+                                if not player:handCards():isEmpty() then
+                                    local players = sgs.SPlayerList()
+                                    players:append(player)
+                                    SKMC.fake_move(room, player, "&" .. self:objectName(), player:handCards(), false,
+                                        self:objectName(), players)
+                                end
                             end
                         end
                     end

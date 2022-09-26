@@ -22,23 +22,25 @@
 
 - 3.解压扩展包，将里面的文件复制到神杀本体的根目录中
 
-- 4.打开神杀本体，点击`加入游戏`，修改你的`名称`和`头像`，选择或输入`服务器地址:端口`，点击`连接`，即可开始联机游戏
+- 4.打开神杀本体，点击`加入游戏`，修改你的`名称`和`头像`，点击查找服务器选择服务器或直接输入`服务器地址:端口`，点击`连接`，即可开始联机游戏
 
 - 5.如果你需要自行开主或需要别的游戏模式，可以点击上面的发送邮件获取内网穿透配置或游戏模式服务器。
 
 |       模式       |                   地址                   | 端口  |
 | :--------------: | :--------------------------------------: | :---: |
-| 2 人局[KOF 模式] | sakamichi.games<br>game.sakamichi.eu.org | 20501 |
-|  3 人局[斗地主]  | sakamichi.games<br>game.sakamichi.eu.org | 20502 |
-| 4 人局[欢乐成双] | sakamichi.games<br>game.sakamichi.eu.org | 20503 |
-|      5 人局      | sakamichi.games<br>game.sakamichi.eu.org | 20504 |
-|      6 人局      | sakamichi.games<br>game.sakamichi.eu.org | 20505 |
-|   6 人局[3v3]    | sakamichi.games<br>game.sakamichi.eu.org | 20506 |
-|      8 人局      | sakamichi.games<br>game.sakamichi.eu.org | 20507 |
-|     10 人局      | sakamichi.games<br>game.sakamichi.eu.org | 20508 |
+| 2人局[KOF模式] | sakamichi.games<br>game.sakamichi.eu.org | 20501 |
+|  3人局[斗地主]  | sakamichi.games<br>game.sakamichi.eu.org | 20502 |
+| 4人局[欢乐成双] | sakamichi.games<br>game.sakamichi.eu.org | 20503 |
+|      5人局      | sakamichi.games<br>game.sakamichi.eu.org | 20504 |
+|   6人局[3v3]    | sakamichi.games<br>game.sakamichi.eu.org | 20505 |
+|      6人局      | sakamichi.games<br>game.sakamichi.eu.org | 20506 |
+|      7人局      | sakamichi.games<br>game.sakamichi.eu.org | 20507 |
+|      8人局      | sakamichi.games<br>game.sakamichi.eu.org | 20508 |
+|      9人局      | sakamichi.games<br>game.sakamichi.eu.org | 20509 |
+|     10人局      | sakamichi.games<br>game.sakamichi.eu.org | 20510 |
 
 ## 现阶段重制进度
 
-![进度](https://cdn.jsdelivr.net/gh/Cassimolar/sakamichi@pic/图床/进度_1.png)
+![进度](https://cdn.jsdelivr.net/gh/Cassimolar/sakamichi@pic/图床/进度_2.png)
 
 [详细进度](https://github.com/Cassimolar/sakamichi/tree/img/README.md)
